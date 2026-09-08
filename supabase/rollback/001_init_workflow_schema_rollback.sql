@@ -11,7 +11,14 @@
 -- untested the way it did on the CMMS.
 --
 -- Does not touch `public` — nothing in this schema ever did.
+--
+-- Wrapped in an explicit transaction to match the migration file — either
+-- the whole rollback lands or none of it does. Not asked for this round,
+-- added as the obvious companion to wrapping 001 itself; drop it if you'd
+-- rather keep rollback un-transacted for some reason.
 -- =============================================================================
+
+begin;
 
 drop trigger if exists progress_updates_bump_movement on workflow.progress_updates;
 drop function if exists workflow.bump_last_meaningful_movement();
@@ -43,3 +50,5 @@ drop function if exists workflow.is_member();
 -- Fails loudly if anything above was missed (schema won't be empty) —
 -- that is the point, don't change this to `cascade`.
 drop schema if exists workflow;
+
+commit;

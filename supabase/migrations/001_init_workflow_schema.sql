@@ -21,7 +21,13 @@
 --   Project Settings > API > Exposed schemas — add `workflow` alongside
 --   `public`. PostgREST only serves schemas on that list; until this is
 --   done, every query from the app will 404. See the result doc.
+--
+-- Wrapped in an explicit transaction: either the whole schema lands, or
+-- none of it does. Nothing below uses CREATE INDEX CONCURRENTLY or any
+-- other statement that cannot run inside a transaction block.
 -- =============================================================================
+
+begin;
 
 create schema if not exists workflow;
 
@@ -247,10 +253,7 @@ create table workflow.projects (
   created_at                  timestamptz not null default now(),
   updated_at                  timestamptz not null default now(),
   constraint projects_stream_check check (stream in ('elv', 'bms', 'fas', 'other')),
-  constraint projects_percent_complete_check check (percent_complete between 0 and 100),
-  constraint projects_so_number_format_check check (
-    so_number is null or so_number ~ '^AD[0-9]{4}-V?[0-9]{2}[TSCPD]$'
-  )
+  constraint projects_percent_complete_check check (percent_complete between 0 and 100)
 );
 
 comment on table workflow.projects is
@@ -261,7 +264,9 @@ comment on table workflow.projects is
 
 comment on column workflow.projects.so_number is
   'Format ADxxxx-xx{T|S|C|P|D}, VAT variant carries V before the year: '
-  'AD0746-V26S. Non-VAT: AD0746-26S.';
+  'AD0746-V26S. Non-VAT: AD0746-26S. NOT enforced by a CHECK here — '
+  'validated in the app layer instead (src/lib/validation/so-number.ts), '
+  'by decision, so a format fix ships as a code change, not a migration.';
 
 comment on column workflow.projects.percent_complete is
   'Entered directly by a progress update (Brief §4.2). Never rolled up '
@@ -728,3 +733,5 @@ create policy procurement_lines_select on workflow.procurement_lines
 
 create policy dependency_links_select on workflow.dependency_links
   for select using (workflow.is_member());
+
+commit;
