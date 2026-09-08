@@ -1,29 +1,33 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Verification queries for Migration 001
 -- Brief: ADTECH_WF_Brief_001_Project_Scaffold_And_Schema
--- Addendum folded in: ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables
+-- Addenda folded in: ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables,
+--                     ADTECH_WF_Brief_001C_Teams_Table_And_Bootstrap
 --
 -- Run each block by hand in the Supabase SQL editor AFTER applying
--- 001_init_workflow_schema.sql. Every query inspects live catalog state
+-- 001_init_workflow_schema.sql AND AFTER running the commented bootstrap
+-- INSERT at the end of that file (Brief 001C §3) — that step is between
+-- "run the migration" and "run these verification queries" in the apply
+-- sequence; see the result doc. Every query inspects live catalog state
 -- (pg_class / pg_policies / information_schema), never the migration
 -- text — a false claim that RLS was "on" shipped once on the CMMS this
 -- way and is exactly what this file exists to rule out.
 -- =============================================================================
 
--- 1. All 18 tables exist in schema `workflow`.
--- Expect exactly this list, 18 rows:
+-- 1. All 19 tables exist in schema `workflow`.
+-- Expect exactly this list, 19 rows:
 --   approval_steps, catalogue_events, catalogue_items, clients,
 --   dependency_links, members, orgs, procurement_lines, progress_updates,
 --   project_items, projects, reason_codes, reporting_periods,
---   request_handoffs, requests, sites, stages, variations
+--   request_handoffs, requests, sites, stages, teams, variations
 select table_name
 from information_schema.tables
 where table_schema = 'workflow'
 order by table_name;
 
 
--- 2. RLS is ENABLED on every one of those 18 tables.
--- Expect rls_enabled = true on all 18 rows, none missing.
+-- 2. RLS is ENABLED on every one of those 19 tables.
+-- Expect rls_enabled = true on all 19 rows, none missing.
 select c.relname as table_name,
        c.relrowsecurity as rls_enabled
 from pg_class c
@@ -32,9 +36,10 @@ where n.nspname = 'workflow' and c.relkind = 'r'
 order by c.relname;
 
 
--- 3. Expected policies exist BY NAME (26 total).
+-- 3. Expected policies exist BY NAME (27 total).
 -- Expect the exact set below, one row each:
 --   orgs_select
+--   teams_select
 --   members_select, members_insert, members_update
 --   stages_select
 --   approval_steps_select
@@ -170,24 +175,26 @@ where n.nspname = 'workflow'
 order by cl.relname;
 
 
--- 13. No CHECK constraint enumerates scope_type, a stage code, or an
---     approval code anywhere (Brief 001A §7). This is a full listing to
---     eyeball rather than a yes/no — automatically proving an absence of
---     meaning isn't possible from the catalog alone. The only expected
---     "enumeration-shaped" CHECKs in this list are ones this migration's
---     own comments already call out as intentional and NOT stakeholder-
---     owned lists: members_team_check, members_role_check,
---     requests_destination_team_check (workflow's own team vocabulary,
---     unrelated to scope_type/stage/approval codes), projects_stream_check
---     (also team/product vocabulary, not a discovered list),
---     progress_updates_subject_type_check, reason_codes_stream_check,
---     reporting_periods_stream_check, and approval_steps_applies_to_check
---     (a fixed set of record kinds this app defines, not a discovered
---     list — see the comment on workflow.approval_steps). None of these
---     should mention a stage code, an approval_steps.code value, or
---     enumerate scope_type's actual values (elv/bms/fas/other appearing
---     only in the *_stream checks is expected and is a separate, already-
---     settled decision from Brief 001 §4.3, not a stage/approval list).
+-- 13. No CHECK constraint enumerates scope_type, a stage code, an approval
+--     code, or (as of Brief 001C) a team anywhere. This is a full listing
+--     to eyeball rather than a yes/no — automatically proving an absence
+--     of meaning isn't possible from the catalog alone.
+-- Expect 13 rows, not 15 — members_team_check and
+-- requests_destination_team_check are GONE (Brief 001C §2: both team
+-- columns are now FKs to workflow.teams, see blocks 14/15 below, and
+-- neither should appear in this list at all). The only expected
+-- "enumeration-shaped" CHECKs remaining are ones this migration's own
+-- comments already call out as intentional and NOT stakeholder-owned
+-- lists: members_role_check, projects_stream_check (team/product
+-- vocabulary, not a discovered list), progress_updates_subject_type_check,
+-- reason_codes_stream_check, reporting_periods_stream_check, and
+-- approval_steps_applies_to_check (a fixed set of record kinds this app
+-- defines, not a discovered list — see the comment on
+-- workflow.approval_steps). None of these should mention a stage code, an
+-- approval_steps.code value, or enumerate scope_type's actual values
+-- (elv/bms/fas/other appearing only in the *_stream checks is expected
+-- and is a separate, already-settled decision from Brief 001 §4.3, not a
+-- stage/approval/team list).
 select
   cl.relname as table_name,
   con.conname,
@@ -198,3 +205,39 @@ join pg_namespace n on n.oid = cl.relnamespace
 where n.nspname = 'workflow'
   and con.contype = 'c'
 order by cl.relname, con.conname;
+
+
+-- =============================================================================
+-- Brief 001C additions (teams table, folded into 001)
+-- =============================================================================
+
+-- 14. workflow.teams holds exactly 12 rows with the expected codes.
+-- Expect 12 rows, sort_order 10 through 120, codes:
+--   sales, tender, a_and_a, finance, procurement_local, procurement_overseas,
+--   logistics, qs, project_management, tnc, shop_drawing, qc
+-- All is_active = true, all label_km IS NULL.
+select code, label_en, label_km, sort_order, is_active
+from workflow.teams
+order by sort_order;
+
+
+-- 15. All four team FKs exist and are RESTRICT — read from pg_constraint
+--     (confdeltype), not the migration text. confdeltype 'r' = RESTRICT.
+-- Expect 4 rows: workflow.members.team_id, workflow.requests
+-- .destination_team_id, workflow.stages.owner_team_id,
+-- workflow.approval_steps.approver_team_id — all confdeltype = 'r'.
+-- members.team_id and stages.owner_team_id and approval_steps
+-- .approver_team_id should show is_nullable = false;
+-- requests.destination_team_id should show is_nullable = true.
+select
+  con.conrelid::regclass as table_name,
+  a.attname as column_name,
+  not a.attnotnull as is_nullable,
+  con.confdeltype
+from pg_constraint con
+join pg_attribute a
+  on a.attrelid = con.conrelid
+ and a.attnum = con.conkey[1]
+where con.contype = 'f'
+  and con.confrelid = 'workflow.teams'::regclass
+order by table_name;

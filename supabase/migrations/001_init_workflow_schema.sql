@@ -1,10 +1,15 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Migration 001: project scaffold and schema
 -- Brief: ADTECH_WF_Brief_001_Project_Scaffold_And_Schema
--- Addendum folded in: ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables
---   (Case A — 001 had not shipped to prod yet, so 001A's tables and column
---   changes live here rather than in a 002. See §1A below, and
---   projects/requests.current_stage_id.)
+-- Addenda folded in (both Case A — 001 had not shipped to prod at the time
+-- of either, so each addendum's changes live here rather than in a new
+-- numbered migration):
+--   ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables
+--     See §1A below, and projects/requests.current_stage_id.
+--   ADTECH_WF_Brief_001C_Teams_Table_And_Bootstrap
+--     See §0B below (workflow.teams), the four *_team_id FK repoints on
+--     members/requests/stages/approval_steps, and the commented bootstrap
+--     block at the end of this file.
 --
 -- Applies BY HAND in the Supabase SQL editor, before any matching code is
 -- merged (settled practice carried over from the CMMS — DB sits ahead of
@@ -60,6 +65,73 @@ insert into workflow.orgs (id, name)
 values ('00000000-0000-0000-0000-000000000001', 'ADTECH');
 
 -- -----------------------------------------------------------------------------
+-- 0B. TEAMS  (Brief 001C — replaces the team vocabulary that used to live as
+--    a CHECK constraint string on members.team and requests.destination_team,
+--    while stages.owner_team and approval_steps.approver_team held the same
+--    concept completely unvalidated. Team membership of the org is exactly
+--    the kind of list that should be rows, not a CHECK. Defined here, ahead
+--    of IDENTITY AND ACCESS, because workflow.members is the first of four
+--    tables that FK to it.)
+-- -----------------------------------------------------------------------------
+
+create table workflow.teams (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null default '00000000-0000-0000-0000-000000000001'
+              references workflow.orgs (id),
+  code        text not null,
+  label_en    text not null,
+  label_km    text,
+  sort_order  integer not null,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  unique (org_id, code)
+);
+
+comment on table workflow.teams is
+  'The org''s team vocabulary, as rows instead of a CHECK string repeated '
+  'across members/requests/stages/approval_steps (Brief 001C §1). RLS: '
+  'SELECT policy only, consistent with stages and approval_steps — rows '
+  'are entered by hand in the SQL editor as owner, which bypasses RLS. '
+  'Retire a team with is_active, never delete it (the four FKs below are '
+  'all ON DELETE RESTRICT). '
+  'FLAGGED, NOT ACTED ON (Brief 001C §2): this seed folds Security, BMS '
+  'and Life Safety into `tnc`. Those are three distinct teams that '
+  'TOGETHER FORM TNC as a shared cross-cutting resource pool, not the '
+  'same thing as TNC itself. Whether they need their own rows with TNC '
+  'as a grouping above them is a real modelling question for the '
+  'discovery sessions, deliberately left open here — the point of this '
+  'being a table is that the answer becomes three INSERT statements '
+  'rather than a migration.';
+
+comment on column workflow.teams.code is
+  'Stable, ASCII, never translated or renamed — the same strings the '
+  'dropped members_team_check / requests_destination_team_check CHECKs '
+  'used to enumerate.';
+
+comment on column workflow.teams.sort_order is
+  'Steps of 10, same convention as stages.sequence / approval_steps.sequence.';
+
+comment on column workflow.teams.label_km is
+  'Left NULL throughout this seed. Khmer labels come later with a '
+  'native-speaker pass, same as reason_codes.';
+
+-- Confirmed by process mapping already done (Brief 001C §2), not pending
+-- discovery — unlike stages/approval_steps, this list is seeded now.
+insert into workflow.teams (code, label_en, sort_order) values
+  ('sales',                 'Sales',                   10),
+  ('tender',                'Tender',                  20),
+  ('a_and_a',               'A&A',                     30),
+  ('finance',               'Finance',                 40),
+  ('procurement_local',     'Procurement (Local)',     50),
+  ('procurement_overseas',  'Procurement (Overseas)',  60),
+  ('logistics',             'Logistics',               70),
+  ('qs',                    'QS',                      80),
+  ('project_management',    'Project Management',      90),
+  ('tnc',                   'TNC',                     100),
+  ('shop_drawing',          'Shop Drawing',             110),
+  ('qc',                    'QC',                      120);
+
+-- -----------------------------------------------------------------------------
 -- 1. IDENTITY AND ACCESS
 -- -----------------------------------------------------------------------------
 
@@ -68,17 +140,12 @@ create table workflow.members (
   org_id      uuid not null default '00000000-0000-0000-0000-000000000001'
               references workflow.orgs (id),
   user_id     uuid not null references public.user_profiles (id) on delete restrict,
-  team        text not null,
+  team_id     uuid not null references workflow.teams (id) on delete restrict,
   role        text not null default 'member',
   is_active   boolean not null default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   unique (org_id, user_id),
-  constraint members_team_check check (team in (
-    'sales', 'tender', 'a_and_a', 'finance', 'procurement_local',
-    'procurement_overseas', 'logistics', 'qs', 'project_management',
-    'tnc', 'shop_drawing', 'qc'
-  )),
   constraint members_role_check check (role in ('member', 'manager', 'admin'))
 );
 
@@ -125,7 +192,9 @@ stable
 security definer
 set search_path = workflow, pg_temp
 as $$
-  select m.team from workflow.members m
+  select t.code
+  from workflow.members m
+  join workflow.teams t on t.id = m.team_id
   where m.user_id = auth.uid() and m.is_active
   limit 1;
 $$;
@@ -147,7 +216,7 @@ create table workflow.stages (
   label_en    text not null,
   label_km    text,
   sequence    integer not null,
-  owner_team  text not null,
+  owner_team_id uuid not null references workflow.teams (id) on delete restrict,
   is_terminal boolean not null default false,
   is_active   boolean not null default true,
   created_at  timestamptz not null default now(),
@@ -156,8 +225,8 @@ create table workflow.stages (
 
 comment on table workflow.stages is
   'Per-scope-type stage list. Screen 4a groups the board by WHO MUST ACT '
-  'NEXT — "one owner, one clock" — so owner_team is an attribute of the '
-  'stage, not inferred by the board (Brief 001A §3). Deliberately no '
+  'NEXT — "one owner, one clock" — so owner_team_id is an attribute of '
+  'the stage, not inferred by the board (Brief 001A §3). Deliberately no '
   'CHECK on scope_type: the list is not confirmed pending stakeholder '
   'discovery. Seeded with zero rows.';
 
@@ -167,10 +236,11 @@ comment on column workflow.stages.sequence is
   'renumbering the list. Sort by sequence, then code as a stable '
   'tiebreak.';
 
-comment on column workflow.stages.owner_team is
-  'The team holding the work at this stage — not free text against the '
-  'members.team vocabulary by CHECK, since that would re-couple this '
-  'table to a list that can independently drift.';
+comment on column workflow.stages.owner_team_id is
+  'The team holding the work at this stage — screen 4a groups the whole '
+  'board by this column ("one owner, one clock"). FK to workflow.teams '
+  '(Brief 001C §2), ON DELETE RESTRICT: a team in use must not be '
+  'deletable, retire it via teams.is_active instead.';
 
 create table workflow.approval_steps (
   id             uuid primary key default gen_random_uuid(),
@@ -182,7 +252,7 @@ create table workflow.approval_steps (
   label_en       text not null,
   label_km       text,
   sequence       integer not null,
-  approver_team  text not null,
+  approver_team_id uuid not null references workflow.teams (id) on delete restrict,
   approver_role  text,
   is_active      boolean not null default true,
   created_at     timestamptz not null default now(),
@@ -193,15 +263,15 @@ create table workflow.approval_steps (
 
 comment on table workflow.approval_steps is
   'Who signs what, in what order. scope_type null = applies to all scope '
-  'types. approver_role null = any member of approver_team. Seeded with '
-  'zero rows — the one already-known chain (material requisition: QS '
-  'then management) is deliberately NOT inserted here; it enters as data '
-  'in the same pass as everything else the discovery sessions confirm, '
-  'per Brief 001A §3, so there is exactly one moment these tables are '
-  'populated rather than two. applies_to is a real enumeration (it names '
-  'a fixed set of record kinds this app itself defines, unlike '
-  'scope_type/stage/approval codes, which are stakeholder-owned lists) '
-  'so it keeps its CHECK constraint.';
+  'types. approver_role null = any member of the approver_team_id team. '
+  'Seeded with zero rows — the one already-known chain (material '
+  'requisition: QS then management) is deliberately NOT inserted here; '
+  'it enters as data in the same pass as everything else the discovery '
+  'sessions confirm, per Brief 001A §3, so there is exactly one moment '
+  'these tables are populated rather than two. applies_to is a real '
+  'enumeration (it names a fixed set of record kinds this app itself '
+  'defines, unlike scope_type/stage/approval codes, which are '
+  'stakeholder-owned lists) so it keeps its CHECK constraint.';
 
 create unique index approval_steps_org_applies_scope_code_key
   on workflow.approval_steps (org_id, applies_to, coalesce(scope_type, ''), code);
@@ -339,21 +409,20 @@ create table workflow.requests (
   requester_id        uuid not null references public.user_profiles (id) on delete restrict,
   current_owner_id    uuid references public.user_profiles (id) on delete restrict,
   current_stage_id    uuid references workflow.stages (id) on delete restrict,
-  destination_team    text,
+  destination_team_id uuid references workflow.teams (id) on delete restrict,
   destination_unsure  boolean not null default false,
   project_id          uuid references workflow.projects (id),
   opened_at           timestamptz not null default now(),
   closed_at           timestamptz,
   created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now(),
-  constraint requests_destination_team_check check (
-    destination_team is null or destination_team in (
-      'sales', 'tender', 'a_and_a', 'finance', 'procurement_local',
-      'procurement_overseas', 'logistics', 'qs', 'project_management',
-      'tnc', 'shop_drawing', 'qc'
-    )
-  )
+  updated_at          timestamptz not null default now()
 );
+
+comment on column workflow.requests.destination_team_id is
+  'FK to workflow.teams (Brief 001C §2), NULLABLE by design — a request '
+  'with destination_unsure = true has no destination team yet, which '
+  'backs screen 1a''s first-class "I''m not sure" button. ON DELETE '
+  'RESTRICT: retire a team via teams.is_active instead of deleting it.';
 
 comment on column workflow.requests.destination_unsure is
   'Backs screen 1a''s first-class "I''m not sure" button, which routes to '
@@ -614,6 +683,7 @@ comment on table workflow.dependency_links is
 -- =============================================================================
 
 alter table workflow.orgs               enable row level security;
+alter table workflow.teams              enable row level security;
 alter table workflow.members            enable row level security;
 alter table workflow.stages             enable row level security;
 alter table workflow.approval_steps     enable row level security;
@@ -637,6 +707,12 @@ alter table workflow.dependency_links   enable row level security;
 -- anywhere in the brief.
 
 create policy orgs_select on workflow.orgs
+  for select using (workflow.is_member());
+
+-- teams: read-only from the app's perspective for now, same reasoning as
+-- stages / approval_steps below — no admin UI exists yet, rows are
+-- entered by hand in the SQL editor as owner, which bypasses RLS.
+create policy teams_select on workflow.teams
   for select using (workflow.is_member());
 
 create policy members_select on workflow.members
@@ -735,3 +811,31 @@ create policy dependency_links_select on workflow.dependency_links
   for select using (workflow.is_member());
 
 commit;
+
+-- =============================================================================
+-- BOOTSTRAP — NOT PART OF THE TRANSACTION ABOVE. DO NOT UNCOMMENT AND RUN
+-- AS PART OF THIS FILE. (Brief 001C §3)
+--
+-- workflow.members only accepts INSERT from a manager (members_insert
+-- policy). workflow.is_manager() reads workflow.members. workflow.members
+-- is seeded empty. So immediately after the transaction above commits,
+-- NOBODY — including the account that owns this project — can add anyone
+-- through the app or through RLS-governed SQL.
+--
+-- This is not a bug and must not be "fixed" with a seeded member row or a
+-- loosened policy. It is fixed by running the INSERT below BY HAND, ONCE,
+-- in the Supabase SQL editor, where the session runs as the table owner
+-- and bypasses RLS entirely. Do this immediately after applying the
+-- migration above, before anything else — see the result doc's apply
+-- sequence.
+--
+-- 1. Look up the auth.users.id (== public.user_profiles.id) for the first
+--    person who should have access — usually whoever will bootstrap the
+--    rest of the team — and substitute it for <FIRST_MEMBER_USER_ID> below.
+-- 2. Pick their team_id from workflow.teams (or run
+--    `select id, code from workflow.teams order by sort_order;` first).
+-- 3. Uncomment and run just this one statement, as owner:
+--
+-- insert into workflow.members (user_id, team_id, role)
+-- values ('<FIRST_MEMBER_USER_ID>', '<FIRST_MEMBER_TEAM_ID>', 'admin');
+-- =============================================================================
