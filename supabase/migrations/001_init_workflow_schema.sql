@@ -1,6 +1,16 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Migration 001: project scaffold and schema
 -- Brief: ADTECH_WF_Brief_001_Project_Scaffold_And_Schema
+--
+-- STATUS (as of Brief 001D, 8 Sep 2026): APPLIED AND VERIFIED IN PROD (the
+-- ADTECH CMMS Supabase project, shared database, schema `workflow`) —
+-- verified by direct catalog query, not by reading this file. This file
+-- is now a record of what has already run, not a draft; see Result 001D
+-- for the full verified state. Two by-hand steps required beyond this
+-- file's own DDL (PostgREST schema exposure, role grants) are folded into
+-- supabase/migrations/002_grants_and_api_exposure.sql — see that file's
+-- header for why they're separate rather than appended here.
+--
 -- Addenda folded in (both Case A — 001 had not shipped to prod at the time
 -- of either, so each addendum's changes live here rather than in a new
 -- numbered migration):
@@ -10,6 +20,13 @@
 --     See §0B below (workflow.teams), the four *_team_id FK repoints on
 --     members/requests/stages/approval_steps, and the commented bootstrap
 --     block at the end of this file.
+-- Corrected post-apply (Case B — 001 HAD shipped to prod by this point, so
+-- this is a source-text correction for the next clean apply, not a change
+-- to the live database; see migration 002 and Result 001D for the paste-
+-- ready SQL that fixes the already-live database instead):
+--   ADTECH_WF_Brief_001D_Post_Apply_Reconciliation_And_Rollback_Test
+--     progress_updates_insert's auth.uid() calls wrapped as
+--     (select auth.uid()) — see the comment above that policy, §3 below.
 --
 -- Applies BY HAND in the Supabase SQL editor, before any matching code is
 -- merged (settled practice carried over from the CMMS — DB sits ahead of
@@ -22,10 +39,14 @@
 -- deletion, is the intended path, mirroring the stages/approval_steps
 -- deactivate-not-delete convention below.
 --
--- MANUAL STEP REQUIRED AFTER RUNNING THIS FILE (cannot be done from code):
---   Project Settings > API > Exposed schemas — add `workflow` alongside
---   `public`. PostgREST only serves schemas on that list; until this is
---   done, every query from the app will 404. See the result doc.
+-- SCHEMA EXPOSURE — CORRECTED (Brief 001D §2.1): the note this comment
+-- used to carry ("Project Settings > API > Exposed schemas — add
+-- `workflow` alongside `public`") was WRONG about the mechanism. That
+-- dashboard field did not surface `workflow` as an option on the current
+-- dashboard version. The actual, supported path is SQL, against the
+-- `authenticator` role's `pgrst.db_schemas` setting — see migration 002.
+-- Left here as a corrected pointer rather than deleted, since this is
+-- exactly the kind of stale claim Brief 001D exists to catch.
 --
 -- Wrapped in an explicit transaction: either the whole schema lands, or
 -- none of it does. Nothing below uses CREATE INDEX CONCURRENTLY or any
@@ -773,25 +794,40 @@ create policy reporting_periods_update on workflow.reporting_periods
 
 -- progress_updates: append-only, and INSERT is restricted to exactly who
 -- Brief §4.7 names — the project's owner, the item's PIC, or a manager.
+--
+-- auth.uid() is wrapped as (select auth.uid()) in all three spots below
+-- (Brief 001D §3 — Supabase's "Auth RLS Initialization Plan" advisor):
+-- called bare, Postgres re-evaluates it PER ROW; wrapped in a scalar
+-- subselect, the planner hoists it to run once per statement instead.
+-- This is the only policy in the schema that calls auth.uid() directly —
+-- every other policy goes through workflow.is_member()/is_manager(),
+-- which call auth.uid() internally but are out of scope for this fix
+-- (audited: all 27 policies checked, this is the only one). It matters
+-- most here because progress_updates is append-only and the
+-- fastest-growing table in the schema. Already live in prod under the
+-- unwrapped form as of the Brief 001C apply — see Result 001D for the
+-- paste-ready DROP POLICY / CREATE POLICY pair that applies this same
+-- fix to the running database; editing this CREATE POLICY statement only
+-- fixes what a FUTURE apply (e.g. after the rollback test) produces.
 create policy progress_updates_select on workflow.progress_updates
   for select using (workflow.is_member());
 create policy progress_updates_insert on workflow.progress_updates
   for insert with check (
-    author_id = auth.uid()
+    author_id = (select auth.uid())
     and (
       workflow.is_manager()
       or (
         subject_type = 'project'
         and exists (
           select 1 from workflow.projects p
-          where p.id = subject_id and p.owner_id = auth.uid()
+          where p.id = subject_id and p.owner_id = (select auth.uid())
         )
       )
       or (
         subject_type = 'item'
         and exists (
           select 1 from workflow.project_items i
-          where i.id = subject_id and i.pic_id = auth.uid()
+          where i.id = subject_id and i.pic_id = (select auth.uid())
         )
       )
     )
