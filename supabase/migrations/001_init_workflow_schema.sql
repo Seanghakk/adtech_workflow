@@ -1,12 +1,21 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Migration 001: project scaffold and schema
 -- Brief: ADTECH_WF_Brief_001_Project_Scaffold_And_Schema
+-- Addendum folded in: ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables
+--   (Case A — 001 had not shipped to prod yet, so 001A's tables and column
+--   changes live here rather than in a 002. See §1A below, and
+--   projects/requests.current_stage_id.)
 --
 -- Applies BY HAND in the Supabase SQL editor, before any matching code is
 -- merged (settled practice carried over from the CMMS — DB sits ahead of
 -- code). This migration creates schema `workflow` and everything in it.
 -- It creates, alters, and drops NOTHING in `public`. The only `public`
 -- object referenced is `public.user_profiles`, purely for identity FKs.
+-- Every FK to public.user_profiles is ON DELETE RESTRICT: this app never
+-- silently loses or orphans who did what because an identity row vanished
+-- out from under it — deactivation (workflow.members.is_active), not
+-- deletion, is the intended path, mirroring the stages/approval_steps
+-- deactivate-not-delete convention below.
 --
 -- MANUAL STEP REQUIRED AFTER RUNNING THIS FILE (cannot be done from code):
 --   Project Settings > API > Exposed schemas — add `workflow` alongside
@@ -52,7 +61,7 @@ create table workflow.members (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null default '00000000-0000-0000-0000-000000000001'
               references workflow.orgs (id),
-  user_id     uuid not null references public.user_profiles (id),
+  user_id     uuid not null references public.user_profiles (id) on delete restrict,
   team        text not null,
   role        text not null default 'member',
   is_active   boolean not null default true,
@@ -116,6 +125,82 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
+-- 1A. STAGES AND APPROVAL STEPS  (Brief 001A addendum, folded into 001 —
+--     Case A: 001 had not yet shipped to prod, so this lives here rather
+--     than in its own 002. Lookup tables, not enums: "discovery output is
+--     data, not design" (Brief 001A §1). Both seeded EMPTY — filling them
+--     in later is data entry, not a migration.)
+-- -----------------------------------------------------------------------------
+
+create table workflow.stages (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null default '00000000-0000-0000-0000-000000000001'
+              references workflow.orgs (id),
+  scope_type  text not null,
+  code        text not null,
+  label_en    text not null,
+  label_km    text,
+  sequence    integer not null,
+  owner_team  text not null,
+  is_terminal boolean not null default false,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  unique (org_id, scope_type, code)
+);
+
+comment on table workflow.stages is
+  'Per-scope-type stage list. Screen 4a groups the board by WHO MUST ACT '
+  'NEXT — "one owner, one clock" — so owner_team is an attribute of the '
+  'stage, not inferred by the board (Brief 001A §3). Deliberately no '
+  'CHECK on scope_type: the list is not confirmed pending stakeholder '
+  'discovery. Seeded with zero rows.';
+
+comment on column workflow.stages.sequence is
+  'NOT unique, no unique index. Seed/enter in steps of 10 so a stage '
+  'discovered later inserts between two existing ones without '
+  'renumbering the list. Sort by sequence, then code as a stable '
+  'tiebreak.';
+
+comment on column workflow.stages.owner_team is
+  'The team holding the work at this stage — not free text against the '
+  'members.team vocabulary by CHECK, since that would re-couple this '
+  'table to a list that can independently drift.';
+
+create table workflow.approval_steps (
+  id             uuid primary key default gen_random_uuid(),
+  org_id         uuid not null default '00000000-0000-0000-0000-000000000001'
+                 references workflow.orgs (id),
+  applies_to     text not null,
+  scope_type     text,
+  code           text not null,
+  label_en       text not null,
+  label_km       text,
+  sequence       integer not null,
+  approver_team  text not null,
+  approver_role  text,
+  is_active      boolean not null default true,
+  created_at     timestamptz not null default now(),
+  constraint approval_steps_applies_to_check check (
+    applies_to in ('project', 'variation', 'material_requisition', 'request')
+  )
+);
+
+comment on table workflow.approval_steps is
+  'Who signs what, in what order. scope_type null = applies to all scope '
+  'types. approver_role null = any member of approver_team. Seeded with '
+  'zero rows — the one already-known chain (material requisition: QS '
+  'then management) is deliberately NOT inserted here; it enters as data '
+  'in the same pass as everything else the discovery sessions confirm, '
+  'per Brief 001A §3, so there is exactly one moment these tables are '
+  'populated rather than two. applies_to is a real enumeration (it names '
+  'a fixed set of record kinds this app itself defines, unlike '
+  'scope_type/stage/approval codes, which are stakeholder-owned lists) '
+  'so it keeps its CHECK constraint.';
+
+create unique index approval_steps_org_applies_scope_code_key
+  on workflow.approval_steps (org_id, applies_to, coalesce(scope_type, ''), code);
+
+-- -----------------------------------------------------------------------------
 -- 2. CORE ENTITIES
 -- -----------------------------------------------------------------------------
 
@@ -152,10 +237,11 @@ create table workflow.projects (
   stream                      text not null,
   so_number                   text,
   so_assigned_at              timestamptz,
-  owner_id                    uuid references public.user_profiles (id),
+  owner_id                    uuid references public.user_profiles (id) on delete restrict,
   percent_complete            integer not null default 0,
   last_meaningful_movement_at timestamptz,
   status                      text not null default 'open',
+  current_stage_id            uuid references workflow.stages (id) on delete restrict,
   opened_at                   timestamptz not null default now(),
   closed_at                   timestamptz,
   created_at                  timestamptz not null default now(),
@@ -186,6 +272,14 @@ comment on column workflow.projects.last_meaningful_movement_at is
   'meets_threshold = true (Brief §4.6). Do not write to this column '
   'directly — see the progress_updates_bump_movement trigger below.';
 
+comment on column workflow.projects.current_stage_id is
+  'Nullable: a project created before its scope type''s stage list exists '
+  'has no stage, and the board must render that without breaking (Brief '
+  '001A §4.2). ON DELETE RESTRICT — a stage in use must not be '
+  'deletable; deactivate it (stages.is_active) instead. Distinct from '
+  'status: status is the record''s lifecycle (open/closed/cancelled), '
+  'stage is where the work sits. Do not merge them.';
+
 create unique index projects_org_so_number_key
   on workflow.projects (org_id, so_number)
   where so_number is not null;
@@ -210,7 +304,7 @@ create table workflow.project_items (
   id              uuid primary key default gen_random_uuid(),
   project_id      uuid not null references workflow.projects (id),
   title           text not null,
-  pic_id          uuid references public.user_profiles (id),
+  pic_id          uuid references public.user_profiles (id) on delete restrict,
   scheduled_date  date,
   status          text not null default 'open',
   opened_at       timestamptz not null default now(),
@@ -237,9 +331,9 @@ create table workflow.requests (
   site_id             uuid references workflow.sites (id),
   scope_type          text,
   body                text not null,
-  requester_id        uuid not null references public.user_profiles (id),
-  current_owner_id    uuid references public.user_profiles (id),
-  current_stage       text,
+  requester_id        uuid not null references public.user_profiles (id) on delete restrict,
+  current_owner_id    uuid references public.user_profiles (id) on delete restrict,
+  current_stage_id    uuid references workflow.stages (id) on delete restrict,
   destination_team    text,
   destination_unsure  boolean not null default false,
   project_id          uuid references workflow.projects (id),
@@ -260,11 +354,16 @@ comment on column workflow.requests.destination_unsure is
   'Backs screen 1a''s first-class "I''m not sure" button, which routes to '
   'triage.';
 
+comment on column workflow.requests.current_stage_id is
+  'Nullable: a request in triage (destination_unsure = true) has no '
+  'stage yet (Brief 001A §4.1). ON DELETE RESTRICT — deactivate the '
+  'stage instead of deleting it.';
+
 create table workflow.request_handoffs (
   id             uuid primary key default gen_random_uuid(),
   request_id     uuid not null references workflow.requests (id),
-  from_owner_id  uuid references public.user_profiles (id),
-  to_owner_id    uuid not null references public.user_profiles (id),
+  from_owner_id  uuid references public.user_profiles (id) on delete restrict,
+  to_owner_id    uuid not null references public.user_profiles (id) on delete restrict,
   stage          text,
   started_at     timestamptz not null default now(),
   ended_at       timestamptz,
@@ -357,7 +456,7 @@ create table workflow.progress_updates (
   subject_type    text not null,
   subject_id      uuid not null,
   period_id       uuid references workflow.reporting_periods (id),
-  author_id       uuid not null references public.user_profiles (id),
+  author_id       uuid not null references public.user_profiles (id) on delete restrict,
   recorded_at     timestamptz not null default now(),
   old_percent     integer,
   new_percent     integer,
@@ -431,7 +530,7 @@ create table workflow.catalogue_items (
   description         text,
   lifecycle_step      integer not null default 1,
   successor_item_id   uuid references workflow.catalogue_items (id),
-  last_verified_by_id uuid references public.user_profiles (id),
+  last_verified_by_id uuid references public.user_profiles (id) on delete restrict,
   last_verified_at    timestamptz,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
@@ -444,7 +543,7 @@ create table workflow.catalogue_events (
   lifecycle_step     integer not null,
   reason             text,
   effective_date     date not null default current_date,
-  recorded_by_id     uuid references public.user_profiles (id),
+  recorded_by_id     uuid references public.user_profiles (id) on delete restrict,
   recorded_at        timestamptz not null default now(),
   constraint catalogue_events_lifecycle_step_check check (lifecycle_step between 1 and 4)
 );
@@ -511,6 +610,8 @@ comment on table workflow.dependency_links is
 
 alter table workflow.orgs               enable row level security;
 alter table workflow.members            enable row level security;
+alter table workflow.stages             enable row level security;
+alter table workflow.approval_steps     enable row level security;
 alter table workflow.clients            enable row level security;
 alter table workflow.sites              enable row level security;
 alter table workflow.projects           enable row level security;
@@ -539,6 +640,17 @@ create policy members_insert on workflow.members
   for insert with check (workflow.is_manager());
 create policy members_update on workflow.members
   for update using (workflow.is_manager()) with check (workflow.is_manager());
+
+-- stages / approval_steps: read-only from the app's perspective for now.
+-- No admin UI exists yet (Brief 001A §6) — rows are entered by hand in
+-- the SQL editor, i.e. as the table owner/service role, which bypasses
+-- RLS entirely. No INSERT/UPDATE policy is created here for the same
+-- reason as the other unspecified write paths — see the result doc.
+create policy stages_select on workflow.stages
+  for select using (workflow.is_member());
+
+create policy approval_steps_select on workflow.approval_steps
+  for select using (workflow.is_member());
 
 create policy clients_select on workflow.clients
   for select using (workflow.is_member());

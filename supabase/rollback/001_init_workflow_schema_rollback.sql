@@ -1,6 +1,7 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Rollback for Migration 001
 -- Brief: ADTECH_WF_Brief_001_Project_Scaffold_And_Schema
+-- Addendum folded in: ADTECH_WF_Brief_001A_Stages_And_Approval_Steps_Lookup_Tables
 --
 -- Reverses 001_init_workflow_schema.sql exactly. Drops are listed in
 -- explicit dependency order (children before parents) for auditability,
@@ -27,6 +28,9 @@ drop table if exists workflow.requests;
 drop table if exists workflow.project_items;
 drop table if exists workflow.variations;
 drop table if exists workflow.projects;
+-- projects and requests both FK to stages; both are already dropped above.
+drop table if exists workflow.approval_steps;
+drop table if exists workflow.stages;
 drop table if exists workflow.sites;
 drop table if exists workflow.clients;
 drop table if exists workflow.members;
