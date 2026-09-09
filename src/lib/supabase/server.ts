@@ -32,9 +32,9 @@ export async function createClient() {
             )
           } catch {
             // Called from a Server Component with no response to write to.
-            // Safe to ignore once middleware is refreshing the session —
-            // no session-refresh middleware exists yet in this scaffold
-            // (no UI/auth flow is in scope for Brief 001).
+            // Safe to ignore — src/proxy.ts (Brief 002 §5.1) refreshes the
+            // session on every request, so a Server Component's own write
+            // attempt here is redundant, not load-bearing.
           }
         },
       },

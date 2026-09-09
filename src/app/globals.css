@@ -1,26 +1,680 @@
-@import "tailwindcss";
+/**
+ * Design tokens + semantic classes, taken directly from the design
+ * handoff README's "Design Tokens" section (BMS Ventures > Workflow
+ * Tracker > 05 - UI Design > Rev 2 > design_handoff_adtech_workflow_
+ * tracker). Brief 002 §5.2: "Token-driven global CSS, one canonical
+ * class per element. No component primitive library" — the CMMS settled
+ * this as Path B for the same reason it applies here: the visual
+ * direction is not final, so a bespoke component library risks building
+ * the wrong abstraction twice. Plain semantic CSS, not Tailwind utility
+ * classes, is written deliberately here even though @tailwindcss/postcss
+ * remains in this scaffold's devDependencies — nothing below uses it.
+ *
+ * Radius is 0 everywhere, no exceptions (README, Structure). Every
+ * spacing value below is drawn from the README's stated 4px-based scale.
+ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Color */
+  --color-ground: #f0eee9;
+  --color-surface: #ffffff;
+  --color-ink: #201e1d;
+  --color-muted: #605d5d;
+  --color-rule: #e2dede;
+  --color-rule-soft: #dedad2;
+  --color-accent: #0e5c86; /* ownership + SO spine, links, kickers */
+  --color-red: #c62430; /* delay only — never brand/primary */
+  --color-amber: #b26100; /* waiting + provisional */
+  --color-green: #15803d; /* "clears the threshold" / ready-to-close, drawn in the mockups but not itemised in the token table */
+  --color-prov-fill-1: #fdf6ec;
+  --color-prov-fill-2: #f7edda;
+
+  /* Type */
+  --font-archivo: var(--font-archivo), Arial, Helvetica, sans-serif;
+  --font-khmer: var(--font-noto-khmer), var(--font-archivo), Arial, sans-serif;
+
+  /* Spacing (4px base; the specific values the README lists in use) */
+  --space-1: 5px;
+  --space-2: 6px;
+  --space-3: 7px;
+  --space-4: 9px;
+  --space-5: 10px;
+  --space-6: 11px;
+  --space-7: 12px;
+  --space-8: 22px;
+  --space-9: 24px;
+  --space-10: 26px;
+  --space-11: 34px;
+  --space-12: 44px;
+  --space-13: 48px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  padding: 0;
+  margin: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-archivo);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+:lang(km) body {
+  font-family: var(--font-khmer);
+}
+
+a {
+  color: var(--color-accent);
+}
+a:hover {
+  color: var(--color-red);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------------------
+   Brand box — README, Assets: "No logo file — the ADTECH name renders as
+   plain text in a 2px ink box, no wordmark."
+   ----------------------------------------------------------------------- */
+.brand-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 2px solid var(--color-ink);
+  padding: var(--space-6) var(--space-7);
+  text-decoration: none;
+  color: var(--color-ink);
+  width: fit-content;
+}
+.brand-box__name {
+  font: 800 20px/1 var(--font-archivo);
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+}
+.brand-box__kicker {
+  font: 600 8px/1 var(--font-archivo);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-top: var(--space-2);
+}
+.brand-box--compact {
+  padding: var(--space-4) var(--space-5);
+}
+
+/* -----------------------------------------------------------------------
+   App shell / nav
+   ----------------------------------------------------------------------- */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-9);
+  padding: var(--space-7) var(--space-9);
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-ink);
+}
+.app-header__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-right: auto;
+}
+.app-header__owner-box {
+  font: 700 9.5px/1 var(--font-archivo);
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-3);
+  border: 1.5px solid var(--color-ink);
+}
+.app-header__team {
+  font: 400 10px/1 var(--font-archivo);
+  color: var(--color-muted);
+}
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+}
+.app-shell__main {
+  flex: 1;
+  padding: var(--space-9);
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.lang-toggle {
+  display: flex;
+  border: 1.5px solid var(--color-ink);
+}
+.lang-toggle__opt {
+  border: none;
+  background: transparent;
+  padding: var(--space-3) var(--space-6);
+  font: 600 11px/1 var(--font-archivo);
+  color: var(--color-muted);
+}
+.lang-toggle__opt--active {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+/* -----------------------------------------------------------------------
+   Buttons
+   ----------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border: none;
+  text-decoration: none;
+  font: 700 11.5px/1 var(--font-archivo);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: var(--space-6) var(--space-7);
+}
+.btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: #0a4a6c;
+}
+.btn--disabled,
+.btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn--outline {
+  border: 1.5px solid var(--color-ink);
+  color: var(--color-ink);
+  background: transparent;
+  font-weight: 600;
+  text-transform: none;
+}
+.btn--ghost {
+  border: 1.5px solid var(--color-ink);
+  color: var(--color-ink);
+  background: transparent;
+  font-weight: 600;
+  text-transform: none;
+  font-size: 11px;
+  padding: var(--space-3) var(--space-6);
+}
+
+/* -----------------------------------------------------------------------
+   Cards
+   ----------------------------------------------------------------------- */
+.card,
+.update-card,
+.login-form {
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  box-shadow: 6px 6px 0 rgba(32, 30, 29, 0.09);
+}
+
+/* -----------------------------------------------------------------------
+   Age ladder — README, "The age ladder". Segments 15px×8px, 2px gaps.
+   ----------------------------------------------------------------------- */
+.age-ladder {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.age-ladder__bar {
+  display: flex;
+  gap: 2px;
+}
+.age-ladder__segment {
+  width: 15px;
+  height: 8px;
+  flex: none;
+}
+.age-ladder__segment--ink {
+  background: var(--color-ink);
+}
+.age-ladder__segment--amber {
+  background: var(--color-amber);
+}
+.age-ladder__segment--red {
+  background: var(--color-red);
+}
+.age-ladder__segment--empty {
+  background: var(--color-rule);
+}
+.age-ladder__label {
+  font: 500 10px/1.35 var(--font-archivo);
+  color: var(--color-muted);
+}
+.age-ladder__label--amber {
+  color: var(--color-amber);
+  font-weight: 600;
+}
+.age-ladder__label--red {
+  color: var(--color-red);
+  font-weight: 600;
+}
+
+/* -----------------------------------------------------------------------
+   Shared identity chrome — SO number, stream tag, owner mark
+   ----------------------------------------------------------------------- */
+.so-number {
+  font: 700 12px/1 var(--font-archivo);
+  letter-spacing: 0.02em;
+  color: var(--color-accent);
+}
+.so-number--pending {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+.stream-tag {
+  font: 700 9px/1 var(--font-archivo);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-ink);
+  color: #fff;
+}
+.owner-mark {
+  flex: none;
+  border-left: 3px solid var(--color-accent);
+  padding-left: var(--space-6);
+}
+.owner-mark__box {
+  font: 700 9.5px/1 var(--font-archivo);
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-3);
+  border: 1.5px solid var(--color-ink);
+  display: inline-block;
+}
+
+/* -----------------------------------------------------------------------
+   Login screen
+   ----------------------------------------------------------------------- */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-9);
+  padding: var(--space-9);
+}
+.login-form {
+  width: 360px;
+  max-width: 100%;
+  padding: var(--space-9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+.login-form__error {
+  font: 500 11.5px/1.4 var(--font-archivo);
+  color: var(--color-red);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.field__label {
+  font: 600 10px/1 var(--font-archivo);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.field__label-optional {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.field__input,
+.field__textarea {
+  border: 1px solid var(--color-ink);
+  padding: var(--space-6) var(--space-7);
+  font: 400 12.5px/1.5 var(--font-archivo);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  width: 100%;
+}
+.field--note {
+  margin-top: var(--space-7);
+}
+
+/* -----------------------------------------------------------------------
+   No-access screen
+   ----------------------------------------------------------------------- */
+.no-access-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-13);
+  max-width: 560px;
+}
+.no-access-screen__title {
+  font: 800 30px/1.1 var(--font-archivo);
+  letter-spacing: -0.028em;
+  margin: 0;
+}
+.no-access-screen__body {
+  font: 400 13.5px/1.6 var(--font-archivo);
+  color: var(--color-muted);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* -----------------------------------------------------------------------
+   Empty states — a hard requirement, not polish (Brief 002 §5.4)
+   ----------------------------------------------------------------------- */
+.empty-state {
+  font: 400 13px/1.6 var(--font-archivo);
+  color: var(--color-muted);
+  padding: var(--space-10) 0;
+}
+
+/* -----------------------------------------------------------------------
+   Dashboard / project list (the interim landing route — NOT screen 4a,
+   see (app)/page.tsx's own header comment)
+   ----------------------------------------------------------------------- */
+.dashboard__title {
+  font: 800 30px/1 var(--font-archivo);
+  letter-spacing: -0.028em;
+  margin: 0 0 var(--space-9);
+}
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project-list__row {
+  border-bottom: 1px solid var(--color-rule);
+}
+.project-list__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-9);
+  padding: var(--space-7) var(--space-4);
+  text-decoration: none;
+  color: var(--color-ink);
+}
+.project-list__link:hover {
+  background: var(--color-surface);
+}
+.project-list__identity {
+  flex: 1;
+  min-width: 0;
+}
+.project-list__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.project-list__name {
+  font: 700 14.5px/1.3 var(--font-archivo);
+  letter-spacing: -0.015em;
+}
+.project-list__owner {
+  font: 500 9.5px/1.3 var(--font-archivo);
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+}
+.project-list__percent {
+  flex: none;
+  font: 800 24px/1 var(--font-archivo);
+  letter-spacing: -0.03em;
+  width: 70px;
+  text-align: right;
+}
+.project-list__percent-sign {
+  font-size: 13px;
+}
+
+/* -----------------------------------------------------------------------
+   Screen 6a — update-progress card
+   ----------------------------------------------------------------------- */
+.update-screen {
+  display: flex;
+  justify-content: center;
+}
+.update-card {
+  width: 720px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.update-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-7);
+  padding: var(--space-6) var(--space-9);
+  border-bottom: 2px solid var(--color-ink);
+}
+.update-card__identity {
+  flex: 1;
+}
+.update-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.update-card__name {
+  font: 700 17px/1.15 var(--font-archivo);
+  letter-spacing: -0.02em;
+}
+.update-card__sub {
+  font: 400 11px/1.4 var(--font-archivo);
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+}
+
+.update-card__figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-bottom: 1px solid var(--color-rule);
+}
+.update-card__figure {
+  padding: var(--space-6) var(--space-9);
+  border-right: 1px solid var(--color-rule);
+}
+.update-card__figure:last-child {
+  border-right: none;
+}
+.update-card__figure-label {
+  font: 600 9.5px/1 var(--font-archivo);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-4);
+}
+.update-card__figure-label--accent {
+  color: var(--color-accent);
+}
+.update-card__figure-value {
+  font: 800 32px/1 var(--font-archivo);
+  letter-spacing: -0.035em;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.update-card__figure-value--muted {
+  color: var(--color-muted);
+}
+.update-card__figure-value--flat {
+  color: var(--color-red);
+}
+.update-card__figure-value--input {
+  border-bottom: 2px solid var(--color-accent);
+  padding-bottom: 2px;
+  width: fit-content;
+}
+.update-card__figure-value--input input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--color-ink);
+  width: 3ch;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.update-card__figure-value--input input::-webkit-outer-spin-button,
+.update-card__figure-value--input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.update-card__percent-sign {
+  font-size: 16px;
+}
+.update-card__figure-caption {
+  font: 400 10px/1.35 var(--font-archivo);
+  color: var(--color-muted);
+  margin-top: var(--space-4);
+}
+.update-card__movement-flag {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font: 600 10px/1.35 var(--font-archivo);
+}
+.update-card__movement-flag--clears {
+  color: var(--color-green);
+}
+.update-card__movement-flag--flat {
+  color: var(--color-red);
+}
+
+.update-card__stall-row {
+  display: flex;
+  align-items: center;
+  padding: var(--space-6) var(--space-9);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.update-card__reason {
+  padding: var(--space-6) var(--space-9);
+  border-bottom: 1px solid var(--color-rule);
+}
+.update-card__reason-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.update-card__reason-label {
+  font: 600 10px/1 var(--font-archivo);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.required-badge {
+  font: 700 9px/1 var(--font-archivo);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.reason-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.reason-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  min-height: 44px;
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface);
+  text-align: left;
+}
+.reason-option__box {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--color-muted);
+  flex: none;
+}
+.reason-option__label {
+  font: 500 11.5px/1.3 var(--font-archivo);
+  color: var(--color-ink);
+}
+.reason-option--selected {
+  border: 1.5px solid var(--color-ink);
+  background: #eaf1f6;
+}
+.reason-option--selected .reason-option__box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.reason-option--selected .reason-option__label {
+  font-weight: 700;
+}
+
+.update-card__footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-7);
+  padding: var(--space-6) var(--space-9);
+}
+.update-card__hint {
+  font: 400 10.5px/1.4 var(--font-archivo);
+  color: var(--color-muted);
+  margin-left: auto;
+  max-width: 230px;
+  text-wrap: pretty;
+}
+.update-card__blocked-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-left: 3px solid var(--color-red);
+  padding-left: var(--space-6);
+  margin-left: auto;
+  max-width: 320px;
+}
+.update-card__blocked-title {
+  font: 700 11.5px/1.3 var(--font-archivo);
+  color: var(--color-red);
+}
+.update-card__blocked-body {
+  font: 400 11px/1.5 var(--font-archivo);
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+.update-card__error {
+  padding: 0 var(--space-9) var(--space-6);
+  font: 500 11.5px/1.4 var(--font-archivo);
+  color: var(--color-red);
 }
