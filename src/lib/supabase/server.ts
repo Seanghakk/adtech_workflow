@@ -12,32 +12,29 @@
  */
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getSupabaseAnonKey, getSupabaseUrl } from './env'
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      db: { schema: 'workflow' },
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            )
-          } catch {
-            // Called from a Server Component with no response to write to.
-            // Safe to ignore — src/proxy.ts (Brief 002 §5.1) refreshes the
-            // session on every request, so a Server Component's own write
-            // attempt here is redundant, not load-bearing.
-          }
-        },
+  return createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    db: { schema: 'workflow' },
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          )
+        } catch {
+          // Called from a Server Component with no response to write to.
+          // Safe to ignore — src/proxy.ts (Brief 002 §5.1) refreshes the
+          // session on every request, so a Server Component's own write
+          // attempt here is redundant, not load-bearing.
+        }
       },
     },
-  )
+  })
 }
