@@ -79,7 +79,19 @@ export function UpdateProgressForm({
   }, [delta])
 
   return (
-    <form action={formAction} className="update-card">
+    <form
+      action={formAction}
+      className="update-card"
+      onSubmit={() => {
+        // Brief 002B: this app previously had no way to tell "the click
+        // never reached the form" apart from "the save failed after
+        // being submitted." This fires the instant the browser actually
+        // attempts to submit — if it's ever missing from the console on
+        // a real click, the bug is upstream of this component entirely
+        // (the click/DOM layer, not the Server Function or the database).
+        console.log('[6a update] form submit fired', { projectId: project.id, newPercent, reasonCode })
+      }}
+    >
       <input type="hidden" name="projectId" value={project.id} />
       <input type="hidden" name="currentPercent" value={project.percentComplete} />
       <input type="hidden" name="newPercent" value={newPercent} />
@@ -219,7 +231,7 @@ export function UpdateProgressForm({
           className={canSave ? 'btn btn--primary' : 'btn btn--primary btn--disabled'}
           disabled={!canSave}
         >
-          {isNoChange ? s.saveNoChange : s.save}
+          {pending ? 'Saving…' : isNoChange ? s.saveNoChange : s.save}
         </button>
         <Link href="/" className="btn btn--outline">
           {s.cancel}
