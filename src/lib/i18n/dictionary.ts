@@ -63,6 +63,13 @@ const en = {
   updateSaveHint: 'Saving posts one Telegram line to the project group. No reply is read.',
   updateBy: 'by',
   updateUnreported: 'Not yet reported',
+
+  navSales: 'Maintenance clients',
+  salesMonitoringTitle: 'Maintenance clients',
+  salesMonitoringReadOnlyNote:
+    'View only — no create or write action lives on this screen. Contact Project Management to act on anything shown here.',
+  salesMonitoringEmpty: 'No maintenance-flagged projects are visible to you yet.',
+  salesAssignLinkLabel: 'Assign client owners',
 } as const
 
 export type DictionaryKey = keyof typeof en

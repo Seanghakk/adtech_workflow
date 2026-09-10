@@ -15,6 +15,10 @@ export interface CurrentMember {
   memberId: string
   role: 'member' | 'manager' | 'admin'
   teamId: string
+  /** Stable team code (workflow.teams.code, e.g. 'sales') — compare
+   *  against this, never teamLabelEn, which is a display string
+   *  (ADTECH_WF_Brief_003_Sales_Roles). */
+  teamCode: string
   teamLabelEn: string
 }
 
@@ -50,7 +54,7 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
   // cross-schema qualification rather than PostgREST's schema switch.
   const { data: memberRow } = await supabase
     .from('members')
-    .select('id, role, team_id, teams(label_en)')
+    .select('id, role, team_id, teams(code, label_en)')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .maybeSingle()
@@ -77,6 +81,7 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
       memberId: memberRow.id,
       role: memberRow.role as CurrentMember['role'],
       teamId: memberRow.team_id,
+      teamCode: team?.code ?? '',
       teamLabelEn: team?.label_en ?? '',
     },
   }
