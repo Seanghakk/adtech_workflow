@@ -2,10 +2,19 @@ import Link from 'next/link'
 import { LanguageToggle } from './LanguageToggle'
 import { SignOutButton } from './SignOutButton'
 import type { CurrentMember } from '@/lib/auth/current-member'
+import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 
 /**
  * App shell nav. README, Assets: "No logo file — the ADTECH name renders
  * as plain text in a 2px ink box, no wordmark."
+ *
+ * ADTECH_WF_Brief_003_Sales_Roles: the /sales link only renders for the
+ * two tiers it's actually for (Sales Engineer/Supervisor) — everyone
+ * else already has their own full, unrestricted view of every project
+ * via "/", so a second link to the same underlying data would be
+ * confusing rather than useful. Not translated, same as this component's
+ * own brand text above it — this file has never run any of its static
+ * strings through the dictionary.
  */
 export function AppHeader({ member }: { member: CurrentMember }) {
   return (
@@ -18,6 +27,11 @@ export function AppHeader({ member }: { member: CurrentMember }) {
         <span className="app-header__owner-box">{(member.fullName ?? member.email ?? '—').toUpperCase()}</span>
         <span className="app-header__team">{member.teamLabelEn}</span>
       </div>
+      {isSalesTeamMember(member) && (
+        <nav className="app-header__nav">
+          <Link href="/sales">Maintenance clients</Link>
+        </nav>
+      )}
       <div className="app-header__actions">
         <LanguageToggle />
         <SignOutButton />
