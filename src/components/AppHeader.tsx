@@ -24,12 +24,28 @@ export function AppHeader({ member }: { member: CurrentMember }) {
         <span className="brand-box__kicker">Workflow Tracker</span>
       </Link>
       <div className="app-header__identity">
-        <span className="app-header__owner-box">{(member.fullName ?? member.email ?? '—').toUpperCase()}</span>
+        <span className="app-header__owner-box">
+          {(member.fullName ?? member.username ?? member.email ?? '—').toUpperCase()}
+        </span>
         <span className="app-header__team">{member.teamLabelEn}</span>
       </div>
       {isSalesTeamMember(member) && (
         <nav className="app-header__nav">
           <Link href="/sales">Maintenance clients</Link>
+        </nav>
+      )}
+      {(member.role === 'manager' || member.role === 'admin') && (
+        // Fable Brief 002 §2/§3 — the reviewer board and load screens are
+        // built for whoever is running the weekly reporting review, same
+        // gating precedent as /sales above: everyone else already has a
+        // full, unrestricted view of their own work via "/", so a second
+        // link to the same underlying data would add noise, not access
+        // (the underlying RLS scoping is unchanged either way — this is
+        // a navigation judgment call, not a security boundary. See
+        // Result 003).
+        <nav className="app-header__nav">
+          <Link href="/exceptions">Exceptions</Link>
+          <Link href="/load">Load</Link>
         </nav>
       )}
       <div className="app-header__actions">

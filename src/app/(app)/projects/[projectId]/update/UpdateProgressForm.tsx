@@ -24,6 +24,8 @@ interface UpdateProgressFormProps {
     ownerLabel: string | null
   }
   lastReported: { dateLabel: string; byLabel: string | null } | null
+  /** Fable Brief 002 §2.1 — the unassigned/not-your-project state, on 6a. */
+  pic: { assigned: boolean; isCurrentUser: boolean; label: string | null }
   daysSinceMovement: number
   reasonCodes: ReasonCode[]
   strings: {
@@ -47,6 +49,10 @@ interface UpdateProgressFormProps {
     by: string
     unreported: string
     unassigned: string
+    picUnassignedTitle: string
+    picUnassignedBody: string
+    picRestrictedTitle: string
+    picRestrictedBodyPrefix: string
   }
 }
 
@@ -58,6 +64,7 @@ const MEANINGFUL_THRESHOLD = 5
 export function UpdateProgressForm({
   project,
   lastReported,
+  pic,
   daysSinceMovement,
   reasonCodes,
   strings: s,
@@ -71,7 +78,13 @@ export function UpdateProgressForm({
   const delta = newPercent - project.percentComplete
   const meetsThreshold = Math.abs(delta) >= MEANINGFUL_THRESHOLD
   const isNoChange = newPercent === project.percentComplete
-  const canSave = reasonCode !== '' && !pending
+  // Fable Brief 002 §2.1: with pic_id nullable and no manager bypass
+  // (migration 006), a save that cannot possibly succeed must be blocked
+  // and explained BEFORE the click, not discovered as a failed save after
+  // one. This gate takes priority over the reason-selection gate below —
+  // there is no reason to pick if the save can never go through at all.
+  const canWrite = pic.isCurrentUser
+  const canSave = canWrite && reasonCode !== '' && !pending
 
   const deltaLabel = useMemo(() => {
     if (delta === 0) return '0'
@@ -148,6 +161,7 @@ export function UpdateProgressForm({
                 const parsed = raw === '' ? 0 : Math.round(Number(raw))
                 setNewPercent(Number.isFinite(parsed) ? Math.min(100, Math.max(0, parsed)) : 0)
               }}
+              disabled={!canWrite}
               aria-label={s.thisWeek}
             />
             <span className="update-card__percent-sign">%</span>
@@ -200,6 +214,7 @@ export function UpdateProgressForm({
                 role="radio"
                 aria-checked={selected}
                 className={selected ? 'reason-option reason-option--selected' : 'reason-option'}
+                disabled={!canWrite}
                 onClick={() => setReasonCode(reason.code)}
               >
                 <span className="reason-option__box" aria-hidden="true" />
@@ -248,9 +263,18 @@ export function UpdateProgressForm({
           // afterwards" (README, screen 6a, state 2) — describing a click
           // that is quietly absorbed, not a button that cannot be clicked
           // at all.
-          disabled={pending}
+          //
+          // The PIC gate below (`!canWrite`) is a different kind of state:
+          // a server-fetched fact that cannot flip during this page's
+          // lifetime, not a client render race — so native `disabled` here
+          // is safe and does not reintroduce the swallowed-click risk the
+          // comment above describes for the reason gate.
+          disabled={pending || !canWrite}
           onClick={(e) => {
-            if (reasonCode === '') {
+            if (!canWrite) {
+              e.preventDefault()
+              console.log('[6a update] Save clicked but signed-in user is not this project’s PIC — blocked client-side, not submitted')
+            } else if (reasonCode === '') {
               e.preventDefault()
               console.log('[6a update] Save clicked with no reason selected — blocked client-side, not submitted')
             }
@@ -262,7 +286,19 @@ export function UpdateProgressForm({
           {s.cancel}
         </Link>
 
-        {reasonCode === '' ? (
+        {!pic.assigned ? (
+          <div className="update-card__blocked-note">
+            <div className="update-card__blocked-title">{s.picUnassignedTitle}</div>
+            <div className="update-card__blocked-body">{s.picUnassignedBody}</div>
+          </div>
+        ) : !pic.isCurrentUser ? (
+          <div className="update-card__blocked-note">
+            <div className="update-card__blocked-title">{s.picRestrictedTitle}</div>
+            <div className="update-card__blocked-body">
+              {s.picRestrictedBodyPrefix} {(pic.label ?? s.unassigned).toUpperCase()}.
+            </div>
+          </div>
+        ) : reasonCode === '' ? (
           <div className="update-card__blocked-note">
             <div className="update-card__blocked-title">{s.blockedTitle}</div>
             <div className="update-card__blocked-body">{s.blockedBody}</div>

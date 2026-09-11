@@ -49,7 +49,7 @@ export default async function AssignClientOwnersPage() {
 
   const salesEngineerOptions = salesUserIds.map((userId) => ({
     userId,
-    label: profiles.get(userId)?.fullName ?? profiles.get(userId)?.email ?? userId,
+    label: profiles.get(userId)?.fullName ?? profiles.get(userId)?.username ?? userId,
   }))
 
   return (
@@ -72,7 +72,7 @@ export default async function AssignClientOwnersPage() {
           {(clients ?? []).map((client) => {
             const currentOwnerId = ownerByClientId.get(client.id)
             const currentOwnerLabel = currentOwnerId
-              ? (profiles.get(currentOwnerId)?.fullName ?? profiles.get(currentOwnerId)?.email ?? '—')
+              ? (profiles.get(currentOwnerId)?.fullName ?? profiles.get(currentOwnerId)?.username ?? '—')
               : 'Unassigned'
 
             return (

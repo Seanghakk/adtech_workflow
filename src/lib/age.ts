@@ -67,3 +67,21 @@ export function getAgeLadderSegments(days: number): AgeLadderSegment[] {
     color: SEGMENT_COLORS[i],
   }))
 }
+
+export type CardWeight = 'plain' | 'elevated' | 'severe'
+
+/** README, "The age ladder": "On 1d/4a the card itself gains weight as it
+ *  ages: hairline border at a day, full ink 2px rule at a week, red field
+ *  past two weeks." Fable Brief 002 §2 reuses this exact rule for screen
+ *  6b's exception cards ("reuses 4a's card weighting so the board reads
+ *  as a heat map before a word is read") — this is the one shared place
+ *  that mapping lives, so 6b and any future 1d/4a build never quietly
+ *  disagree about where a card's weight changes. "A week" / "two weeks"
+ *  are read as 7 and 15 days (>14), matching the age ladder's own day-1
+ *  and day-11+ boundaries being inclusive-from. */
+export function getCardWeight(days: number): CardWeight {
+  const safeDays = Math.max(0, Math.floor(days))
+  if (safeDays > 14) return 'severe'
+  if (safeDays >= 7) return 'elevated'
+  return 'plain'
+}

@@ -6,6 +6,17 @@ import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { UpdateProgressForm } from './UpdateProgressForm'
 
+/**
+ * Fable Brief 002 §2.1 — "the unassigned-project state, required not
+ * optional": with pic_id nullable and no manager bypass (migration 006),
+ * a save that cannot possibly succeed must be legible BEFORE the click,
+ * never discovered as a mysterious failed save. This page now fetches
+ * pic_id and the signed-in user's id so the form can tell apart three
+ * cases: you are the PIC (normal save flow), someone else is the PIC
+ * (named, save disabled), or no PIC is set at all (save disabled, distinct
+ * message). See UpdateProgressForm's own comment for how each renders.
+ */
+
 export const metadata: Metadata = {
   title: 'Update progress — ADTECH Workflow Tracker',
 }
@@ -22,9 +33,15 @@ export default async function UpdateProgressPage({
   const supabase = await createClient()
   const t = await getServerTranslator()
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, stream, so_number, percent_complete, last_meaningful_movement_at, opened_at, owner_id')
+    .select(
+      'id, name, stream, so_number, percent_complete, last_meaningful_movement_at, opened_at, owner_id, pic_id',
+    )
     .eq('id', projectId)
     .maybeSingle()
 
@@ -54,10 +71,12 @@ export default async function UpdateProgressPage({
       .eq('status', 'open'),
   ])
 
-  const profileIds = [project.owner_id, lastUpdate?.author_id]
+  const profileIds = [project.owner_id, project.pic_id, lastUpdate?.author_id]
   const profiles = await getUserProfilesByIds(supabase, profileIds)
   const owner = project.owner_id ? profiles.get(project.owner_id) : undefined
+  const pic = project.pic_id ? profiles.get(project.pic_id) : undefined
   const lastAuthor = lastUpdate?.author_id ? profiles.get(lastUpdate.author_id) : undefined
+  const isCurrentUserPic = Boolean(user && project.pic_id && project.pic_id === user.id)
 
   const stallAnchor = project.last_meaningful_movement_at ?? project.opened_at
   const daysSinceMovement = daysSinceICT(stallAnchor)
@@ -72,16 +91,21 @@ export default async function UpdateProgressPage({
           soNumber: project.so_number,
           percentComplete: project.percent_complete,
           openItemCount: openItemCount ?? 0,
-          ownerLabel: owner?.fullName ?? owner?.email ?? null,
+          ownerLabel: owner?.fullName ?? owner?.username ?? null,
         }}
         lastReported={
           lastUpdate
             ? {
                 dateLabel: formatDateICT(lastUpdate.recorded_at),
-                byLabel: lastAuthor?.fullName ?? lastAuthor?.email ?? null,
+                byLabel: lastAuthor?.fullName ?? lastAuthor?.username ?? null,
               }
             : null
         }
+        pic={{
+          assigned: Boolean(project.pic_id),
+          isCurrentUser: isCurrentUserPic,
+          label: pic?.fullName ?? pic?.username ?? null,
+        }}
         daysSinceMovement={daysSinceMovement}
         reasonCodes={(reasonCodes ?? []).map((r) => ({
           code: r.code,
@@ -109,6 +133,10 @@ export default async function UpdateProgressPage({
           by: t('updateBy'),
           unreported: t('updateUnreported'),
           unassigned: t('dashboardUnassigned'),
+          picUnassignedTitle: t('updatePicUnassignedTitle'),
+          picUnassignedBody: t('updatePicUnassignedBody'),
+          picRestrictedTitle: t('updatePicRestrictedTitle'),
+          picRestrictedBodyPrefix: t('updatePicRestrictedBodyPrefix'),
         }}
       />
     </div>

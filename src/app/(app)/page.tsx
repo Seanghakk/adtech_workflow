@@ -68,7 +68,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="project-list__name">{project.name}</div>
                     <div className="project-list__owner">
-                      {(owner?.fullName ?? owner?.email ?? t('dashboardUnassigned')).toUpperCase()}
+                      {(owner?.fullName ?? owner?.username ?? t('dashboardUnassigned')).toUpperCase()}
                     </div>
                   </div>
                   <div className="project-list__percent">

@@ -11,7 +11,13 @@ import { createClient } from '@/lib/supabase/server'
 export interface CurrentMember {
   userId: string
   fullName: string | null
+  /** From the auth session (auth.getUser()), NOT a public.user_profiles
+   *  query — that table has no email column (Fable Brief 002 §4). Real
+   *  only for the CURRENT user; there is no equivalent for looking up
+   *  someone else's email (see getUserProfilesByIds, which uses username
+   *  instead for that case). */
   email: string | null
+  username: string | null
   memberId: string
   role: 'member' | 'manager' | 'admin'
   teamId: string
@@ -47,11 +53,20 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
     return { user: null, member: null }
   }
 
-  // public.user_profiles read for identity ONLY (id, full_name, email) —
-  // never .role, which is CMMS role vocabulary and means nothing here
+  // public.user_profiles read for identity ONLY (id, full_name, username)
+  // — never .role, which is CMMS role vocabulary and means nothing here
   // (Brief 001 §3). This is a cross-schema query (workflow client pinned
   // to schema `workflow`), so it goes through Postgres's normal
   // cross-schema qualification rather than PostgREST's schema switch.
+  //
+  // CORRECTED (Fable Brief 002 §4): this used to select `email`, a column
+  // that does not exist on public.user_profiles — PostgREST fails the
+  // whole query when an unknown column is requested, so `profile` was
+  // silently null for every signed-in user, not just missing an email.
+  // full_name came back null as a result too, which is why the app header
+  // has been showing "—" instead of a real name. email below now comes
+  // from the auth session object already fetched above (real for the
+  // CURRENT user only), not from this table.
   const { data: memberRow } = await supabase
     .from('members')
     .select('id, role, team_id, teams(code, label_en)')
@@ -66,7 +81,7 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
   const { data: profile } = await supabase
     .schema('public')
     .from('user_profiles')
-    .select('full_name, email')
+    .select('full_name, username')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -77,7 +92,8 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
     member: {
       userId: user.id,
       fullName: profile?.full_name ?? null,
-      email: profile?.email ?? null,
+      email: user.email ?? null,
+      username: profile?.username ?? null,
       memberId: memberRow.id,
       role: memberRow.role as CurrentMember['role'],
       teamId: memberRow.team_id,

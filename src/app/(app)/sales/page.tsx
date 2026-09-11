@@ -91,7 +91,7 @@ export default async function SalesMonitoringPage() {
                     <div className="project-list__owner">
                       {(client?.name ?? '—').toUpperCase()}
                       {' · '}
-                      {(owner?.fullName ?? owner?.email ?? t('dashboardUnassigned')).toUpperCase()}
+                      {(owner?.fullName ?? owner?.username ?? t('dashboardUnassigned')).toUpperCase()}
                     </div>
                   </div>
                   <div className="project-list__percent">

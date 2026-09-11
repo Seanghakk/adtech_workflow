@@ -57,6 +57,24 @@ export async function submitProgressUpdate(
     redirect('/login')
   }
 
+  // Belt-and-suspenders on top of migration 006's RLS policy (Fable Brief
+  // 002 §2.1 / Next.js's own "verify authorization inside each Server
+  // Function, not only client-side" guidance): a direct POST here must be
+  // refused with the SAME clear reason the UI already shows, not the
+  // generic insertError message below, which would otherwise be the only
+  // thing a non-PIC caller ever sees.
+  const { data: project } = await supabase.from('projects').select('pic_id').eq('id', projectId).maybeSingle()
+
+  if (!project) {
+    return { error: 'Project not found.' }
+  }
+  if (!project.pic_id) {
+    return { error: 'No PIC is assigned to this project — nobody can save an update here yet.' }
+  }
+  if (project.pic_id !== user.id) {
+    return { error: 'Only this project’s PIC can save an update here. Nothing was recorded.' }
+  }
+
   // Current global reporting period covering today, if one exists.
   // reporting_periods rows are seeded ahead of time (migration 001); a
   // gap here is a legitimate, non-fatal empty state — the update still
