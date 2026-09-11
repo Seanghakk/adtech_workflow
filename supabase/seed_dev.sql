@@ -24,6 +24,17 @@
 -- (and its empty-state handling, by removing this file's rows again) can
 -- both be exercised by hand.
 --
+-- DEPENDS ON MIGRATION 004 (Brief Fable 001 §4.5): the two so_number rows
+-- below now also set so_register_id, required together with so_number by
+-- projects_so_register_pairing_check. Running this file against a database
+-- that has not yet had migration 004 applied fails at the so_registers
+-- lookup (table does not exist yet) rather than silently skipping the
+-- column. On the ALREADY-LIVE prod database (this file applied there 09
+-- Sep 2026, before migration 004 existed), migration 004 itself backfills
+-- so_register_id for the two rows this file already created — see that
+-- migration's §3. Re-running this file start-to-finish only ever happens
+-- against a fresh database, where migration 004 runs first regardless.
+--
 -- ALL NAMES ARE FAKE. Not real colleagues, not real clients, not real SO
 -- numbers — every so_number below uses the real ADxxxx-xx{T|S|C|P|D}
 -- format (src/lib/validation/so-number.ts) but with an obviously-fake
@@ -51,7 +62,14 @@ declare
   v_project_b uuid;
   v_project_c uuid;
   v_project_d uuid;
+  -- Migration 004 (Brief Fable 001 §4.5): so_number and so_register_id are
+  -- required together (projects_so_register_pairing_check). Both seed rows
+  -- below that carry a so_number are non-VAT (no "V" before the year), so
+  -- both point at the same register row.
+  v_so_register_non_vat uuid;
 begin
+  select id into v_so_register_non_vat
+  from workflow.so_registers where code = 'non_vat';
   insert into workflow.clients (org_id, name) values
     (v_org_id, 'Sample Tower Holdings (fake — dev seed)')
     returning id into v_client_a;
@@ -70,12 +88,12 @@ begin
 
   -- Project A: healthy, recent movement (age ladder: ink band).
   insert into workflow.projects (
-    org_id, client_id, site_id, name, stream, so_number, so_assigned_at,
+    org_id, client_id, site_id, name, stream, so_number, so_register_id, so_assigned_at,
     percent_complete, last_meaningful_movement_at, opened_at
   ) values (
     v_org_id, v_client_a, v_site_a,
     'Sample Tower — CCTV & access control (fake — dev seed)',
-    'elv', 'AD9001-26S', now() - interval '40 days',
+    'elv', 'AD9001-26S', v_so_register_non_vat, now() - interval '40 days',
     62, now() - interval '2 days', now() - interval '45 days'
   ) returning id into v_project_a;
 
@@ -94,12 +112,12 @@ begin
   -- Project C: gone quiet (red band), 95%+ — exercises the 90-99-band
   -- "quietly dying" case Theme 6 exists to surface.
   insert into workflow.projects (
-    org_id, client_id, site_id, name, stream, so_number, so_assigned_at,
+    org_id, client_id, site_id, name, stream, so_number, so_register_id, so_assigned_at,
     percent_complete, last_meaningful_movement_at, opened_at
   ) values (
     v_org_id, v_client_a, v_site_a,
     'Sample Tower — FAS & PA final (fake — dev seed)',
-    'fas', 'AD9002-25S', now() - interval '120 days',
+    'fas', 'AD9002-25S', v_so_register_non_vat, now() - interval '120 days',
     95, now() - interval '31 days', now() - interval '130 days'
   ) returning id into v_project_c;
 

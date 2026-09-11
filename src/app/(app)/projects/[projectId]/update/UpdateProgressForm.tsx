@@ -229,7 +229,32 @@ export function UpdateProgressForm({
         <button
           type="submit"
           className={canSave ? 'btn btn--primary' : 'btn btn--primary btn--disabled'}
-          disabled={!canSave}
+          // Brief Fable 001 Stage B, UNCONFIRMED candidate fix for the 6a
+          // silent-save bug (see Result doc for the full reasoning and the
+          // exact observation that confirms/refutes this): `disabled` used
+          // to be tied to `!canSave`, making this a genuinely native
+          // HTML-disabled button until a reason was picked. A disabled
+          // button dispatches NO click/submit event in any browser — if
+          // something in the real browser session ever left `canSave`
+          // reading false when the person believed they'd already picked a
+          // reason (stale render, a missed re-render, anything), the click
+          // would vanish silently with neither the onSubmit console log
+          // below nor a network request ever firing — exactly the reported
+          // symptom. `disabled` now tracks only `pending`, so the button is
+          // always a real, clickable element; the onClick guard below
+          // preserves the actual gating. This also brings the button in
+          // line with the design contract's own words for this exact
+          // state: "the click is never let through to be scolded
+          // afterwards" (README, screen 6a, state 2) — describing a click
+          // that is quietly absorbed, not a button that cannot be clicked
+          // at all.
+          disabled={pending}
+          onClick={(e) => {
+            if (reasonCode === '') {
+              e.preventDefault()
+              console.log('[6a update] Save clicked with no reason selected — blocked client-side, not submitted')
+            }
+          }}
         >
           {pending ? 'Saving…' : isNoChange ? s.saveNoChange : s.save}
         </button>
