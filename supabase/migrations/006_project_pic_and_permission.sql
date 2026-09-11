@@ -150,11 +150,11 @@ declare
   v_rows_updated integer;
 begin
   select id into v_pic_id
-  from public.user_profiles
+  from auth.users
   where email = 'n.seanghakk@gmail.com';
 
   if v_pic_id is null then
-    raise notice 'Migration 006: no public.user_profiles row for n.seanghakk@gmail.com — dev-seed pic_id backfill skipped, nothing updated.';
+    raise notice 'Migration 006: no auth.users row for n.seanghakk@gmail.com — dev-seed pic_id backfill skipped, nothing updated.';
   else
     update workflow.projects
     set pic_id = v_pic_id

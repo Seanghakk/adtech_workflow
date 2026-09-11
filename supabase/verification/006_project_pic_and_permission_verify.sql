@@ -36,13 +36,13 @@ where tc.table_schema = 'workflow' and tc.table_name = 'projects'
 -- workflow.projects.pic_id and workflow.project_items.pic_id only, and must
 -- NOT contain the substrings 'is_manager' or 'owner_id'.
 select
-  policyname,
+  polname,
   pg_get_expr(polwithcheck, polrelid) as with_check_definition,
   pg_get_expr(polwithcheck, polrelid) not like '%is_manager%'
     and pg_get_expr(polwithcheck, polrelid) not like '%owner_id%' as manager_and_owner_bypass_removed
 from pg_policy
 join pg_class on pg_class.oid = pg_policy.polrelid
-where pg_class.relname = 'progress_updates' and policyname = 'progress_updates_insert';
+where pg_class.relname = 'progress_updates' and polname = 'progress_updates_insert';
 
 -- Expect: manager_and_owner_bypass_removed = true, above.
 
@@ -51,17 +51,17 @@ where pg_class.relname = 'progress_updates' and policyname = 'progress_updates_i
 --    migration 004's can_view_project()-gated version, not touched here.
 -- Expect one row whose definition mentions can_view_project.
 select
-  policyname,
+  polname,
   pg_get_expr(polqual, polrelid) like '%can_view_project%' as still_gated_by_can_view_project
 from pg_policy
 join pg_class on pg_class.oid = pg_policy.polrelid
-where pg_class.relname = 'progress_updates' and policyname = 'progress_updates_select';
+where pg_class.relname = 'progress_updates' and polname = 'progress_updates_select';
 
 
 -- 4. THE DEV-SEED BACKFILL — DEV-SEED CONVENIENCE, NOT A REAL ASSIGNMENT.
 -- Expect 4 rows (every seed_dev.sql project), all pic_id pointing at the
 -- same public.user_profiles row whose email is n.seanghakk@gmail.com.
-select p.name, p.pic_id, up.email as pic_email
+select p.name, p.pic_id, up.full_name as pic_name
 from workflow.projects p
 left join public.user_profiles up on up.id = p.pic_id
 where p.name like '%(fake — dev seed)%'
@@ -77,7 +77,7 @@ select name, pic_id
 from workflow.projects
 where name like '%(fake — dev seed)%'
   and pic_id is not null
-  and pic_id <> (select id from public.user_profiles where email = 'n.seanghakk@gmail.com');
+  and pic_id <> (select id from auth.users where email = 'n.seanghakk@gmail.com');
 
 
 -- 5. THE UN-UPDATABLE-WITHOUT-A-PIC BEHAVIOUR IS REAL, NOT JUST DESCRIBED —
