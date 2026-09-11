@@ -55,7 +55,7 @@ export default async function AssignClientOwnersPage() {
   return (
     <div className="dashboard">
       <h1 className="dashboard__title">Assign client owners</h1>
-      <p className="empty-state" style={{ marginBottom: '1rem' }}>
+      <p className="empty-state" style={{ marginBottom: 'var(--space-4)' }}>
         Which Sales Engineer owns each client — drives who sees that
         client&apos;s maintenance contracts on the monitoring view.
       </p>

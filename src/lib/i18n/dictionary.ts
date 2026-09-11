@@ -68,6 +68,12 @@ const en = {
     'With no manager bypass, nobody can save an update here until a PIC is set — ask a manager to assign one.',
   updatePicRestrictedTitle: 'Only this project’s PIC can save an update here.',
   updatePicRestrictedBodyPrefix: 'Assigned to',
+  // Fable Brief 003 §4.2 — the PIC (the field that actually governs write
+  // permission since migration 006) is now shown positively on every
+  // render of 6a, not only on the failure path; these are its labels.
+  updatePicLabel: 'PIC',
+  updatePicYou: 'You',
+  updateOwnerLabel: 'Owner',
 
   navExceptions: 'Exceptions',
   navLoad: 'Load',
@@ -96,6 +102,11 @@ const en = {
   exceptionsLimitMultiple: '× limit',
   exceptionsFootnote:
     'Groups sort by age or stall duration descending, never by date created. A project can appear in more than one group — that repetition is the point, not a bug to de-duplicate away.',
+  // Fable Brief 003 §4.4 — a sub-threshold update (below the 5-point
+  // meaningful-movement rule) does not reset the stall clock, but it
+  // should still be visible, so "stalled" reads as distinguishable from
+  // "abandoned" without touching the stall rule itself.
+  exceptionsLastReportedPrefix: 'Last reported',
 
   loadTitle: 'Who is carrying what',
   loadKicker: 'Load',
@@ -110,6 +121,14 @@ const en = {
   loadProjectsCount: 'projects',
   loadOpenCount: 'open',
   loadEmpty: 'No open items assigned to anyone yet.',
+  // Fable Brief 003 §4.3 — the per-person panel's empty state previously
+  // reused this same generic copy, which read as "nobody is carrying
+  // anything" even while the per-stream panel beside it clearly had data.
+  // The two panels count different things (open ITEMS with a PIC set vs.
+  // open PROJECTS) — this key says so, rather than looking like a broken
+  // panel.
+  loadEmptyPerPerson:
+    'No open items currently have a PIC assigned — different from nobody carrying any work. See the per-stream panel for what is actually open.',
 
   navSales: 'Maintenance clients',
   salesMonitoringTitle: 'Maintenance clients',
