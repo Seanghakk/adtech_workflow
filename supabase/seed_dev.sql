@@ -24,16 +24,19 @@
 -- (and its empty-state handling, by removing this file's rows again) can
 -- both be exercised by hand.
 --
--- DEPENDS ON MIGRATION 004 (Brief Fable 001 §4.5): the two so_number rows
--- below now also set so_register_id, required together with so_number by
--- projects_so_register_pairing_check. Running this file against a database
--- that has not yet had migration 004 applied fails at the so_registers
--- lookup (table does not exist yet) rather than silently skipping the
--- column. On the ALREADY-LIVE prod database (this file applied there 09
--- Sep 2026, before migration 004 existed), migration 004 itself backfills
--- so_register_id for the two rows this file already created — see that
--- migration's §3. Re-running this file start-to-finish only ever happens
--- against a fresh database, where migration 004 runs first regardless.
+-- DEPENDS ON MIGRATION 005 (Brief Fable 001 §4.5 — written as "004," then
+-- renumbered to 005 after a git pull surfaced an unrelated, separately-
+-- merged migration already claiming that number; see 005_so_registers.sql's
+-- own header): the two so_number rows below now also set so_register_id,
+-- required together with so_number by projects_so_register_pairing_check.
+-- Running this file against a database that has not yet had migration 005
+-- applied fails at the so_registers lookup (table does not exist yet)
+-- rather than silently skipping the column. On the ALREADY-LIVE prod
+-- database (this file applied there 09 Sep 2026, before migration 005
+-- existed), migration 005 itself backfills so_register_id for the two rows
+-- this file already created — see that migration's §3. Re-running this file
+-- start-to-finish only ever happens against a fresh database, where
+-- migration 005 runs first regardless.
 --
 -- ALL NAMES ARE FAKE. Not real colleagues, not real clients, not real SO
 -- numbers — every so_number below uses the real ADxxxx-xx{T|S|C|P|D}
@@ -62,7 +65,7 @@ declare
   v_project_b uuid;
   v_project_c uuid;
   v_project_d uuid;
-  -- Migration 004 (Brief Fable 001 §4.5): so_number and so_register_id are
+  -- Migration 005 (Brief Fable 001 §4.5): so_number and so_register_id are
   -- required together (projects_so_register_pairing_check). Both seed rows
   -- below that carry a so_number are non-VAT (no "V" before the year), so
   -- both point at the same register row.

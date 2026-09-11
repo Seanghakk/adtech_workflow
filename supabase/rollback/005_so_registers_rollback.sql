@@ -1,8 +1,12 @@
 -- =============================================================================
--- ADTECH Workflow Tracker — Rollback for Migration 004
+-- ADTECH Workflow Tracker — Rollback for Migration 005
 -- Brief: ADTECH_WF_Fable_Brief_001_Data_Model_And_Theme_6 §4.5
 --
--- Reverses 004_so_registers.sql: drops the pair-unique index and the two
+-- Renumbered from 004 to 005 — see 005_so_registers.sql's own header for
+-- why (a numbering collision with the separately-merged
+-- 004_sales_roles_and_client_ownership.sql).
+--
+-- Reverses 005_so_registers.sql: drops the pair-unique index and the two
 -- new CHECK constraints, restores migration 001's original org+so_number
 -- unique index, drops the so_register_id column (and with it, every value
 -- the backfill step wrote — this is the one non-recoverable part; re-

@@ -1,9 +1,13 @@
 -- =============================================================================
--- ADTECH Workflow Tracker — Verification queries for Migration 004
+-- ADTECH Workflow Tracker — Verification queries for Migration 005
 -- Brief: ADTECH_WF_Fable_Brief_001_Data_Model_And_Theme_6 §4.5
 --
+-- Renumbered from 004 to 005 — see 005_so_registers.sql's own header for
+-- why (a numbering collision with the separately-merged
+-- 004_sales_roles_and_client_ownership.sql).
+--
 -- Run each block by hand in the Supabase SQL editor AFTER applying
--- 004_so_registers.sql. Every query inspects live catalog/table state,
+-- 005_so_registers.sql. Every query inspects live catalog/table state,
 -- never the migration text — same discipline as every other verification
 -- file in this project.
 -- =============================================================================

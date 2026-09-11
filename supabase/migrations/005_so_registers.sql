@@ -1,6 +1,20 @@
 -- =============================================================================
--- ADTECH Workflow Tracker — Migration 004: SO registers, pair-unique so_number
+-- ADTECH Workflow Tracker — Migration 005: SO registers, pair-unique so_number
 -- Brief: ADTECH_WF_Fable_Brief_001_Data_Model_And_Theme_6 §4.5
+--
+-- RENUMBERED FROM 004 TO 005, POST-WRITE, BEFORE APPLY: written and
+-- committed as migration 004 (this brief's own §3.1 said "Last applied is
+-- 003, so the next new one is 004" — true at the time). A `git pull` after
+-- that commit brought in 004_sales_roles_and_client_ownership.sql (Brief
+-- ADTECH_WF_Brief_003_Sales_Roles, merged via a separate PR, unrelated to
+-- this brief's lineage), already claiming 004 first in git history. Rather
+-- than let two different "migration 004" files coexist — exactly the kind
+-- of drift this project's numbering convention exists to prevent — this
+-- file (never applied to prod, confirmed in the Fable Result 001 doc) was
+-- renumbered to 005 instead of the already-merged one. No SQL content
+-- changed; only this file's number, its own filename references below, and
+-- the matching rollback/verify files. See the Fable Result doc's addendum
+-- for the full note to Seanghakk.
 --
 -- PROBLEM (settled 11 Sep 2026, not re-derived here): ADTECH's SO numbering
 -- runs VAT and non-VAT as SEPARATE REGISTERS that legitimately share
@@ -28,7 +42,7 @@
 -- unique indexes treat every NULL as distinct from every other NULL, so
 -- multiple projects may sit in the won-but-no-SO-yet state (so_number and
 -- so_register_id both null) simultaneously without tripping the new
--- constraint. Verified in 004_so_registers_verify.sql block 5, not merely
+-- constraint. Verified in 005_so_registers_verify.sql block 5, not merely
 -- asserted here — do not "fix" this by making the columns NOT NULL.
 --
 -- WHAT A CHECK CANNOT DO: a CHECK constraint cannot reach across to another
@@ -54,7 +68,7 @@
 -- insert, update on tables to authenticated` already covers any table
 -- created after it, including workflow.so_registers — see migration 002's
 -- own comment on this. Nothing to add or verify beyond confirming that
--- default-privilege grant fired (004_so_registers_verify.sql block 6).
+-- default-privilege grant fired (005_so_registers_verify.sql block 6).
 --
 -- NOT APPLIED. Paste-ready for the Supabase SQL editor, same as every
 -- migration in this project. Applies BY HAND, BEFORE the matching code
