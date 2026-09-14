@@ -26,15 +26,21 @@ export default function UpdateProgressError({
   }, [error])
 
   return (
-    <div className="update-card" style={{ padding: '26px 24px', maxWidth: 520 }}>
-      <h2 style={{ margin: '0 0 10px', font: '700 17px/1.3 var(--font-archivo)' }}>
+    <div className="update-card" style={{ padding: 'var(--space-6) var(--space-5)', maxWidth: 520 }}>
+      <h2 style={{ margin: '0 0 var(--space-3)', font: '700 19px/1.3 var(--font-heading)' }}>
         Something went wrong saving this update.
       </h2>
-      <p style={{ margin: '0 0 18px', color: 'var(--color-muted)', font: '400 12.5px/1.6 var(--font-archivo)' }}>
+      <p
+        style={{
+          margin: '0 0 var(--space-5)',
+          color: 'var(--text-muted)',
+          font: '400 14px/1.6 var(--font-body)',
+        }}
+      >
         Nothing on screen confirms this was saved — treat it as NOT saved. Try again, or go back
         and re-check the project&apos;s current percentage before retrying.
       </p>
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
         <button type="button" className="btn btn--primary" onClick={() => retry()}>
           Try again
         </button>

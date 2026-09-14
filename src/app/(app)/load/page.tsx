@@ -70,7 +70,7 @@ export default async function LoadPage() {
           <p className="load-board__panel-caption">{t('loadPerPersonCaption')}</p>
 
           {perPerson.length === 0 ? (
-            <p className="empty-state">{t('loadEmpty')}</p>
+            <p className="empty-state">{t('loadEmptyPerPerson')}</p>
           ) : (
             <PerPersonChart
               rows={perPerson}

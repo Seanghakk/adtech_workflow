@@ -137,6 +137,9 @@ export default async function UpdateProgressPage({
           picUnassignedBody: t('updatePicUnassignedBody'),
           picRestrictedTitle: t('updatePicRestrictedTitle'),
           picRestrictedBodyPrefix: t('updatePicRestrictedBodyPrefix'),
+          picLabel: t('updatePicLabel'),
+          picYou: t('updatePicYou'),
+          ownerLabel: t('updateOwnerLabel'),
         }}
       />
     </div>

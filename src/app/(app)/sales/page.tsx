@@ -52,7 +52,7 @@ export default async function SalesMonitoringPage() {
   return (
     <div className="dashboard">
       <h1 className="dashboard__title">{t('salesMonitoringTitle')}</h1>
-      <p className="empty-state" style={{ marginBottom: '1rem' }}>
+      <p className="empty-state" style={{ marginBottom: 'var(--space-4)' }}>
         {member ? t('salesMonitoringReadOnlyNote') : null}
       </p>
 
@@ -107,7 +107,7 @@ export default async function SalesMonitoringPage() {
       )}
 
       {member && (member.role === 'manager' || member.role === 'admin') && (
-        <p style={{ marginTop: '1.5rem' }}>
+        <p style={{ marginTop: 'var(--space-6)' }}>
           <Link href="/sales/assign">{t('salesAssignLinkLabel')}</Link>
         </p>
       )}

@@ -74,20 +74,49 @@ export default async function ExceptionsPage() {
   // is what "no reason given" (below) actually tests, since reason_code is
   // NOT NULL at the database level (migration 001): there is no such thing
   // as an update with a blank reason, only a project with no update yet.
-  const latestReasonByProjectId = new Map<string, string>()
+  // Keeping recorded_at alongside the code (not just the code, as before
+  // Brief 003) is what §4.4's fix below needs: the stalled group can now
+  // say WHEN a project was last reported on, distinct from the stall
+  // clock, which only moves on a >=5-point change (Brief §4).
+  const latestReportByProjectId = new Map<string, { reasonCode: string; recordedAt: string }>()
   for (const row of progressRows ?? []) {
-    if (!latestReasonByProjectId.has(row.subject_id)) {
-      latestReasonByProjectId.set(row.subject_id, row.reason_code)
+    if (!latestReportByProjectId.has(row.subject_id)) {
+      latestReportByProjectId.set(row.subject_id, {
+        reasonCode: row.reason_code,
+        recordedAt: row.recorded_at,
+      })
     }
   }
 
   const reasonCodeMap = new Map((reasonCodes ?? []).map((r) => [r.code, r]))
-  const reasonLabelFor = (projectId: string): string => {
-    const code = latestReasonByProjectId.get(projectId)
-    if (!code) return t('exceptionsNoReasonOnFile')
+  const labelForReasonCode = (code: string): string => {
     const rc = reasonCodeMap.get(code)
     if (!rc) return code
     return localizedLabel(rc.label_en, rc.label_km, lang)
+  }
+  const reasonLabelFor = (projectId: string): string => {
+    const report = latestReportByProjectId.get(projectId)
+    if (!report) return t('exceptionsNoReasonOnFile')
+    return labelForReasonCode(report.reasonCode)
+  }
+  /** Fable Brief 003 §4.4 — the fix: AD9002-25S-shaped case. A project can
+   *  receive a real, sub-threshold progress update (correctly NOT resetting
+   *  the stall clock, per Brief §4's 5-point threshold) while still
+   *  appearing in the "stalled" group looking identical to something
+   *  nobody has touched in a month. This surfaces that a report exists and
+   *  when, without weakening or restating the stall rule itself — the age
+   *  ladder above it keeps showing the unchanged stall duration. */
+  const lastReportedPrefix = t('exceptionsLastReportedPrefix')
+  const recentReportFor = (
+    projectId: string,
+  ): { prefix: string; dateLabel: string; reasonLabel: string } | undefined => {
+    const report = latestReportByProjectId.get(projectId)
+    if (!report) return undefined
+    return {
+      prefix: lastReportedPrefix,
+      dateLabel: formatDateICT(report.recordedAt),
+      reasonLabel: labelForReasonCode(report.reasonCode),
+    }
   }
 
   const exceptionProjects: ExceptionProject[] = (projects ?? []).map((p) => ({
@@ -98,7 +127,7 @@ export default async function ExceptionsPage() {
     percentComplete: p.percent_complete,
     picId: p.pic_id,
     stallDays: daysSinceICT(p.last_meaningful_movement_at ?? p.opened_at),
-    hasReasonOnFile: latestReasonByProjectId.has(p.id),
+    hasReasonOnFile: latestReportByProjectId.has(p.id),
   }))
 
   const groups = buildExceptionGroups(exceptionProjects)
@@ -211,7 +240,7 @@ export default async function ExceptionsPage() {
                       key={p.id}
                       project={p}
                       picLabel={picLabel(p.picId) ?? unassigned}
-                      showPercent
+                      recentReport={recentReportFor(p.id)}
                     />
                   ))
                 )}
@@ -289,11 +318,15 @@ function ProjectExceptionCard({
   picLabel,
   showPercent = false,
   reasonLabel,
+  recentReport,
 }: {
   project: ExceptionProject
   picLabel: string
   showPercent?: boolean
   reasonLabel?: string
+  /** Fable Brief 003 §4.4 — stalled-group only: when a report exists,
+   *  states when and why, distinct from the stall clock below it. */
+  recentReport?: { prefix: string; dateLabel: string; reasonLabel: string }
 }) {
   const weight = getCardWeight(project.stallDays)
 
@@ -325,6 +358,12 @@ function ProjectExceptionCard({
       <div className="exception-card__footer-row">
         <span className="exception-card__pic">{picLabel.toUpperCase()}</span>
       </div>
+      {recentReport && (
+        <span className="exception-card__recent-report">
+          <span className="exception-card__recent-report-label">{recentReport.prefix}</span>{' '}
+          {recentReport.dateLabel}: {recentReport.reasonLabel}
+        </span>
+      )}
       <div style={{ marginTop: 'var(--space-4)' }}>
         <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} />
       </div>

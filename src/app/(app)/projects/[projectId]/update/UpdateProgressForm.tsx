@@ -53,6 +53,9 @@ interface UpdateProgressFormProps {
     picUnassignedBody: string
     picRestrictedTitle: string
     picRestrictedBodyPrefix: string
+    picLabel: string
+    picYou: string
+    ownerLabel: string
   }
 }
 
@@ -123,10 +126,33 @@ export function UpdateProgressForm({
           <div className="update-card__name">{project.name}</div>
           <div className="update-card__sub">{project.openItemCount} open sub-items</div>
         </div>
-        <div className="owner-mark">
-          <span className="owner-mark__box">
-            {(project.ownerLabel ?? s.unassigned).toUpperCase()}
-          </span>
+        {/* Fable Brief 003 §4.2 — the fix: since migration 006, owner_id
+            governs nothing and pic_id governs everything (who can write
+            here at all), but this card used to show a prominent
+            UNASSIGNED badge for OWNER while never stating the PIC at all
+            on the success path (only on the blocked-note failure path
+            below). The PIC now renders here always, as the primary mark.
+            JUDGMENT CALL (stated per the brief, not silently resolved):
+            the owner badge still earns a place — it is a different,
+            legitimate fact (who opened/owns the project commercially) —
+            but it no longer controls access, so it is demoted to a
+            smaller, muted, explicitly-labeled chip below the PIC pill
+            rather than removed outright. */}
+        <div className="update-card__actors">
+          <div className="pic-mark">
+            <span className="pic-mark__label">{s.picLabel}</span>
+            <span className="pic-mark__value">
+              {pic.isCurrentUser
+                ? s.picYou
+                : (pic.label ?? s.unassigned).toUpperCase()}
+            </span>
+          </div>
+          <div className="owner-mark">
+            <span className="owner-mark__label">{s.ownerLabel}</span>
+            <span className="owner-mark__box">
+              {(project.ownerLabel ?? s.unassigned).toUpperCase()}
+            </span>
+          </div>
         </div>
       </div>
 
