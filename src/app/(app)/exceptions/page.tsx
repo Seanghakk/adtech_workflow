@@ -307,10 +307,14 @@ export default async function ExceptionsPage() {
   )
 }
 
+// Visual Round Restyle §3.2 — one class per band, matching age.ts's
+// AgeBand names exactly (getCardWeight() now returns the same four
+// values the age ladder does; see that file's own comment).
 const weightClassName: Record<CardWeight, string> = {
-  plain: 'exception-card',
-  elevated: 'exception-card exception-card--elevated',
-  severe: 'exception-card exception-card--severe',
+  moving: 'exception-card exception-card--moving',
+  waiting: 'exception-card exception-card--waiting',
+  late: 'exception-card exception-card--late',
+  stalled: 'exception-card exception-card--stalled',
 }
 
 function ProjectExceptionCard({
@@ -365,7 +369,7 @@ function ProjectExceptionCard({
         </span>
       )}
       <div style={{ marginTop: 'var(--space-4)' }}>
-        <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} />
+        <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} full />
       </div>
     </div>
   )

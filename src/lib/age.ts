@@ -5,57 +5,60 @@
  * so a list sorts itself visually without reading. This is the ONE shared
  * helper every screen must go through — "Compute these once in one shared
  * helper; every screen depends on them agreeing" (README, Design Tokens).
- * Screen 6a is the first caller; screens 1d/4a/6b will share this same
- * module rather than re-deriving the bands.
  *
- * BAND TABLE (authoritative, from the README):
- *   Days 1–5   -> ink   (#201e1d) "fine"
- *   Days 6–10  -> amber (#b26100) "slipping"
- *   Day 11+    -> red   (#c62430) "gone quiet"
- *   Unreached  -> rule  (#e2dede)
+ * Visual Round Restyle (15 Sep 2026), Design Note Rev 3 §2.3, "Two
+ * ladders, collapsed into one set of bands": card weight (getCardWeight,
+ * below) and this bar used to run different boundaries (roughly 1/7/14
+ * vs. 1/6/11/16), so a card could show an amber segment on day 6 while
+ * its border stayed hairline until day 7. DECIDED: both now key off the
+ * SAME four bands, and both are derived from the single SEGMENT_THRESHOLDS
+ * array below so they cannot re-diverge — change the thresholds once,
+ * both follow.
  *
- * SEGMENT-FILL THRESHOLDS — a judgment call, documented here and in
- * Result 002: the README states the band table above as the rule, then
- * gives a few "Example renderings" in prose that are not fully mutually
- * consistent with each other or with the two real fill-counts drawn on
- * the actual 6a mockup (7 days -> 2 filled segments; 31 days -> all 4).
- * These are static, hand-authored mockups ("a specification of the visual
- * result, not an architecture to mirror" — README, About the Design
- * Files), not a live component, so an exact universal formula was never
- * actually run against every day count. The thresholds below were picked
- * to reproduce BOTH real fill-counts drawn in the 6a mockup exactly, and
- * land within the range implied by the README's prose examples for the
- * other two. If a stakeholder review disagrees with the exact day a
- * segment lights up, this is the one function to change — every screen
- * that renders an age ladder will follow.
+ * BAND TABLE (authoritative — Design Note Rev 3 §2.3 / Handoff v1 §4,
+ * matching the live, confirmed src/lib/age.ts thresholds [1, 6, 11, 16] —
+ * unchanged by this round; only what each band RETURNS changed):
+ *   Days 1–5   -> moving   (segment colour #0a4767)
+ *   Days 6–10  -> waiting  (segment colour = --warning #b26100)
+ *   Days 11–15 -> late     (segment colour = --danger #c62430)
+ *   Days 16+   -> stalled  (segment colour #8e1620)
+ *   Unreached  -> grey #d7d3d3, never left empty (bar length is never the
+ *                 signal — see AgeLadder.tsx)
  */
 
-export type AgeBandColor = 'ink' | 'amber' | 'red'
+export type AgeBand = 'moving' | 'waiting' | 'late' | 'stalled'
 
-/** Position 1 and 2 render ink, 3 renders amber, 4 renders red — fixed by
- *  position, never by the overall day count, so a long-stalled item shows
- *  a visible gradient (ink, ink, amber, red) rather than four same-colour
- *  blocks. See the real 6a mockup's 31-day card for exactly this shape. */
-const SEGMENT_COLORS: readonly AgeBandColor[] = ['ink', 'ink', 'amber', 'red']
+/** One band per fixed bar position — position i lights up once
+ *  SEGMENT_THRESHOLDS[i] is reached, independent of the overall day count,
+ *  so a long-stalled item shows a visible gradient across all four
+ *  segments rather than four same-colour blocks. */
+const BANDS: readonly AgeBand[] = ['moving', 'waiting', 'late', 'stalled']
 
 /** Day count at which each of the 4 segments lights up. */
 const SEGMENT_THRESHOLDS: readonly number[] = [1, 6, 11, 16]
 
 export interface AgeLadderSegment {
   filled: boolean
-  color: AgeBandColor
+  band: AgeBand
 }
 
-/** Text-label color/weight band — tied to the README's literal "Day 11+"
- *  boundary (the point the table itself calls "gone quiet"), matching the
- *  real mockup: the 7-day label is plain muted grey, the 31-day label is
- *  bold red. No example shows the amber-label state explicitly; 6-10 is
- *  included as the reasonable middle step implied by the color system,
- *  not confirmed pixel-for-pixel against a drawn example. */
-export function getAgeLabelBand(days: number): AgeBandColor | 'muted' {
-  if (days >= 11) return 'red'
-  if (days >= 6) return 'amber'
-  return 'muted'
+/** The single place both getAgeLadderSegments() and getCardWeight() read
+ *  the current band from — walks the thresholds from the most severe end
+ *  so the two can never disagree (Design Note Rev 3 §2.3). */
+function bandForDays(days: number): AgeBand {
+  const safeDays = Math.max(0, Math.floor(days))
+  for (let i = SEGMENT_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (safeDays >= SEGMENT_THRESHOLDS[i]) return BANDS[i]
+  }
+  return BANDS[0]
+}
+
+/** Text-label colour/weight band for the age-ladder's caption — extended
+ *  from 3 states to 4 to match the single collapsed band system above
+ *  (JUDGMENT CALL: no doc specifies label-text colour separately from
+ *  segment-fill colour; this keeps them in lockstep, same as before). */
+export function getAgeLabelBand(days: number): AgeBand {
+  return bandForDays(days)
 }
 
 /** Days must be a non-negative integer; callers should clamp/round via
@@ -64,24 +67,22 @@ export function getAgeLadderSegments(days: number): AgeLadderSegment[] {
   const safeDays = Math.max(0, Math.floor(days))
   return SEGMENT_THRESHOLDS.map((threshold, i) => ({
     filled: safeDays >= threshold,
-    color: SEGMENT_COLORS[i],
+    band: BANDS[i],
   }))
 }
 
-export type CardWeight = 'plain' | 'elevated' | 'severe'
+/** CardWeight is now literally the same four states as the age ladder's
+ *  own bands (Design Note Rev 3 §2.3) — aliased under its historical name
+ *  since exceptions/page.tsx (its only caller) already imports it by
+ *  this name and nothing about that call site needs to change. */
+export type CardWeight = AgeBand
 
-/** README, "The age ladder": "On 1d/4a the card itself gains weight as it
- *  ages: hairline border at a day, full ink 2px rule at a week, red field
- *  past two weeks." Fable Brief 002 §2 reuses this exact rule for screen
- *  6b's exception cards ("reuses 4a's card weighting so the board reads
- *  as a heat map before a word is read") — this is the one shared place
- *  that mapping lives, so 6b and any future 1d/4a build never quietly
- *  disagree about where a card's weight changes. "A week" / "two weeks"
- *  are read as 7 and 15 days (>14), matching the age ladder's own day-1
- *  and day-11+ boundaries being inclusive-from. */
+/** Design Note Rev 3 §2.3 / this brief §3.2: card weight now keys off the
+ *  SAME bands as the age ladder above, not its own separate 1/7/14
+ *  boundaries. Only ONE caller exists (exceptions/page.tsx, screen 6b) —
+ *  confirmed by grepping every .ts/.tsx file in src/ for getCardWeight
+ *  and CardWeight before this change; nothing else assumed the old
+ *  1/7/14 boundaries. */
 export function getCardWeight(days: number): CardWeight {
-  const safeDays = Math.max(0, Math.floor(days))
-  if (safeDays > 14) return 'severe'
-  if (safeDays >= 7) return 'elevated'
-  return 'plain'
+  return bandForDays(days)
 }
