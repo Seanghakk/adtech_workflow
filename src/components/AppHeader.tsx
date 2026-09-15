@@ -5,8 +5,16 @@ import type { CurrentMember } from '@/lib/auth/current-member'
 import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 
 /**
- * App shell nav. README, Assets: "No logo file — the ADTECH name renders
- * as plain text in a 2px ink box, no wordmark."
+ * App shell nav.
+ *
+ * Brand mark — Visual Round Restyle §3.5 / Design Note Rev 3 §3: "Two
+ * flush rectangles, blue then ink, no gap and no radius, ADTECH in the
+ * heaviest weight with the app name beside it in regular." Replaces the
+ * old bordered .brand-box here (that markup stays on the login screen —
+ * see globals.css's own note on why that screen isn't touched this
+ * round). Block order never changes; only the second word does, and the
+ * docs' own worked example for this app is "ADTECH Workflow" — dropping
+ * "Tracker" from what was here before, flagged in this brief's Result.
  *
  * ADTECH_WF_Brief_003_Sales_Roles: the /sales link only renders for the
  * two tiers it's actually for (Sales Engineer/Supervisor) — everyone
@@ -19,9 +27,15 @@ import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 export function AppHeader({ member }: { member: CurrentMember }) {
   return (
     <header className="app-header">
-      <Link href="/" className="brand-box brand-box--compact">
-        <span className="brand-box__name">ADTECH</span>
-        <span className="brand-box__kicker">Workflow Tracker</span>
+      <Link href="/" className="brand-mark">
+        <span className="brand-mark__blocks" aria-hidden="true">
+          <span className="brand-mark__block brand-mark__block--blue" />
+          <span className="brand-mark__block brand-mark__block--ink" />
+        </span>
+        <span className="brand-mark__text">
+          <span className="brand-mark__name">ADTECH</span>
+          <span className="brand-mark__app">Workflow</span>
+        </span>
       </Link>
       <div className="app-header__identity">
         <span className="app-header__owner-box">
