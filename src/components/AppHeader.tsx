@@ -55,6 +55,13 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
         </span>
         <span className="app-header__team">{member.teamLabelEn}</span>
       </div>
+      {/* Brief 015 §4 — any active member, no role gate: posting a request
+          is meant to be as easy as sending a Telegram message, so this
+          link is unconditional, unlike the two role-gated <nav> blocks
+          below it. */}
+      <nav className="app-header__nav">
+        <Link href="/requests/new">{t('navRequests')}</Link>
+      </nav>
       {isSalesTeamMember(member) && (
         <nav className="app-header__nav">
           <Link href="/sales">{t('navSales')}</Link>
