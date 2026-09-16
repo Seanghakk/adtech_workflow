@@ -35,9 +35,13 @@ where oid = 'workflow.client_owners'::regclass;
 
 -- Expect 3 rows: client_owners_select | SELECT, client_owners_insert | INSERT,
 -- client_owners_update | UPDATE.
-select polname as policy_name, cmd as command
-from pg_policy
-where polrelid = 'workflow.client_owners'::regclass
+-- ADTECH_WF_Result_004: pg_policy.cmd is a raw single-character code
+-- ('r'/'a'/'w'/'d'/'*'), not the human-readable command name — that
+-- decoding only exists on the pg_policies VIEW (used correctly elsewhere
+-- in this file, blocks 7 and 9). Fixed to query the view here too.
+select policyname as policy_name, cmd as command
+from pg_policies
+where schemaname = 'workflow' and tablename = 'client_owners'
 order by cmd;
 
 
