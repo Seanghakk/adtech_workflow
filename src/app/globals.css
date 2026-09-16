@@ -1271,6 +1271,22 @@ button {
 .exception-group__head {
   padding: var(--space-4);
   border-bottom: 1px solid var(--border);
+  /* Brief 011 §2 — FIX. Reproduced on the live preview at both ~1512px
+     and the 1024px target before fixing: the brief's own hypothesis
+     (title wrapping) does NOT hold — measured via getBoundingClientRect,
+     every lane's title-row is exactly 22px, one line, at every width
+     tested. The actual cause is the CAPTION: "Never reported on since it
+     opened." (No reason given) is short enough to stay on one line
+     (16.8px), while the other three captions ("No meaningful movement.
+     Sorted by..." / "More than three distinct projects..." / "Nearly
+     done and not moving...") are all long enough to wrap to two
+     (33.6px) — a measured 96.59px head vs. 79.8px, exactly the visible
+     misalignment. min-height set to the real measured 2-line-caption
+     case (padding 32px + 22px title row + 8px gap + 33.6px caption),
+     not a guessed value, so every lane reserves the same space
+     regardless of which caption is short this week. No title is
+     truncated or shrunk — this only adds space, never removes it. */
+  min-height: 97px;
 }
 /* Brief 010 §3.2 — FIX: was var(--danger). "No reason given" (the only
    group this modifier is applied to) is a data-completeness gap, not a
