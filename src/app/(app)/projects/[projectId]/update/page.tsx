@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { UpdateProgressForm } from './UpdateProgressForm'
@@ -73,10 +73,19 @@ export default async function UpdateProgressPage({
 
   const profileIds = [project.owner_id, project.pic_id, lastUpdate?.author_id]
   const profiles = await getUserProfilesByIds(supabase, profileIds)
-  const owner = project.owner_id ? profiles.get(project.owner_id) : undefined
-  const pic = project.pic_id ? profiles.get(project.pic_id) : undefined
-  const lastAuthor = lastUpdate?.author_id ? profiles.get(lastUpdate.author_id) : undefined
   const isCurrentUserPic = Boolean(user && project.pic_id && project.pic_id === user.id)
+
+  // Brief 013 §3 — null here must mean ONLY "no id was ever set" (so the
+  // form's own `?? unassigned` fallback stays correct); an id that IS set
+  // but has no matching profile row resolves to explicit "no profile"
+  // text instead of silently falling through to null/Unassigned too.
+  const ownerLabel = project.owner_id
+    ? formatMemberName(profiles.get(project.owner_id), t('membersNoProfile'))
+    : null
+  const picLabel = project.pic_id ? formatMemberName(profiles.get(project.pic_id), t('membersNoProfile')) : null
+  const lastAuthorLabel = lastUpdate?.author_id
+    ? formatMemberName(profiles.get(lastUpdate.author_id), t('membersNoProfile'))
+    : null
 
   const stallAnchor = project.last_meaningful_movement_at ?? project.opened_at
   const daysSinceMovement = daysSinceICT(stallAnchor)
@@ -91,20 +100,20 @@ export default async function UpdateProgressPage({
           soNumber: project.so_number,
           percentComplete: project.percent_complete,
           openItemCount: openItemCount ?? 0,
-          ownerLabel: owner?.fullName ?? owner?.username ?? null,
+          ownerLabel,
         }}
         lastReported={
           lastUpdate
             ? {
                 dateLabel: formatDateICT(lastUpdate.recorded_at),
-                byLabel: lastAuthor?.fullName ?? lastAuthor?.username ?? null,
+                byLabel: lastAuthorLabel,
               }
             : null
         }
         pic={{
           assigned: Boolean(project.pic_id),
           isCurrentUser: isCurrentUserPic,
-          label: pic?.fullName ?? pic?.username ?? null,
+          label: picLabel,
         }}
         daysSinceMovement={daysSinceMovement}
         reasonCodes={(reasonCodes ?? []).map((r) => ({

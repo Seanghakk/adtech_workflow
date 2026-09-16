@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { DAILY_PROJECT_LIMIT } from '@/lib/reporting/exceptions'
 import { buildPerPersonLoad, buildPerStreamLoad, type PerPersonLoad, type PerStreamLoad } from '@/lib/reporting/load'
@@ -80,10 +80,7 @@ export default async function LoadPage() {
           ) : (
             <PerPersonChart
               rows={perPerson}
-              nameFor={(picId) => {
-                const profile = profiles.get(picId)
-                return (profile?.fullName ?? profile?.username ?? picId).toUpperCase()
-              }}
+              nameFor={(picId) => formatMemberName(profiles.get(picId), t('membersNoProfile')).toUpperCase()}
               openItemsLabel={t('loadOpenItems')}
               lineLabel={t('loadThreeProjectLine')}
             />

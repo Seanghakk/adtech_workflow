@@ -231,6 +231,43 @@ const en = {
   // §2.7 — restricted, not empty.
   usersRestricted: 'You do not have access to User Management.',
 
+  // ADTECH_WF_Brief_013 §3 — the one explicit missing-profile fallback,
+  // shown wherever a member is named but no public.user_profiles row
+  // exists for them. Never a raw id (see Result 013).
+  membersNoProfile: 'No profile on file',
+
+  // The unlinked-account queue names a person by email (Brief 012 §2.4);
+  // same "never a raw id" rule applies when an account genuinely has none.
+  usersQueueNoEmail: 'No email on file',
+
+  // ADTECH_WF_Brief_014 §2 — Reactivate. Uses the same members_update
+  // permission as Deactivate; no consequence to name, so no two-step
+  // confirmation (unlike Deactivate/Unlink below).
+  usersReactivate: 'Reactivate',
+  usersReactivatePending: 'Reactivating…',
+  usersReactivateError: 'Could not reactivate this member. Nothing was changed — try again.',
+
+  // §3 — Unlink. Same two-step, consequence-naming pattern as Deactivate
+  // (§3.3); reuses usersDeactivateConsequenceNoPic/PicSuffix below for the
+  // PIC-count line since the consequence is identical in both cases.
+  usersUnlink: 'Unlink',
+  usersUnlinkCancel: 'Cancel',
+  usersUnlinkConfirmAction: 'Yes, unlink',
+  usersUnlinkConfirmPending: 'Unlinking…',
+  usersUnlinkConsequenceAccess:
+    'This person will no longer be able to sign in. Their account returns to the list waiting to be linked and can be linked again.',
+  usersUnlinkError: 'Could not unlink this account. Nothing was changed — try again.',
+
+  // §4 — Telegram column. Reads the CMMS's existing link only; this app
+  // never writes telegram_username/telegram_chat_id (§4.2/§4.4/§6).
+  usersColTelegram: 'Telegram',
+  usersTelegramNotLinked: 'Not linked',
+  // A real Telegram account can be linked (telegram_chat_id set) without
+  // ever having set a public @handle — distinct from "not linked".
+  usersTelegramLinkedNoHandle: 'Linked (no @handle set)',
+  usersTelegramLinkHint:
+    'In the CMMS, generate a Telegram link code for this account, then have them send it to @adtech_cmms_bot.',
+
   // §3 — assigning a PIC, on the board (screen 4a), not here.
   boardAssignPic: 'Assign PIC',
   boardReassignPic: 'Reassign',

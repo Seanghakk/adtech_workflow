@@ -2127,6 +2127,53 @@ button {
 .wf-admin-row__deactivate:hover {
   background: var(--danger-tint-bg);
 }
+/* Brief 014 §3 — Unlink sits beside Deactivate, same shape and same
+   --danger token (both end a person's access), no new colour value. */
+.wf-admin-row__unlink {
+  font: 700 12px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--danger);
+  cursor: pointer;
+}
+.wf-admin-row__unlink:hover {
+  background: var(--danger-tint-bg);
+}
+/* §2 — Reactivate is not destructive, so it borrows --navy (already used
+   elsewhere on this screen, e.g. .wf-admin__kicker) instead of --danger. */
+.wf-admin-row__reactivate-form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.wf-admin-row__reactivate {
+  font: 700 12px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--navy);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--navy);
+  cursor: pointer;
+}
+.wf-admin-row__reactivate:hover {
+  background: var(--navy-tint-bg);
+}
+.wf-admin-row__reactivate:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* §4 — the Telegram column's not-linked guidance, muted like every other
+   secondary caption in this table (reuses --text-muted, no new token). */
+.wf-admin-table__hint {
+  display: block;
+  margin-top: var(--space-1);
+  font: 400 11px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
 /* §2.6 — the confirmation naming the consequence, inline, before the
    action — same "no modal, no toast" discipline 6a's own refusal state
    uses (Design Note §4.2). */

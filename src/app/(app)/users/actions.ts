@@ -88,3 +88,96 @@ export async function deactivateMember(
   revalidatePath('/')
   return { error: null }
 }
+
+export interface ReactivateMemberState {
+  error: string | null
+}
+
+/**
+ * Brief 014 §2 — the gap Result 012 flagged: a deactivated member had no
+ * way back in. Uses the SAME members_update RLS policy Deactivate
+ * already relies on (migration 001, is_manager()-gated) — confirmed by
+ * reading that policy directly rather than assumed (Brief 014 §0's own
+ * "confirm state first"), so no migration was needed for this half of
+ * the brief.
+ */
+export async function reactivateMember(
+  _prevState: ReactivateMemberState,
+  formData: FormData,
+): Promise<ReactivateMemberState> {
+  const { member } = await getCurrentMember()
+  if (!member || !isManagerOrAdmin(member)) {
+    return { error: 'You do not have permission to reactivate members.' }
+  }
+
+  const memberId = String(formData.get('memberId') ?? '')
+  if (!memberId) {
+    return { error: 'No member specified.' }
+  }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('members').update({ is_active: true }).eq('id', memberId)
+
+  if (error) {
+    return { error: 'Could not reactivate this member. Nothing was changed — try again.' }
+  }
+
+  revalidatePath('/users')
+  revalidatePath('/')
+  return { error: null }
+}
+
+export interface UnlinkMemberState {
+  error: string | null
+}
+
+/**
+ * Brief 014 §3 — an UNLINK, not a delete: removes the workflow.members
+ * row so the underlying auth account returns to the unlinked-account
+ * queue (list_unlinked_accounts, migration 009) and can be linked again,
+ * possibly to a different team or role. The auth account itself is never
+ * touched here.
+ *
+ * §3.1's dependency check (done in migration 010's own header, confirmed
+ * against the live schema rather than assumed): workflow.progress_updates
+ * .author_id and workflow.projects.pic_id both reference
+ * public.user_profiles(id) directly, never workflow.members(id), and no
+ * foreign key in this schema references workflow.members(id) at all — so
+ * this delete orphans nothing. §3.2's Case A applies: Unlink is offered
+ * generally, alongside Deactivate, with no history/PIC check required
+ * here. The confirmation UI still names the PIC-count consequence before
+ * calling this (UnlinkMemberControl), matching Deactivate's own pattern
+ * — that is a UI-level warning, not a condition this action enforces.
+ *
+ * Relies on the members_delete RLS policy (migration 010, is_manager()
+ * -gated, mirroring members_update/members_insert) — RLS is the real
+ * enforcement, this check is belt-and-suspenders like every other Server
+ * Function in this app.
+ */
+export async function unlinkMember(
+  _prevState: UnlinkMemberState,
+  formData: FormData,
+): Promise<UnlinkMemberState> {
+  const { member } = await getCurrentMember()
+  if (!member || !isManagerOrAdmin(member)) {
+    return { error: 'You do not have permission to unlink accounts.' }
+  }
+
+  const memberId = String(formData.get('memberId') ?? '')
+  if (!memberId) {
+    return { error: 'No member specified.' }
+  }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('members').delete().eq('id', memberId)
+
+  if (error) {
+    return { error: 'Could not unlink this account. Nothing was changed — try again.' }
+  }
+
+  revalidatePath('/users')
+  revalidatePath('/')
+  return { error: null }
+}

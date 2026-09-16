@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds, type MemberProfile } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { formatDateICT } from '@/lib/format/datetime'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
 import { UnlinkedAccountRow } from './UnlinkedAccountRow'
 import { DeactivateMemberControl } from './DeactivateMemberControl'
+import { ReactivateMemberControl } from './ReactivateMemberControl'
+import { UnlinkMemberControl } from './UnlinkMemberControl'
 
 export const metadata: Metadata = {
   title: 'Users — ADTECH Workflow Tracker',
@@ -72,6 +74,15 @@ export default async function UsersPage() {
 
   const teamOptions = (teams ?? []).map((team) => ({ id: team.id, labelEn: team.label_en }))
 
+  // Brief 014 §4.3 — reads the CMMS's existing Telegram link only, never
+  // writes it. A real Telegram account can be linked (telegram_chat_id
+  // set) without a public @handle, so that state is told apart from
+  // "not linked" rather than collapsed into it.
+  const telegramLabel = (profile: MemberProfile | undefined): string => {
+    if (!profile?.telegramChatId) return t('usersTelegramNotLinked')
+    return profile.telegramUsername ? `@${profile.telegramUsername}` : t('usersTelegramLinkedNoHandle')
+  }
+
   return (
     <div className="wf-admin">
       <div className="wf-admin__header">
@@ -97,6 +108,7 @@ export default async function UsersPage() {
                 key={account.user_id}
                 userId={account.user_id}
                 email={account.email}
+                noEmailText={t('usersQueueNoEmail')}
                 sinceLabel={`${t('usersQueueEmail')} ${formatDateICT(account.created_at)}`}
                 teams={teamOptions}
               />
@@ -113,6 +125,7 @@ export default async function UsersPage() {
             <th>{t('usersColTeam')}</th>
             <th>{t('usersColRole')}</th>
             <th>{t('usersColStatus')}</th>
+            <th>{t('usersColTelegram')}</th>
             <th aria-hidden="true" />
           </tr>
         </thead>
@@ -120,9 +133,12 @@ export default async function UsersPage() {
           {(memberRows ?? []).map((m) => {
             const profile = profiles.get(m.user_id)
             // §2.8 — names are proper nouns, rendered as entered, never
-            // translated or transliterated.
-            const name = profile?.fullName ?? profile?.username ?? m.user_id
+            // translated or transliterated. Brief 013 §3 — a raw id is
+            // never the fallback; an existing member with no profile row
+            // says so in words.
+            const name = formatMemberName(profile, t('membersNoProfile'))
             const team = Array.isArray(m.teams) ? m.teams[0] : m.teams
+            const picProjectCount = picCountByUserId.get(m.user_id) ?? 0
             return (
               <tr key={m.id} className={m.is_active ? undefined : 'wf-admin-row--inactive'}>
                 <td>{name}</td>
@@ -131,12 +147,20 @@ export default async function UsersPage() {
                 <td>{roleLabel[m.role] ?? m.role}</td>
                 <td>{m.is_active ? t('usersStatusActive') : t('usersStatusInactive')}</td>
                 <td>
-                  {m.is_active && (
-                    <DeactivateMemberControl
-                      memberId={m.id}
-                      picProjectCount={picCountByUserId.get(m.user_id) ?? 0}
-                    />
+                  {telegramLabel(profile)}
+                  {!profile?.telegramChatId && (
+                    <span className="wf-admin-table__hint">{t('usersTelegramLinkHint')}</span>
                   )}
+                </td>
+                <td>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    {m.is_active ? (
+                      <DeactivateMemberControl memberId={m.id} picProjectCount={picProjectCount} />
+                    ) : (
+                      <ReactivateMemberControl memberId={m.id} />
+                    )}
+                    <UnlinkMemberControl memberId={m.id} picProjectCount={picProjectCount} />
+                  </div>
                 </td>
               </tr>
             )

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { daysSinceICT, formatDateICT } from '@/lib/format/datetime'
 import { getServerTranslator, getServerLang } from '@/lib/i18n/server'
 import { localizedLabel } from '@/lib/i18n/localized-label'
@@ -150,8 +150,15 @@ export default async function ExceptionsPage() {
     ...exceptionProjects.map((p) => p.picId),
     ...picBreaches.map((b) => b.picId),
   ])
+  // Brief 013 §3 — null here must mean ONLY "no PIC was ever set" (every
+  // call site below falls back to `unassigned` on null); a picId that IS
+  // set but has no matching profile row resolves to explicit "no
+  // profile" text instead of silently collapsing into "Unassigned" too
+  // (the previous version did exactly that, and line ~271's PIC-breach
+  // card fell all the way to the raw id, since a breach's picId is never
+  // null).
   const picLabel = (picId: string | null): string | null =>
-    picId ? (profiles.get(picId)?.fullName ?? profiles.get(picId)?.username ?? null) : null
+    picId ? formatMemberName(profiles.get(picId), t('membersNoProfile')) : null
 
   const unassigned = t('dashboardUnassigned')
 
@@ -268,7 +275,7 @@ export default async function ExceptionsPage() {
                     <PicBreachCard
                       key={`${b.picId}|${b.scheduledDate}`}
                       breach={b}
-                      picLabel={(picLabel(b.picId) ?? b.picId).toUpperCase()}
+                      picLabel={(picLabel(b.picId) ?? unassigned).toUpperCase()}
                       dateLabel={formatDateICT(b.scheduledDate)}
                       multipleSuffix={t('exceptionsLimitMultiple')}
                       projectsTodayLabel={t('exceptionsProjectsToday')}
