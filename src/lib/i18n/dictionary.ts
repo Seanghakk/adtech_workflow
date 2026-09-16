@@ -274,6 +274,59 @@ const en = {
   boardAssignPicChoose: 'Choose a PIC…',
   boardAssignPicPending: 'Saving…',
   boardAssignPicError: 'Could not assign this PIC. Nothing was changed — try again.',
+
+  // Screen 1a — post a request (Brief 015). Single-task form archetype,
+  // same 720px/one-decision-per-block shape as 6a (Design Note Rev 3
+  // §4.2). Reached from the header nav by any active member (§4).
+  navRequests: 'Post a request',
+
+  requestKicker: 'New request',
+  requestTitle: 'Post a request',
+
+  requestBodyLabel: 'What’s the request?',
+  requestRequired: 'Required',
+  requestOptional: '(optional)',
+
+  // §2.1/§3.1 — the destination decision: a team, or "I'm not sure" (backs
+  // workflow.requests.destination_unsure, a first-class button per that
+  // column's own comment in migration 001, not an afterthought link).
+  requestDestinationLabel: 'Where should this go?',
+  requestDestinationUnsure: 'I’m not sure — route this for me',
+  // §3.2 — an empty lookup table renders gracefully as empty rather than
+  // a dropdown that cannot be satisfied. Not a blocker here: "I'm not
+  // sure" is always available regardless of whether workflow.teams has
+  // any active rows.
+  requestDestinationEmpty:
+    'No teams are set up to route to yet — post as “I’m not sure” and it will be routed for you.',
+
+  // §3.1 — client/site/project are all nullable columns, genuinely
+  // optional, and folded under one disclosure so the primary path stays
+  // two decisions (body, destination) — the closest match to typing a
+  // message into Telegram this schema allows.
+  requestDetailToggle: 'Add more detail (optional)',
+  requestClientLabel: 'Client',
+  requestClientChoose: 'Choose a client…',
+  requestClientEmpty: 'No clients on file yet.',
+  requestSiteLabel: 'Site',
+  requestSiteChoose: 'Choose a site…',
+  requestSiteChooseClientFirst: 'Choose a client first.',
+  requestSiteEmpty: 'No sites on file yet for this client.',
+  requestProjectLabel: 'Related project',
+  requestProjectChoose: 'Choose a project…',
+  requestProjectEmpty: 'No open projects on file yet.',
+
+  requestPost: 'Post request',
+  requestPosting: 'Posting…',
+  requestCancel: 'Cancel',
+  requestBlockedTitle: 'Fill in the request and pick where it should go.',
+  requestBlockedBody:
+    'A body and a destination — even “I’m not sure” — are both needed before this can be posted. No modal, no toast, and the click is never let through to be scolded afterwards.',
+  // §6 — Telegram notification (screen 5a) and triage (screen 1c) are
+  // both out of scope this round; this hint says plainly what actually
+  // happens instead of implying either one.
+  requestHint: 'This is saved as a record. Nobody is notified automatically yet.',
+  requestConfirmation: 'Request posted — saved as a record. Nobody is notified automatically yet.',
+  requestConfirmationDismiss: 'Dismiss',
 } as const
 
 export type DictionaryKey = keyof typeof en

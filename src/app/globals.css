@@ -2221,3 +2221,86 @@ button {
   font: 500 12px/1.4 var(--font-body);
   color: var(--danger);
 }
+
+/* -----------------------------------------------------------------------
+   Screen 1a — post a request (Brief 015). Reuses .update-card for the
+   720px card shell, and .reason-grid/.reason-option (defined above, for
+   6a's reason picker) as-is for the destination picker — same "exclusive
+   choice, refusal-state-safe" shape, no new component needed for it.
+   ----------------------------------------------------------------------- */
+.request-form__block {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+/* §3.1 — "2px rule above the action row": applied to whichever block
+   sits immediately before .update-card__footer in the DOM, matching 6a's
+   own .update-card__reason precedent exactly. */
+.request-form__block--rule {
+  border-bottom: 2px solid var(--rule-major);
+}
+.request-form__block-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.request-form__block-label {
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.request-form__lookup-empty {
+  font: 400 13px/1.5 var(--font-body);
+  color: var(--text-muted);
+  margin: 0;
+}
+/* Native <details>/<summary> — the "add more detail" disclosure. No JS
+   state needed for open/closed, and it is keyboard/AT-operable for free. */
+.request-form__detail-summary {
+  font: 600 13px/1 var(--font-body);
+  color: var(--navy);
+  cursor: pointer;
+  list-style: none;
+}
+.request-form__detail-summary::-webkit-details-marker {
+  display: none;
+}
+.request-form__detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.request-form__hint {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+/* Brief §3.5 — the confirmation rendered above the (now-cleared) form,
+   in place of a redirect to a screen that cannot show what was just
+   created (the board shows projects, not requests). Same "result, not a
+   blank" treatment as .empty-state--result, reused for the same reason:
+   a fact worth stating plainly, in navy, never a toast. */
+.request-form__confirmation {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: var(--navy-tint-bg);
+  border: 2px solid var(--navy);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+  color: var(--text);
+  font: 500 14px/1.5 var(--font-body);
+}
+.request-form__confirmation-dismiss {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--navy);
+  font: 600 13px/1 var(--font-body);
+  cursor: pointer;
+  padding: 0;
+}
