@@ -45,9 +45,18 @@ export interface ExceptionGroups {
    *  nothing has ever been reported on it. */
   noReasonGiven: ExceptionProject[]
   /** "No meaningful movement, sorted by stall duration." Membership
-   *  reuses getAgeLabelBand's own "red" boundary (days >= 11) — the
-   *  README's band table already calls that boundary "gone quiet"; this
-   *  is that same definition, not a new threshold invented for 6b. */
+   *  reuses getAgeLabelBand's own days >= 11 boundary — the README's band
+   *  table calls that boundary "gone quiet"; this is that same
+   *  definition, not a new threshold invented for 6b.
+   *
+   *  Visual Round Restyle (15 Sep 2026): getAgeLabelBand used to return a
+   *  3-state 'ink'/'amber'/'red', with 'red' meaning exactly "days >= 11".
+   *  It now returns the 4-state AgeBand ('moving'/'waiting'/'late'/
+   *  'stalled') shared with card weight (age.ts), collapsing the old
+   *  "red" >= 11 boundary into two: 'late' (11-15) and 'stalled' (16+).
+   *  CAUGHT BY tsc, not by inspection: `=== 'red'` no longer type-checks.
+   *  Membership below is unchanged — 'late' OR 'stalled' together are
+   *  exactly the old "red" set, same days >= 11 boundary, same projects. */
   stalled: ExceptionProject[]
   /** "Nearly done and not moving — where jobs quietly die." */
   ninetyNineBand: ExceptionProject[]
@@ -62,7 +71,10 @@ export function buildExceptionGroups(projects: ExceptionProject[]): ExceptionGro
     noPicAssigned: projects.filter((p) => !p.picId).sort(byStallDaysDescending),
     noReasonGiven: projects.filter((p) => !p.hasReasonOnFile).sort(byStallDaysDescending),
     stalled: projects
-      .filter((p) => getAgeLabelBand(p.stallDays) === 'red')
+      .filter((p) => {
+        const band = getAgeLabelBand(p.stallDays)
+        return band === 'late' || band === 'stalled'
+      })
       .sort(byStallDaysDescending),
     ninetyNineBand: projects
       .filter((p) => p.percentComplete >= 90 && p.percentComplete <= 99)

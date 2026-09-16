@@ -70,7 +70,13 @@ export default async function LoadPage() {
           <p className="load-board__panel-caption">{t('loadPerPersonCaption')}</p>
 
           {perPerson.length === 0 ? (
-            <p className="empty-state">{t('loadEmptyPerPerson')}</p>
+            // Brief 010 §4 — a data-quality CAVEAT (open items exist,
+            // none carry a PIC), not good news, so amber rather than the
+            // navy "result" treatment used on 6b's PIC-limit group.
+            <div className="empty-state empty-state--caveat">
+              <span className="empty-state__figure">0</span>
+              <span className="empty-state__fact">{t('loadEmptyPerPerson')}</span>
+            </div>
           ) : (
             <PerPersonChart
               rows={perPerson}

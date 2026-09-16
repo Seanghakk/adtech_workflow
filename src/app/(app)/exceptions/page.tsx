@@ -257,7 +257,12 @@ export default async function ExceptionsPage() {
               </div>
               <div className="exception-group__body">
                 {picBreaches.length === 0 ? (
-                  <p className="empty-state">{t('exceptionsEmptyGroup')}</p>
+                  // Brief 010 §4 — the one place zero is genuinely good
+                  // news; drawn as a result, not a grey blank.
+                  <div className="empty-state empty-state--result">
+                    <span className="empty-state__figure">0</span>
+                    <span className="empty-state__fact">{t('exceptionsPicLimitEmpty')}</span>
+                  </div>
                 ) : (
                   picBreaches.map((b) => (
                     <PicBreachCard
@@ -307,10 +312,14 @@ export default async function ExceptionsPage() {
   )
 }
 
+// Visual Round Restyle §3.2 — one class per band, matching age.ts's
+// AgeBand names exactly (getCardWeight() now returns the same four
+// values the age ladder does; see that file's own comment).
 const weightClassName: Record<CardWeight, string> = {
-  plain: 'exception-card',
-  elevated: 'exception-card exception-card--elevated',
-  severe: 'exception-card exception-card--severe',
+  moving: 'exception-card exception-card--moving',
+  waiting: 'exception-card exception-card--waiting',
+  late: 'exception-card exception-card--late',
+  stalled: 'exception-card exception-card--stalled',
 }
 
 function ProjectExceptionCard({
@@ -365,7 +374,7 @@ function ProjectExceptionCard({
         </span>
       )}
       <div style={{ marginTop: 'var(--space-4)' }}>
-        <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} />
+        <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} full />
       </div>
     </div>
   )

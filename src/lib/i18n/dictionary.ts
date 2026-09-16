@@ -32,6 +32,9 @@ const en = {
   loginSubmit: 'Sign in',
   loginSubmitPending: 'Signing in…',
   loginErrorGeneric: 'Could not sign in with those details.',
+  // Brief 010 §2.6/§5.5 — plain-text reset path; see globals.css's own
+  // note on .login-form__reset for why this isn't a working reset flow.
+  loginResetPath: 'Forgot your password? Ask a project manager to reset it for you.',
 
   noAccessTitle: 'No access to the Workflow Tracker',
   noAccessBody:
@@ -95,6 +98,10 @@ const en = {
   exceptionsGroupBand: 'The 90–99 band',
   exceptionsGroupBandCaption: 'Nearly done and not moving — where jobs quietly die.',
   exceptionsEmptyGroup: 'Nothing in this group.',
+  // Brief 010 §4 — the one group where zero is genuinely good news
+  // (Design Note §4.9's own example of when an empty state should read
+  // as a result, not a blank).
+  exceptionsPicLimitEmpty: 'No PIC is over the daily limit today.',
   exceptionsEmpty: 'No open projects yet — nothing to review.',
   exceptionsNoReasonOnFile: 'No reason on file',
   exceptionsProjectsToday: 'projects today',

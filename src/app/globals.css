@@ -1,77 +1,132 @@
 /**
  * Design tokens + semantic classes.
  *
- * Fable Brief 003 (Visual Alignment With the CMMS): the Rev 2 visual
- * language drawn from the design handoff README is RETIRED, not adjusted
- * — see that brief §1 for the full reasoning. The split held throughout
- * this file:
- *   - REV 2 still governs LAYOUT and CONTENT: which classes exist, what
- *     each screen is built from, and the semantic colour MEANINGS (danger
- *     = delay only, warning = waiting/blocked-not-yet-late, never used as
- *     a brand/primary colour).
- *   - THE CMMS governs the VISUAL SYSTEM: palette, background, typography,
- *     border-radius, shadows, transitions, badge style, spacing scale,
- *     base font size. Every value below is transcribed from the CMMS's own
- *     globals.css (Brief 003 §3) — that codebase is not on this machine
- *     (standing limitation since Brief 001), so these are taken as given.
+ * Fable Brief (Visual Round Restyle, 15 Sep 2026): the CMMS's soft/rounded
+ * visual system adopted at c80ff78 is RETIRED in turn — see Design Note
+ * Rev 3 §2.2 for the full reasoning. That round is not wasted, only half
+ * reversed: it killed Rev 2's cream ground, 9.5-13px type and solid black
+ * tag boxes, and THAT stays. What reverses is the CMMS's shape language —
+ * Workflow goes flat and ruled (radius 0, hairline/2px rules, no shadow),
+ * distinguishing it from the CMMS's own soft/12px-radius system by shape
+ * alone, not by hue (both apps share the same navy). Source documents,
+ * all in Drive: ADTECH_WF_Design_Note_Rev_3_All_Screens, Token Spec &
+ * Build Handoff v3, Visual Direction Handoff v1.
+ *
+ * Every hex below marked "documented" is copied verbatim from those three
+ * docs — see this brief's own Result doc for the handful marked inferred
+ * (no source gave a literal value, so one was derived and flagged for
+ * Seanghakk to check by eye).
  *
  * Token-driven global CSS, one canonical class per element, no component
- * primitive library (Brief 002 §5.2) — still the right call: the next
- * direction change (this one) stayed cheap precisely because every
- * component reads from variables, never a hardcoded hex. Keep it that way.
+ * primitive library — still the right call: this round stayed cheap
+ * precisely because every component reads from variables, never a
+ * hardcoded hex (Design Note Rev 3 §7's one hard requirement). Keep it
+ * that way.
  */
 
 :root {
-  /* ---- Color — the CMMS's own system (Brief 003 §3.1) ---- */
-  --bg: #f4f6f8; /* page background — not pure white */
-  --bg-elevated: #ffffff;
-  --surface: #ffffff;
+  /* ---- Ink, ground, surface — documented (Handoff v1 §3) ---- */
+  --ink: #201e1d;
+  --ground: #f3f2f2;
+  --surface: #ffffff; /* cards are white so age tint reads against them */
+  /* INFERRED — flat hover feedback (background swap, no lift/shadow) is
+     not addressed by any doc; kept from the CMMS round since "no hover
+     lift" (Handoff v1 §1) bans the transform, not a background change. */
   --surface-hover: #eef1f4;
-  --border: #e1e5ea;
-  --text: #1c2b39;
-  --text-muted: #5b6b7a;
-  --navy: #0e5c86; /* the working accent — buttons, links, focus, active states */
-  --navy-deep: #0a3f5c; /* primary button hover */
-  --blue-glow: rgba(14, 92, 134, 0.15); /* focus ring */
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #d97706;
-  --teal: #0f9488;
 
-  /* Tint helpers for the badge/pill treatment (§3.3) — computed once here
-     so every badge-like element shares the exact same recipe: ~10% fill,
-     ~25% border, of the semantic colour. */
-  --navy-tint-bg: rgba(14, 92, 134, 0.1);
-  --navy-tint-border: rgba(14, 92, 134, 0.25);
-  --danger-tint-bg: rgba(220, 38, 38, 0.08);
-  --danger-tint-border: rgba(220, 38, 38, 0.3);
-  --warning-tint-bg: rgba(217, 119, 6, 0.1);
-  --warning-tint-border: rgba(217, 119, 6, 0.3);
-  --neutral-tint-bg: rgba(28, 43, 57, 0.06);
-  --neutral-tint-border: rgba(28, 43, 57, 0.14);
+  /* Back-compat aliases — most of this file's ~150 existing declarations
+     already read --text/--bg by name; aliasing rather than renaming every
+     call site keeps this round's diff to the values that actually
+     changed, not a cosmetic rename. */
+  --text: var(--ink);
+  --bg: var(--ground);
 
-  /* Shape */
-  --radius-sm: 6px; /* inputs, buttons, small boxes */
-  --radius-md: 8px; /* brand box, nested/inline cards */
-  --radius-lg: 12px; /* cards, panels */
-  --radius-pill: 999px; /* badges */
-  --shadow-card: 0 2px 10px rgba(16, 40, 60, 0.06);
-  --shadow-card-hover: 0 4px 16px rgba(16, 40, 60, 0.08);
+  /* INFERRED — no doc gives muted text a literal hex; it was always ink
+     at reduced opacity relative to full-strength ink, so that relation is
+     kept rather than reusing the CMMS's own unrelated --text-muted hex. */
+  --text-muted: rgba(32, 30, 29, 0.6);
 
-  /* Type — CMMS stack (§3.2): Poppins for body copy, Almarai for
-     headings. KM mode keeps Noto Sans Khmer — Poppins has no Khmer
-     glyphs, so English switching fonts must never touch that fallback. */
+  /* ---- Rule weights — documented (this brief §3.1 / Handoff v1 §5):
+     "2px at 40% ink between major sections, 1px at 25% ink between
+     rows." --border is this file's existing generic 1px divider/outline
+     token (inputs, card edges, table rows) — nearly every current use is
+     exactly a "row" boundary, so it takes the 25% value as its default.
+     --rule-major is applied explicitly, and only, at the handful of true
+     major-section boundaries; see the Result doc for the exact list. ---- */
+  --rule-minor: rgba(32, 30, 29, 0.25);
+  --rule-major: rgba(32, 30, 29, 0.4);
+  --border: var(--rule-minor);
+  /* INFERRED — the Moving card band's own hairline is separately
+     documented at 16% ink (§3.2), a third, lighter opacity than either
+     rule weight above; kept as its own token rather than reused. */
+  --card-hairline: rgba(32, 30, 29, 0.16);
+
+  /* ---- Semantic colour — one job each, documented (Handoff v1 §3) ---- */
+  --navy: #0e5c86; /* ownership, the SO spine, primary action, links, active nav */
+  --danger: #c62430; /* delay only — never a button, never brand, never general emphasis */
+  --warning: #b26100; /* waiting — blocked but not yet late */
+  /* No green anywhere in this file, by design (Handoff v1 §3): "on time"
+     is the absence of amber and red. --success/--teal (CMMS-era, one had
+     zero call sites) are retired outright, not carried forward tinted —
+     the one call site (a "movement clears the stall" flag) moves to navy,
+     the same "healthy state reads blue, not green" rule the docs state
+     for empty states. */
+
+  /* INFERRED — hover/focus shades for navy. Neither doc specifies a
+     hover-darken or a focus-ring colour; both are carried forward
+     unchanged from the CMMS round rather than invented fresh, since nothing
+     here argues for a different relationship to --navy. */
+  --navy-deep: #0a3f5c;
+  --blue-glow: rgba(14, 92, 134, 0.15);
+
+  /* Tint triads — fill / border / deep-text — documented (this brief §2 /
+     Handoff v1 §3, §4). Used for badges/tags (fill+border, 1px, radius 0
+     now — "square tags with 1px tinted borders", Handoff v1 §1) and for
+     the deep-text step inside a tinted field. */
+  --navy-tint-bg: #eef4f8;
+  --navy-tint-border: #aecbe0;
+  --navy-tint-deep: #08344b;
+  --warning-tint-bg: #fdf1e2;
+  --warning-tint-border: #e8c48f;
+  --warning-tint-deep: #8a4b00;
+  --danger-tint-bg: #f8e3e1;
+  --danger-tint-border: #e3a7a2;
+  --danger-tint-deep: #8e1620;
+  --grey: #d7d3d3; /* documented — unreached age-ladder segments */
+
+  /* Neutral tint (owner-mark, a plain non-semantic badge) — JUDGMENT CALL:
+     no doc defines a neutral triad, so this reuses two values documented
+     for other purposes rather than inventing new ones: the admin
+     archetype's inactive-row grey as the fill, and the ladder's unreached
+     grey as the border. */
+  --neutral-tint-bg: #f7f6f6;
+  --neutral-tint-border: #d7d3d3;
+
+  /* Age-ladder segment fill colours, one per band — documented (Handoff
+     v1 §4, "The age ladder, redrawn"). Bands 2-4 reuse the semantic/deep
+     tokens above verbatim (same colours, same meaning); band 1 is its own
+     documented value, used nowhere else. */
+  --age-band-1: #0a4767; /* days 1-5 */
+  --age-band-2: var(--warning); /* days 6-10 */
+  --age-band-3: var(--danger); /* days 11-15 */
+  --age-band-4: var(--danger-tint-deep); /* days 16+ */
+
+  /* ---- Shape — documented: "Radius 0 everywhere. No shadows anywhere
+     in this app." One token, not a retired sm/md/lg/pill scale aliased
+     alongside it — every border-radius in this file reads this. ---- */
+  --radius: 0;
+
+  /* ---- Type — unchanged from the CMMS round (this brief §3.1: "KEEP
+     Poppins body and Almarai headings. DO NOT adopt Archivo. This was
+     decided" — Design Note Rev 3 §2.1). KM mode keeps Noto Sans Khmer. ---- */
   --font-body: var(--font-poppins), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
     sans-serif;
   --font-heading: var(--font-almarai), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Arial, sans-serif;
   --font-khmer: var(--font-noto-khmer), var(--font-body), Arial, sans-serif;
 
-  /* Spacing — conventional scale (§3.4). The old --space-1..13 (5px-48px,
-     evidently measured off Rev 2 mock pixels) is retired; every component
-     below was walked and re-padded against this scale rather than
-     algebraically remapped — the largest source of visual change in this
-     round, per §3.4, not a find/replace. */
+  /* Spacing — unchanged. Not addressed by this round's source docs; the
+     conventional scale adopted in the CMMS round stands. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -81,6 +136,15 @@
   --space-7: 32px;
   --space-8: 40px;
   --space-9: 48px;
+
+  /* ---- Administration archetype — documented (Token Spec v3 §2), not
+     yet consumed by any screen: login and user management aren't built
+     this round (Design Note Rev 3 §7 sequences them after this restyle).
+     Declared now, per this brief's §2, so that round starts from real
+     tokens instead of re-deriving them. ---- */
+  --wf-login-w: 400px;
+  --wf-control-h-lg: 48px;
+  --wf-row-inactive: #f7f6f6;
 }
 
 * {
@@ -97,7 +161,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 16px;
+  /* Documented (this brief §3.1): "Base 15px, body in cards 14px,
+     smallest label 12px, nothing below 12px." */
+  font-size: 15px;
   line-height: 1.6;
 }
 
@@ -125,7 +191,7 @@ a:hover {
 :focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--blue-glow);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
 }
 
 button {
@@ -134,10 +200,12 @@ button {
 }
 
 /* -----------------------------------------------------------------------
-   Brand box — README, Assets: "No logo file — the ADTECH name renders as
-   plain text in a box, no wordmark." Content rule stays; the box itself
-   now takes the CMMS's light-border, soft-radius treatment instead of the
-   old 2px hard ink box.
+   Brand box (login screen only — see .brand-mark below for the app
+   header). Out of scope this round: the login screen belongs to the
+   administration archetype (Token Spec v3 §2), sequenced for a later
+   build rather than restyled in place (Design Note Rev 3 §7). It still
+   inherits this round's flat/ruled tokens automatically (radius 0, no
+   shadow) since every value here already reads a variable.
    ----------------------------------------------------------------------- */
 .brand-box {
   display: inline-flex;
@@ -145,12 +213,11 @@ button {
   align-items: flex-start;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   padding: var(--space-4) var(--space-5);
   text-decoration: none;
   color: var(--text);
   width: fit-content;
-  transition: box-shadow 0.2s ease;
 }
 .brand-box__name {
   font: 800 20px/1 var(--font-heading);
@@ -158,14 +225,73 @@ button {
   color: var(--text);
 }
 .brand-box__kicker {
-  font: 600 9px/1 var(--font-body);
-  letter-spacing: 0.14em;
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--navy);
   margin-top: var(--space-2);
 }
 .brand-box--compact {
   padding: var(--space-2) var(--space-3);
+}
+
+/* -----------------------------------------------------------------------
+   Brand mark (this brief §3.5) — the app header's mark, replacing
+   .brand-box there. "Two flush rectangles, blue then ink, no gap and no
+   radius, ADTECH in the heaviest weight with the app name beside it in
+   regular. CSS only, no image asset." Block order fixed; only the second
+   word changes between the two apps (Design Note Rev 3 §3) — the docs'
+   own worked example is "ADTECH Workflow" (one word), so the header's
+   copy drops "Tracker" to match; see this brief's Result doc for that
+   call, flagged there since it is a small content change, not purely a
+   style one.
+   ----------------------------------------------------------------------- */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+.brand-mark__blocks {
+  display: flex;
+  flex: none;
+  line-height: 0;
+}
+.brand-mark__block {
+  width: 10px;
+  height: 26px;
+}
+.brand-mark__block--blue {
+  background: var(--navy);
+}
+.brand-mark__block--ink {
+  background: var(--ink);
+}
+.brand-mark__text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.brand-mark__name {
+  font: 800 18px/1 var(--font-heading);
+  letter-spacing: 0.2px;
+  color: var(--ink);
+}
+.brand-mark__app {
+  font: 400 18px/1 var(--font-heading);
+  color: var(--ink);
+}
+/* Login screen (Design Note Rev 3 §5.2): "Mark at full size — the one
+   screen where it does real work." Not wired up this round (see the
+   .brand-box note above) — declared now so the later login build can use
+   it without re-deriving the sizing. */
+.brand-mark--lg .brand-mark__block {
+  width: 16px;
+  height: 40px;
+}
+.brand-mark--lg .brand-mark__name,
+.brand-mark--lg .brand-mark__app {
+  font-size: 28px;
 }
 
 /* -----------------------------------------------------------------------
@@ -182,7 +308,8 @@ button {
   gap: var(--space-6);
   padding: var(--space-4) var(--space-6);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  /* Major-section boundary — the app shell's own header/content edge. */
+  border-bottom: 2px solid var(--rule-major);
 }
 .app-header__identity {
   display: flex;
@@ -191,10 +318,10 @@ button {
   margin-right: auto;
 }
 .app-header__owner-box {
-  font: 700 11px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.05em;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--navy-tint-bg);
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
@@ -238,7 +365,7 @@ button {
 .lang-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
 }
@@ -269,15 +396,9 @@ button {
   font: 600 14px/1 var(--font-body);
   letter-spacing: normal;
   text-transform: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 9px 11px;
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.15s ease;
-}
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transition: background 0.2s ease;
 }
 .btn--primary {
   background: var(--navy);
@@ -290,7 +411,6 @@ button {
 .btn--primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 .btn--outline {
   border: 1px solid var(--border);
@@ -320,15 +440,20 @@ button {
 .login-form {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  transition: box-shadow 0.2s ease;
+  border-radius: var(--radius);
 }
 
 /* -----------------------------------------------------------------------
-   Age ladder — README, "The age ladder". Segment shape is unchanged (not
-   a CMMS concept to map onto); only the palette and label type follow the
-   new system.
+   Age ladder — this brief §3.3 / Handoff v1 §4, "The age ladder,
+   redrawn": four segments at 20x9px with 2px gaps, "substantially larger
+   than the current thin strip, so it resolves at 1024px and at room
+   distance." Unreached segments render --grey, NEVER empty/transparent —
+   bar LENGTH must never be the signal, colour always is.
+
+   Shared across "/" and "/sales" too (the interim pre-4a project lists),
+   not just 6a/6b/6c — it is the one component every age-bearing screen
+   already goes through, so this round's palette/geometry change reaches
+   them incidentally. Neither screen's layout or content changes.
    ----------------------------------------------------------------------- */
 .age-ladder {
   display: flex;
@@ -340,33 +465,56 @@ button {
   gap: 2px;
 }
 .age-ladder__segment {
-  width: 15px;
-  height: 8px;
+  width: 20px;
+  height: 9px;
   flex: none;
-  border-radius: 2px;
+  background: var(--grey);
 }
-.age-ladder__segment--ink {
-  background: var(--text);
+/* "Inside cards the segments stretch to card width so the bar is a
+   full-width band" (§3.3) — applied where AgeLadder renders inside an
+   exception card; the default fixed-width bar above is used everywhere
+   else (the update-progress header, the interim project-list rows). */
+.age-ladder--full .age-ladder__bar {
+  flex: 1;
 }
-.age-ladder__segment--amber {
-  background: var(--warning);
+.age-ladder--full .age-ladder__segment {
+  width: auto;
+  flex: 1;
 }
-.age-ladder__segment--red {
-  background: var(--danger);
+.age-ladder__segment--filled.age-ladder__segment--moving {
+  background: var(--age-band-1);
 }
-.age-ladder__segment--empty {
-  background: var(--border);
+.age-ladder__segment--filled.age-ladder__segment--waiting {
+  background: var(--age-band-2);
+}
+.age-ladder__segment--filled.age-ladder__segment--late {
+  background: var(--age-band-3);
+}
+.age-ladder__segment--filled.age-ladder__segment--stalled {
+  background: var(--age-band-4);
 }
 .age-ladder__label {
   font: 500 13px/1.35 var(--font-body);
   color: var(--text-muted);
 }
-.age-ladder__label--amber {
-  color: var(--warning);
+.age-ladder__label--waiting {
+  color: var(--age-band-2);
   font-weight: 600;
 }
-.age-ladder__label--red {
-  color: var(--danger);
+/* Brief 010 §3.1 — FIX: this used to read var(--age-band-3), the same
+   red #c62430 the ladder's own 3rd SEGMENT fills. That's correct for the
+   segment (Handoff v1 §4's literal band table) but wrong for this label:
+   red is reserved for delay/Stalled only (Design Note §4.9) — the Late
+   band's own card treatment (§2.3) is a plain 2px ink border, no red at
+   all. Conflating "this segment's fill colour" with "this band's label
+   colour" collapsed the Late/Stalled distinction the whole four-band
+   system depends on. Ink, not red. */
+.age-ladder__label--late {
+  color: var(--ink);
+  font-weight: 600;
+}
+.age-ladder__label--stalled {
+  color: var(--age-band-4);
   font-weight: 600;
 }
 
@@ -386,11 +534,11 @@ button {
   /* Fable Brief 003 §3.3 — badges replace the old solid-ink tag boxes:
      tinted fill at ~10% of the semantic colour, ~25% border, coloured
      text, pill radius. */
-  font: 700 11px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 3px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--navy-tint-bg);
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
@@ -417,7 +565,7 @@ button {
   gap: var(--space-2);
 }
 .pic-mark__label {
-  font: 600 10px/1 var(--font-body);
+  font: 600 12px/1 var(--font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -426,7 +574,7 @@ button {
   font: 700 12px/1 var(--font-body);
   letter-spacing: 0.02em;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--navy-tint-bg);
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
@@ -439,16 +587,16 @@ button {
   opacity: 0.75;
 }
 .owner-mark__label {
-  font: 500 9px/1 var(--font-body);
+  font: 500 12px/1 var(--font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 .owner-mark__box {
-  font: 600 10px/1 var(--font-body);
+  font: 600 12px/1 var(--font-body);
   letter-spacing: 0.03em;
   padding: 3px 9px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--neutral-tint-bg);
   color: var(--text-muted);
   border: 1px solid var(--neutral-tint-border);
@@ -456,7 +604,11 @@ button {
 }
 
 /* -----------------------------------------------------------------------
-   Login screen
+   Login screen — REBUILT to the administration archetype, Brief 010 §2
+   (Design Note Rev 3 §5, Token Spec v3 §2). This screen predated Rev 3
+   and had never been brought up to it; §2's own instruction was to
+   rebuild rather than patch item by item, so this whole block changed,
+   not just the values called out individually below.
    ----------------------------------------------------------------------- */
 .login-screen {
   min-height: 100vh;
@@ -468,16 +620,52 @@ button {
   padding: var(--space-6);
 }
 .login-form {
-  width: 360px;
+  /* §2.1: was 360px; --wf-login-w (400px) already existed as a token,
+     just never applied here. */
+  width: var(--wf-login-w);
   max-width: 100%;
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+/* §2.7 / §5.1: "2px ink rule under the header." The brand mark plus this
+   rule together are the screen's "header" — there wasn't one before. */
+.login-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 2px solid var(--ink);
+}
+.login-form__fields {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 .login-form__error {
+  /* §2.8 — FIX: was var(--danger). "No red on either login failure"
+     (Rev 3 §5.4 / Token Spec v3 §2) — red is delay in this app, and
+     spending it on a login failure breaks the discipline every other
+     screen depends on. Restated in ink; role="alert" unchanged. */
   font: 500 13px/1.4 var(--font-body);
-  color: var(--danger);
+  color: var(--ink);
+}
+/* §2.6 / §5.5: "reset needs a path, as plain text, not a second
+   competing action." JUDGMENT CALL, reconciling two docs that were never
+   read against each other before this brief: actions.ts's own header
+   comment records a DELIBERATE architecture decision from Brief 002 §5.1
+   — "no password reset... the CMMS owns the auth chain" — this app was
+   built to never handle credentials beyond signing in against them. Rev
+   3 asks for a path, not necessarily a working reset FLOW built here;
+   this renders as plain, inert text naming where to go (a person, not a
+   self-service flow) rather than adding new Supabase auth surface to an
+   app whose own architecture doc says it deliberately doesn't own that.
+   Flagged in the Result rather than silently deciding it either way. */
+.login-form__reset {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
 }
 
 .field {
@@ -499,7 +687,7 @@ button {
 .field__input,
 .field__textarea {
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 9px 11px;
   font: 400 15px/1.5 var(--font-body);
   color: var(--text);
@@ -517,6 +705,19 @@ button {
 }
 .field--note {
   margin-top: var(--space-4);
+}
+/* §2.2 / §2.3 — FIX: measured 43px/32px against the admin archetype's
+   documented 48px (--wf-control-h-lg). Scoped to the login screen only —
+   6a's own form archetype (Handoff v1 §8) calls for 36-48px, a range,
+   not a fixed 48px, so .field__input's general size is left alone for
+   6a and this is applied only inside .login-form. */
+.login-form .field__input {
+  height: var(--wf-control-h-lg);
+  padding-block: 0;
+}
+.login-form .btn--primary {
+  height: var(--wf-control-h-lg);
+  justify-content: center;
 }
 
 /* -----------------------------------------------------------------------
@@ -552,6 +753,43 @@ button {
   color: var(--text-muted);
   padding: var(--space-6) 0;
 }
+/* Brief 010 §4 — FIX: "empty states drawn as results, not blanks: blue
+   field, large blue numeral, the fact in plain words... Never grey,
+   never 'No data'" (Design Note §4.9). Used only where zero is genuinely
+   good news (the PIC-over-limit group on 6b) — the plain grey .empty-
+   state above stays the default everywhere else, since most empty
+   groups here aren't a "result" worth celebrating, just an absence. */
+.empty-state--result {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  background: var(--navy-tint-bg);
+  border: 2px solid var(--navy);
+  padding: var(--space-4) var(--space-5);
+  color: var(--text);
+}
+.empty-state--result .empty-state__figure {
+  flex: none;
+  font: 800 32px/1 var(--font-heading);
+  color: var(--navy);
+}
+.empty-state--result .empty-state__fact {
+  font: 500 14px/1.5 var(--font-body);
+}
+/* JUDGMENT CALL (§4's own instruction to use judgement here): the load
+   screen's per-person panel empty state is a data-quality CAVEAT (open
+   items exist but none carry a PIC yet), not good news the way an empty
+   exception group is — so it keeps the same "not grey, not a blank"
+   treatment but in amber, this app's documented colour for "waiting /
+   content deliberately unspecified," not navy's "this is a clean
+   result." */
+.empty-state--caveat {
+  background: var(--warning-tint-bg);
+  border-color: var(--warning);
+}
+.empty-state--caveat .empty-state__figure {
+  color: var(--warning);
+}
 
 /* -----------------------------------------------------------------------
    Dashboard / project list (the interim landing route — NOT screen 4a,
@@ -579,7 +817,7 @@ button {
   padding: var(--space-4) var(--space-3);
   text-decoration: none;
   color: var(--text);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   transition: background 0.15s ease;
 }
 .project-list__link:hover {
@@ -668,7 +906,7 @@ button {
   border-right: none;
 }
 .update-card__figure-label {
-  font: 600 11px/1 var(--font-body);
+  font: 600 12px/1 var(--font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -687,8 +925,11 @@ button {
 .update-card__figure-value--muted {
   color: var(--text-muted);
 }
+/* Brief 010 §3.4 — FIX: was var(--danger). "Unchanged" is a plain fact
+   about this update, not a delay — nothing here is overdue or gone
+   quiet, it's a save that happened to move the number by zero. Ink. */
 .update-card__figure-value--flat {
-  color: var(--danger);
+  color: var(--ink);
 }
 .update-card__figure-value--input {
   border-bottom: 2px solid var(--navy);
@@ -725,10 +966,15 @@ button {
   font: 600 12px/1.35 var(--font-body);
 }
 .update-card__movement-flag--clears {
-  color: var(--success);
+  /* No green (Handoff v1 §3) — a healthy/clearing state reads blue here,
+     same rule the docs give for empty states, not the CMMS-era green. */
+  color: var(--navy);
 }
+/* Same fix as .update-card__figure-value--flat above (§3.4) — this is
+   the caption ("Drawn as unchanged") for the exact same flat-movement
+   state, not named separately in the brief but the identical case. */
 .update-card__movement-flag--flat {
-  color: var(--danger);
+  color: var(--ink);
 }
 
 .update-card__stall-row {
@@ -740,7 +986,10 @@ button {
 
 .update-card__reason {
   padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--border);
+  /* Documented directly (Handoff v1 §8, "Forms 720px"): "2px rule above
+     the action row" — this block sits immediately before .update-card__
+     footer in the DOM, so its bottom edge IS that rule. */
+  border-bottom: 2px solid var(--rule-major);
 }
 .update-card__reason-head {
   display: flex;
@@ -749,17 +998,17 @@ button {
   margin-bottom: var(--space-4);
 }
 .update-card__reason-label {
-  font: 600 11px/1 var(--font-body);
+  font: 600 12px/1 var(--font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 .required-badge {
-  font: 700 10px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 3px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--neutral-tint-bg);
   color: var(--text-muted);
   border: 1px solid var(--neutral-tint-border);
@@ -777,19 +1026,18 @@ button {
   padding: var(--space-4);
   min-height: 48px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--surface);
   text-align: left;
   transition:
     border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+    background 0.15s ease;
 }
 .reason-option__box {
   width: 14px;
   height: 14px;
   border: 1.5px solid var(--text-muted);
-  border-radius: 3px;
+  border-radius: var(--radius);
   flex: none;
 }
 .reason-option__label {
@@ -822,18 +1070,22 @@ button {
   max-width: 260px;
   text-wrap: pretty;
 }
+/* Brief 010 §3.3 — FIX: was var(--danger) on both the spine and the
+   title below. A refusal (no PIC assigned / not this project's PIC /
+   missing reason) is a guard rail, not a delay — the same argument
+   Design Note §5.4 makes about login failures applies here. Ink. */
 .update-card__blocked-note {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border-left: 3px solid var(--danger);
+  border-left: 3px solid var(--ink);
   padding-left: var(--space-4);
   margin-left: auto;
   max-width: 340px;
 }
 .update-card__blocked-title {
   font: 700 14px/1.3 var(--font-body);
-  color: var(--danger);
+  color: var(--ink);
 }
 .update-card__blocked-body {
   font: 400 13px/1.5 var(--font-body);
@@ -878,7 +1130,7 @@ button {
   font: 400 14px/1.3 var(--font-body);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
 }
@@ -887,7 +1139,7 @@ button {
   letter-spacing: 0.02em;
   padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--navy);
   color: #fff;
   cursor: pointer;
@@ -918,12 +1170,13 @@ button {
   gap: var(--space-4);
   flex-wrap: wrap;
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border);
+  /* Major-section boundary — this screen's own title/content edge. */
+  border-bottom: 2px solid var(--rule-major);
   margin-bottom: var(--space-6);
 }
 .exception-board__kicker {
-  font: 600 11px/1 var(--font-body);
-  letter-spacing: 0.1em;
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--navy);
   margin-bottom: var(--space-2);
@@ -947,14 +1200,14 @@ button {
   color: var(--danger);
 }
 .exception-board__stat-label {
-  font: 400 11px/1 var(--font-body);
+  font: 400 12px/1 var(--font-body);
   color: var(--text-muted);
   margin-top: var(--space-1);
 }
 
 .exception-board__banner {
   border: 1.5px solid var(--warning);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   background: var(--warning-tint-bg);
   padding: var(--space-4) var(--space-6);
   margin-bottom: var(--space-6);
@@ -989,18 +1242,28 @@ button {
 
 .exception-board__groups {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  /* Brief 010 §5 — FIX: was repeat(4, 1fr) with overflow: hidden and no
+     floor, so lanes compressed under the 1024px desk-hardware target
+     (measured ~240px) instead of holding their width. Rev 3 §4.1: "lanes
+     hold 300px and the board scrolls sideways — cards never shrink, type
+     never scales down." Only the width floor and scroll behaviour change
+     here — the flush 1px-divider look between lanes (not a 12px gutter)
+     was already the established look before this brief and isn't itself
+     a flagged finding, so it's left as is. */
+  grid-template-columns: repeat(4, minmax(300px, 1fr));
+  /* Major-section frame (§3.1: "2px at 40% ink between major sections") —
+     this is the whole board's outer edge, one of the small named set of
+     elements given the major rather than the default row-level weight;
+     see this brief's Result doc for the full list. */
+  border: 2px solid var(--rule-major);
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
+  overflow-x: auto;
 }
 .exception-group {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  min-width: 0;
 }
 .exception-group:last-child {
   border-right: none;
@@ -1008,9 +1271,30 @@ button {
 .exception-group__head {
   padding: var(--space-4);
   border-bottom: 1px solid var(--border);
+  /* Brief 011 §2 — FIX. Reproduced on the live preview at both ~1512px
+     and the 1024px target before fixing: the brief's own hypothesis
+     (title wrapping) does NOT hold — measured via getBoundingClientRect,
+     every lane's title-row is exactly 22px, one line, at every width
+     tested. The actual cause is the CAPTION: "Never reported on since it
+     opened." (No reason given) is short enough to stay on one line
+     (16.8px), while the other three captions ("No meaningful movement.
+     Sorted by..." / "More than three distinct projects..." / "Nearly
+     done and not moving...") are all long enough to wrap to two
+     (33.6px) — a measured 96.59px head vs. 79.8px, exactly the visible
+     misalignment. min-height set to the real measured 2-line-caption
+     case (padding 32px + 22px title row + 8px gap + 33.6px caption),
+     not a guessed value, so every lane reserves the same space
+     regardless of which caption is short this week. No title is
+     truncated or shrunk — this only adds space, never removes it. */
+  min-height: 97px;
 }
+/* Brief 010 §3.2 — FIX: was var(--danger). "No reason given" (the only
+   group this modifier is applied to) is a data-completeness gap, not a
+   delay — a brand-new, zero-day-old project can be in this group. Red is
+   reserved for delay only (Design Note §4.9); ink still marks it as the
+   emphasised/first group without spending the delay colour on it. */
 .exception-group__head--severe {
-  border-bottom-color: var(--danger);
+  border-bottom-color: var(--ink);
 }
 .exception-group__title-row {
   display: flex;
@@ -1023,7 +1307,7 @@ button {
   text-transform: uppercase;
 }
 .exception-group__title--severe {
-  color: var(--danger);
+  color: var(--ink);
 }
 .exception-group__count {
   font: 800 22px/1 var(--font-heading);
@@ -1031,7 +1315,7 @@ button {
   margin-left: auto;
 }
 .exception-group__caption {
-  font: 400 11px/1.4 var(--font-body);
+  font: 400 12px/1.4 var(--font-body);
   color: var(--text-muted);
   margin-top: var(--space-2);
 }
@@ -1043,23 +1327,43 @@ button {
   flex: 1;
 }
 
+/* Card weight — Visual Round Restyle §3.2 / Design Note Rev 3 §2.3, the
+   one logic-adjacent change in an otherwise visual round: four bands,
+   collapsed onto the same thresholds the age ladder already uses (see
+   src/lib/age.ts). Weight now comes back as border mass and field tint,
+   never shadow (Handoff v1 §4 — "shadow does not survive a projector, a
+   tablet at arm's length, or a printed weekly pack"). */
 .exception-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  border-radius: var(--radius);
   padding: var(--space-4);
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
 }
-.exception-card--elevated {
-  border: 1.5px solid var(--text);
+.exception-card--moving {
+  border: 1px solid var(--card-hairline);
 }
-.exception-card--severe {
-  border: 1.5px solid var(--danger);
+.exception-card--waiting {
+  border: 1px solid var(--card-hairline);
+  border-left: 5px solid var(--warning);
+}
+.exception-card--late {
+  border: 2px solid var(--ink);
+}
+.exception-card--stalled {
+  border: 2px solid var(--danger);
   background: var(--danger-tint-bg);
+  /* "age figure and lane text #8e1620" (§3.2) — the age-ladder's own
+     label is this card's age figure; it already reads --danger-tint-deep
+     generically via .age-ladder__label--stalled (age.ts's band == this
+     card's weight are always the same value here), so nothing extra to
+     add. JUDGMENT CALL, stated plainly: not extended to the card's title/
+     percent/PIC text — "lane text" most naturally describes a BOARD lane
+     header (screen 4a, not built yet), and 6b's own five exception
+     groups (no-PIC, no-reason, stalled, PIC-over-limit, 90-99) are a
+     different taxonomy from the age bands, not literally a "stalled
+     lane" this rule was written for. */
 }
 .exception-card__meta {
-  font: 400 11px/1 var(--font-body);
+  font: 400 12px/1 var(--font-body);
   color: var(--text-muted);
   margin-bottom: var(--space-1);
 }
@@ -1093,10 +1397,10 @@ button {
   gap: var(--space-3);
 }
 .exception-card__pic {
-  font: 700 10px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.05em;
   padding: 3px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--navy-tint-bg);
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
@@ -1110,7 +1414,7 @@ button {
   color: var(--danger);
 }
 .exception-card__reason {
-  font: 400 11px/1 var(--font-body);
+  font: 400 12px/1 var(--font-body);
   color: var(--text-muted);
   margin-left: auto;
 }
@@ -1125,7 +1429,7 @@ button {
    duration unchanged. */
 .exception-card__recent-report {
   display: block;
-  font: 500 11px/1.4 var(--font-body);
+  font: 500 12px/1.4 var(--font-body);
   color: var(--text-muted);
   margin-top: var(--space-1);
 }
@@ -1136,7 +1440,7 @@ button {
 
 .pic-breach-card {
   border: 1px solid var(--warning);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   background: var(--warning-tint-bg);
   padding: var(--space-4);
 }
@@ -1151,10 +1455,10 @@ button {
   margin-bottom: var(--space-3);
 }
 .pic-breach-card__name {
-  font: 700 11px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.05em;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--navy-tint-bg);
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
@@ -1165,7 +1469,7 @@ button {
   border-color: var(--danger-tint-border);
 }
 .pic-breach-card__multiple {
-  font: 700 10px/1 var(--font-body);
+  font: 700 12px/1 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-left: auto;
@@ -1192,7 +1496,7 @@ button {
   color: var(--warning);
 }
 .pic-breach-card__figure-label {
-  font: 400 10px/1.2 var(--font-body);
+  font: 400 12px/1.2 var(--font-body);
   color: var(--text-muted);
   margin-top: var(--space-2);
 }
@@ -1209,13 +1513,13 @@ button {
   height: 10px;
   width: 12px;
   flex: none;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--text);
 }
 .pic-breach-card__bar-overflow {
   height: 10px;
   flex: 1;
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .pic-breach-card__bar-overflow--severe {
   background: var(--danger);
@@ -1224,7 +1528,7 @@ button {
   background: var(--warning);
 }
 .pic-breach-card__note {
-  font: 400 11px/1.35 var(--font-body);
+  font: 400 12px/1.35 var(--font-body);
   color: var(--text-muted);
 }
 
@@ -1247,12 +1551,13 @@ button {
   gap: var(--space-4);
   flex-wrap: wrap;
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border);
+  /* Major-section boundary — this screen's own title/content edge. */
+  border-bottom: 2px solid var(--rule-major);
   margin-bottom: var(--space-6);
 }
 .load-board__kicker {
-  font: 600 11px/1 var(--font-body);
-  letter-spacing: 0.1em;
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--navy);
 }
@@ -1270,10 +1575,11 @@ button {
 .load-board__panels {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  /* Major-section frame — same treatment as .exception-board__groups
+     above, for the same reason (the whole panel's outer edge). */
+  border: 2px solid var(--rule-major);
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 .load-board__panel {
@@ -1289,7 +1595,7 @@ button {
   margin-bottom: var(--space-2);
 }
 .load-board__panel-title {
-  font: 600 11px/1 var(--font-body);
+  font: 600 12px/1 var(--font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -1341,7 +1647,7 @@ button {
   position: relative;
   height: 24px;
   background: var(--bg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .load-bar__fill {
@@ -1407,7 +1713,7 @@ button {
 }
 .stream-chart__bar {
   background: var(--text);
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius);
 }
 .stream-chart__bar--primary {
   background: var(--navy);
@@ -1453,7 +1759,7 @@ button {
   color: var(--danger);
 }
 .load-board__summary-label {
-  font: 400 11px/1.4 var(--font-body);
+  font: 400 12px/1.4 var(--font-body);
   color: var(--text-muted);
   margin-top: var(--space-2);
   max-width: 150px;
