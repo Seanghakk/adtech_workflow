@@ -792,8 +792,11 @@ button {
 }
 
 /* -----------------------------------------------------------------------
-   Dashboard / project list (the interim landing route — NOT screen 4a,
-   see (app)/page.tsx's own header comment)
+   Dashboard / project list — the interim landing route this class pair
+   was built for is gone as of Fable Brief 009 (screen 4a now owns "/",
+   see .board below), but .dashboard/.project-list themselves are still
+   live: /sales and /sales/assign both reuse them for their own plain
+   lists, per those pages' own comments.
    ----------------------------------------------------------------------- */
 .dashboard__title {
   font: 800 32px/1.1 var(--font-heading);
@@ -852,6 +855,163 @@ button {
 }
 .project-list__percent-sign {
   font-size: 15px;
+}
+
+/* -----------------------------------------------------------------------
+   Screen 4a — "one board, three scopes" (Fable Brief 009 + Amendment A).
+   Board archetype, Rev 3 §4.1 — same visual system as 6b's exception
+   board (radius 0, 2px major-section rule, 300px lane floor with
+   horizontal scroll, the four card-weight bands), deliberately given its
+   own class names rather than reusing .exception-board__groups /
+   .exception-group: a project board and an exception review are
+   different screens, and exception-prefixed classes on the app's own
+   landing route would read wrong to the next person in this file. The
+   CARD itself
+   (.board-card below) is the one place this reuses 6b's classes
+   directly (.exception-card / .exception-card--{band}) — a project card
+   IS the same thing in both places, so duplicating identical CSS under
+   a second name would be the wrong kind of caution.
+   ----------------------------------------------------------------------- */
+.board__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--rule-major);
+  margin-bottom: var(--space-6);
+}
+.board__kicker {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.board__title {
+  margin: 0;
+  font: 800 28px/1.1 var(--font-heading);
+  letter-spacing: 0.2px;
+}
+
+.board__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+.board__control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.board__control-label {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.board__tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.board__tab {
+  border-right: 1px solid var(--border);
+  padding: var(--space-2) var(--space-4);
+  font: 600 12px/1 var(--font-body);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.board__tab:last-child {
+  border-right: none;
+}
+.board__tab--active {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* §4 — the visibility problem. A notice, not an empty-state variant: it
+   applies whether the scope returns zero projects or a hundred, since a
+   restricted member's "Everything" is never literally everything. */
+.board__restricted-notice {
+  border: 1.5px solid var(--warning);
+  background: var(--warning-tint-bg);
+  color: var(--warning-tint-deep);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  font: 500 13px/1.4 var(--font-body);
+}
+
+.board__lanes {
+  display: grid;
+  /* One column per lane, however many there are (stream/PIC groupings
+     vary in count; age-band is always exactly 4) — same 300px floor and
+     sideways scroll as 6b's board (Brief 010 §5 / Brief 011 §2), not a
+     fixed repeat(4, ...) since this board's lane count isn't fixed. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 1fr);
+  border: 2px solid var(--rule-major);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+.board-lane {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.board-lane:last-child {
+  border-right: none;
+}
+.board-lane__head {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  /* Same fix and reasoning as .exception-group__head (Brief 011 §2): a
+     fixed minimum so a lane whose caption/title happens to wrap doesn't
+     sit at a different height than its neighbours. */
+  min-height: 97px;
+}
+.board-lane__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.board-lane__title {
+  font: 700 12px/1.2 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.board-lane__count {
+  font: 800 22px/1 var(--font-heading);
+  letter-spacing: 0.2px;
+  margin-left: auto;
+}
+.board-lane__caption {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+.board-lane__body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+/* The PIC badge's unassigned state (Brief 009 §5 — "visible on the board
+   and visibly marked as such, not hidden and not silently rendered as
+   owned by nobody"). Reuses .exception-card__pic's box model, amber
+   instead of navy: an unassigned project is genuinely blocked (migration
+   006 — nobody can update it), not just a neutral fact like a normal
+   PIC's name. */
+.board-card__pic--unassigned {
+  background: var(--warning-tint-bg);
+  color: var(--warning-tint-deep);
+  border-color: var(--warning-tint-border);
 }
 
 /* -----------------------------------------------------------------------

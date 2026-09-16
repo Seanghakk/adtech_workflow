@@ -41,10 +41,47 @@ const en = {
     'Your account is signed in, but no active Workflow Tracker membership exists for it yet. Ask a manager to add you.',
   noAccessSignOut: 'Sign out',
 
-  dashboardTitle: 'Update progress',
-  dashboardEmpty: 'No projects yet. Nothing to report on until the first project lands.',
-  dashboardOpenItems: 'open sub-items',
+  // Kept under its original "dashboard" name (Brief 002) even though the
+  // interim placeholder it was coined for is gone as of Brief 009 —
+  // still the one shared "no PIC/owner" label used across the update
+  // page, sales monitoring, and 6b/4a's boards. Renaming it is unrelated
+  // churn for no behaviour change.
   dashboardUnassigned: 'Unassigned',
+
+  // Screen 4a — "one board, three scopes" (Fable Brief 009 + Amendment A).
+  // Replaces the interim dashboardTitle/dashboardEmpty/dashboardOpenItems
+  // keys, retired as dead once this landing route stopped using them.
+  boardKicker: 'Project board',
+  boardTitleMine: 'Your projects',
+  boardTitleMyTeam: "Your team's projects",
+  boardTitleEverything: 'Every open project',
+  boardScopeLabel: 'Scope',
+  boardScopeMine: 'Mine',
+  boardScopeMyTeam: 'My team',
+  boardScopeEverything: 'Everything',
+  boardGroupLabel: 'Group by',
+  boardGroupStream: 'Stream',
+  boardGroupPic: 'PIC',
+  boardGroupAgeBand: 'Age band',
+  boardLaneUnassigned: 'No PIC assigned',
+  boardBandMoving: 'Moving',
+  boardBandWaiting: 'Waiting',
+  boardBandLate: 'Late',
+  boardBandStalled: 'Stalled',
+  boardBandMovingCaption: 'Reported on recently.',
+  boardBandWaitingCaption: 'Waiting — blocked, not yet late.',
+  boardBandLateCaption: 'No meaningful movement in over a week.',
+  boardBandStalledCaption: 'Gone quiet — no movement in over two weeks.',
+  boardOldest: 'oldest',
+  boardEmpty: 'No open projects in this scope.',
+  // §4 — the visibility problem, required not optional: a sales-team
+  // member's view is restricted by workflow.can_view_project() to
+  // maintenance-flagged projects under a client they (or their
+  // supervisor) own. This must never read the same as "nothing is open."
+  boardRestrictedNotice:
+    'Sales-team access is restricted to maintenance-flagged projects under clients you own — this may not be every open project.',
+  boardRestrictedEmpty:
+    'No maintenance-flagged projects under a client you own match this scope — this is not the same as "nothing is open" app-wide.',
 
   updateLastReported: 'Last reported',
   updateThisWeek: 'This week',
