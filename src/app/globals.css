@@ -501,8 +501,16 @@ button {
   color: var(--age-band-2);
   font-weight: 600;
 }
+/* Brief 010 §3.1 — FIX: this used to read var(--age-band-3), the same
+   red #c62430 the ladder's own 3rd SEGMENT fills. That's correct for the
+   segment (Handoff v1 §4's literal band table) but wrong for this label:
+   red is reserved for delay/Stalled only (Design Note §4.9) — the Late
+   band's own card treatment (§2.3) is a plain 2px ink border, no red at
+   all. Conflating "this segment's fill colour" with "this band's label
+   colour" collapsed the Late/Stalled distinction the whole four-band
+   system depends on. Ink, not red. */
 .age-ladder__label--late {
-  color: var(--age-band-3);
+  color: var(--ink);
   font-weight: 600;
 }
 .age-ladder__label--stalled {
@@ -596,7 +604,11 @@ button {
 }
 
 /* -----------------------------------------------------------------------
-   Login screen
+   Login screen — REBUILT to the administration archetype, Brief 010 §2
+   (Design Note Rev 3 §5, Token Spec v3 §2). This screen predated Rev 3
+   and had never been brought up to it; §2's own instruction was to
+   rebuild rather than patch item by item, so this whole block changed,
+   not just the values called out individually below.
    ----------------------------------------------------------------------- */
 .login-screen {
   min-height: 100vh;
@@ -608,16 +620,52 @@ button {
   padding: var(--space-6);
 }
 .login-form {
-  width: 360px;
+  /* §2.1: was 360px; --wf-login-w (400px) already existed as a token,
+     just never applied here. */
+  width: var(--wf-login-w);
   max-width: 100%;
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+/* §2.7 / §5.1: "2px ink rule under the header." The brand mark plus this
+   rule together are the screen's "header" — there wasn't one before. */
+.login-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 2px solid var(--ink);
+}
+.login-form__fields {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 .login-form__error {
+  /* §2.8 — FIX: was var(--danger). "No red on either login failure"
+     (Rev 3 §5.4 / Token Spec v3 §2) — red is delay in this app, and
+     spending it on a login failure breaks the discipline every other
+     screen depends on. Restated in ink; role="alert" unchanged. */
   font: 500 13px/1.4 var(--font-body);
-  color: var(--danger);
+  color: var(--ink);
+}
+/* §2.6 / §5.5: "reset needs a path, as plain text, not a second
+   competing action." JUDGMENT CALL, reconciling two docs that were never
+   read against each other before this brief: actions.ts's own header
+   comment records a DELIBERATE architecture decision from Brief 002 §5.1
+   — "no password reset... the CMMS owns the auth chain" — this app was
+   built to never handle credentials beyond signing in against them. Rev
+   3 asks for a path, not necessarily a working reset FLOW built here;
+   this renders as plain, inert text naming where to go (a person, not a
+   self-service flow) rather than adding new Supabase auth surface to an
+   app whose own architecture doc says it deliberately doesn't own that.
+   Flagged in the Result rather than silently deciding it either way. */
+.login-form__reset {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
 }
 
 .field {
@@ -658,6 +706,19 @@ button {
 .field--note {
   margin-top: var(--space-4);
 }
+/* §2.2 / §2.3 — FIX: measured 43px/32px against the admin archetype's
+   documented 48px (--wf-control-h-lg). Scoped to the login screen only —
+   6a's own form archetype (Handoff v1 §8) calls for 36-48px, a range,
+   not a fixed 48px, so .field__input's general size is left alone for
+   6a and this is applied only inside .login-form. */
+.login-form .field__input {
+  height: var(--wf-control-h-lg);
+  padding-block: 0;
+}
+.login-form .btn--primary {
+  height: var(--wf-control-h-lg);
+  justify-content: center;
+}
 
 /* -----------------------------------------------------------------------
    No-access screen
@@ -691,6 +752,43 @@ button {
   font: 400 14px/1.6 var(--font-body);
   color: var(--text-muted);
   padding: var(--space-6) 0;
+}
+/* Brief 010 §4 — FIX: "empty states drawn as results, not blanks: blue
+   field, large blue numeral, the fact in plain words... Never grey,
+   never 'No data'" (Design Note §4.9). Used only where zero is genuinely
+   good news (the PIC-over-limit group on 6b) — the plain grey .empty-
+   state above stays the default everywhere else, since most empty
+   groups here aren't a "result" worth celebrating, just an absence. */
+.empty-state--result {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  background: var(--navy-tint-bg);
+  border: 2px solid var(--navy);
+  padding: var(--space-4) var(--space-5);
+  color: var(--text);
+}
+.empty-state--result .empty-state__figure {
+  flex: none;
+  font: 800 32px/1 var(--font-heading);
+  color: var(--navy);
+}
+.empty-state--result .empty-state__fact {
+  font: 500 14px/1.5 var(--font-body);
+}
+/* JUDGMENT CALL (§4's own instruction to use judgement here): the load
+   screen's per-person panel empty state is a data-quality CAVEAT (open
+   items exist but none carry a PIC yet), not good news the way an empty
+   exception group is — so it keeps the same "not grey, not a blank"
+   treatment but in amber, this app's documented colour for "waiting /
+   content deliberately unspecified," not navy's "this is a clean
+   result." */
+.empty-state--caveat {
+  background: var(--warning-tint-bg);
+  border-color: var(--warning);
+}
+.empty-state--caveat .empty-state__figure {
+  color: var(--warning);
 }
 
 /* -----------------------------------------------------------------------
@@ -827,8 +925,11 @@ button {
 .update-card__figure-value--muted {
   color: var(--text-muted);
 }
+/* Brief 010 §3.4 — FIX: was var(--danger). "Unchanged" is a plain fact
+   about this update, not a delay — nothing here is overdue or gone
+   quiet, it's a save that happened to move the number by zero. Ink. */
 .update-card__figure-value--flat {
-  color: var(--danger);
+  color: var(--ink);
 }
 .update-card__figure-value--input {
   border-bottom: 2px solid var(--navy);
@@ -869,8 +970,11 @@ button {
      same rule the docs give for empty states, not the CMMS-era green. */
   color: var(--navy);
 }
+/* Same fix as .update-card__figure-value--flat above (§3.4) — this is
+   the caption ("Drawn as unchanged") for the exact same flat-movement
+   state, not named separately in the brief but the identical case. */
 .update-card__movement-flag--flat {
-  color: var(--danger);
+  color: var(--ink);
 }
 
 .update-card__stall-row {
@@ -966,18 +1070,22 @@ button {
   max-width: 260px;
   text-wrap: pretty;
 }
+/* Brief 010 §3.3 — FIX: was var(--danger) on both the spine and the
+   title below. A refusal (no PIC assigned / not this project's PIC /
+   missing reason) is a guard rail, not a delay — the same argument
+   Design Note §5.4 makes about login failures applies here. Ink. */
 .update-card__blocked-note {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border-left: 3px solid var(--danger);
+  border-left: 3px solid var(--ink);
   padding-left: var(--space-4);
   margin-left: auto;
   max-width: 340px;
 }
 .update-card__blocked-title {
   font: 700 14px/1.3 var(--font-body);
-  color: var(--danger);
+  color: var(--ink);
 }
 .update-card__blocked-body {
   font: 400 13px/1.5 var(--font-body);
@@ -1134,7 +1242,15 @@ button {
 
 .exception-board__groups {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Brief 010 §5 — FIX: was repeat(4, 1fr) with overflow: hidden and no
+     floor, so lanes compressed under the 1024px desk-hardware target
+     (measured ~240px) instead of holding their width. Rev 3 §4.1: "lanes
+     hold 300px and the board scrolls sideways — cards never shrink, type
+     never scales down." Only the width floor and scroll behaviour change
+     here — the flush 1px-divider look between lanes (not a 12px gutter)
+     was already the established look before this brief and isn't itself
+     a flagged finding, so it's left as is. */
+  grid-template-columns: repeat(4, minmax(300px, 1fr));
   /* Major-section frame (§3.1: "2px at 40% ink between major sections") —
      this is the whole board's outer edge, one of the small named set of
      elements given the major rather than the default row-level weight;
@@ -1142,13 +1258,12 @@ button {
   border: 2px solid var(--rule-major);
   border-radius: var(--radius);
   background: var(--surface);
-  overflow: hidden;
+  overflow-x: auto;
 }
 .exception-group {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  min-width: 0;
 }
 .exception-group:last-child {
   border-right: none;
@@ -1157,8 +1272,13 @@ button {
   padding: var(--space-4);
   border-bottom: 1px solid var(--border);
 }
+/* Brief 010 §3.2 — FIX: was var(--danger). "No reason given" (the only
+   group this modifier is applied to) is a data-completeness gap, not a
+   delay — a brand-new, zero-day-old project can be in this group. Red is
+   reserved for delay only (Design Note §4.9); ink still marks it as the
+   emphasised/first group without spending the delay colour on it. */
 .exception-group__head--severe {
-  border-bottom-color: var(--danger);
+  border-bottom-color: var(--ink);
 }
 .exception-group__title-row {
   display: flex;
@@ -1171,7 +1291,7 @@ button {
   text-transform: uppercase;
 }
 .exception-group__title--severe {
-  color: var(--danger);
+  color: var(--ink);
 }
 .exception-group__count {
   font: 800 22px/1 var(--font-heading);

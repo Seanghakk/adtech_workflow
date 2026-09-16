@@ -257,7 +257,12 @@ export default async function ExceptionsPage() {
               </div>
               <div className="exception-group__body">
                 {picBreaches.length === 0 ? (
-                  <p className="empty-state">{t('exceptionsEmptyGroup')}</p>
+                  // Brief 010 §4 — the one place zero is genuinely good
+                  // news; drawn as a result, not a grey blank.
+                  <div className="empty-state empty-state--result">
+                    <span className="empty-state__figure">0</span>
+                    <span className="empty-state__fact">{t('exceptionsPicLimitEmpty')}</span>
+                  </div>
                 ) : (
                   picBreaches.map((b) => (
                     <PicBreachCard
