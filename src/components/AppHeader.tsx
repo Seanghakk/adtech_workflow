@@ -3,6 +3,7 @@ import { LanguageToggle } from './LanguageToggle'
 import { SignOutButton } from './SignOutButton'
 import type { CurrentMember } from '@/lib/auth/current-member'
 import { isSalesTeamMember } from '@/lib/auth/sales-roles'
+import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getServerTranslator } from '@/lib/i18n/server'
 
 /**
@@ -59,7 +60,7 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
           <Link href="/sales">{t('navSales')}</Link>
         </nav>
       )}
-      {(member.role === 'manager' || member.role === 'admin') && (
+      {isManagerOrAdmin(member) && (
         // Fable Brief 002 §2/§3 — the reviewer board and load screens are
         // built for whoever is running the weekly reporting review, same
         // gating precedent as /sales above: everyone else already has a
@@ -67,10 +68,13 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
         // link to the same underlying data would add noise, not access
         // (the underlying RLS scoping is unchanged either way — this is
         // a navigation judgment call, not a security boundary. See
-        // Result 003).
+        // Result 003). /users (Brief 012 §2.7) joins this same group —
+        // an actual access boundary this time (workflow.members writes),
+        // not just a navigation one.
         <nav className="app-header__nav">
           <Link href="/exceptions">{t('navExceptions')}</Link>
           <Link href="/load">{t('navLoad')}</Link>
+          <Link href="/users">{t('navUsers')}</Link>
         </nav>
       )}
       <div className="app-header__actions">
