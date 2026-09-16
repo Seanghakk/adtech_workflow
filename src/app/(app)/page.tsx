@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { AssignPicForm } from '@/components/AssignPicForm'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
@@ -102,8 +102,12 @@ export default async function ProjectBoardPage({
     ...scoped.map((p) => p.picId),
     ...activeMemberIds,
   ])
-  const picName = (picId: string): string =>
-    profiles.get(picId)?.fullName ?? profiles.get(picId)?.username ?? picId
+  // Brief 013 §3 — never the raw id itself; every caller of picName
+  // already only calls it with a picId that IS set (picLabel below
+  // handles the "no PIC at all" case separately, before ever reaching
+  // here), so reaching this fallback means the id is real but its
+  // profile row is missing.
+  const picName = (picId: string): string => formatMemberName(profiles.get(picId), t('membersNoProfile'))
   const unassigned = t('dashboardUnassigned')
   const picLabel = (picId: string | null): string => (picId ? picName(picId).toUpperCase() : unassigned)
 

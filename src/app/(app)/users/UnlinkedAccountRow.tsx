@@ -17,11 +17,15 @@ const initialState: LinkAccountState = { error: null }
 export function UnlinkedAccountRow({
   userId,
   email,
+  noEmailText,
   sinceLabel,
   teams,
 }: {
   userId: string
   email: string | null
+  /** Brief 013's own "never a raw id" invariant applies here too — an
+   *  auth account can exist with no email (phone/SSO). */
+  noEmailText: string
   sinceLabel: string
   teams: { id: string; labelEn: string }[]
 }) {
@@ -32,7 +36,7 @@ export function UnlinkedAccountRow({
     <form action={formAction} className="wf-queue__row">
       <input type="hidden" name="userId" value={userId} />
       <div className="wf-queue__row-identity">
-        <span className="wf-queue__row-email">{email ?? userId}</span>
+        <span className="wf-queue__row-email">{email ?? noEmailText}</span>
         <span className="wf-queue__row-since">{sinceLabel}</span>
       </div>
       <select name="teamId" defaultValue="" required aria-label={t('usersQueueTeamLabel')}>

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { AgeLadder } from '@/components/AgeLadder'
 import { getServerTranslator } from '@/lib/i18n/server'
@@ -63,7 +63,13 @@ export default async function SalesMonitoringPage() {
           {rows.map((project) => {
             const stallAnchor = project.last_meaningful_movement_at ?? project.opened_at
             const daysSince = daysSinceICT(stallAnchor)
-            const owner = project.owner_id ? owners.get(project.owner_id) : undefined
+            // Brief 013 §3 — "no owner_id at all" (Unassigned) and "an
+            // owner_id is set but its profile row is missing" (No profile
+            // on file) are different facts; the previous version
+            // collapsed both into Unassigned.
+            const ownerName = project.owner_id
+              ? formatMemberName(owners.get(project.owner_id), t('membersNoProfile'))
+              : t('dashboardUnassigned')
             const client = Array.isArray(project.clients) ? project.clients[0] : project.clients
 
             return (
@@ -91,7 +97,7 @@ export default async function SalesMonitoringPage() {
                     <div className="project-list__owner">
                       {(client?.name ?? '—').toUpperCase()}
                       {' · '}
-                      {(owner?.fullName ?? owner?.username ?? t('dashboardUnassigned')).toUpperCase()}
+                      {ownerName.toUpperCase()}
                     </div>
                   </div>
                   <div className="project-list__percent">

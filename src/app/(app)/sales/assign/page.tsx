@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
-import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
+
+// Brief 013 §3 — this file has no translator (its own established
+// convention — see its hardcoded English strings throughout); the shared
+// "no profile row" text is hardcoded here for the same reason rather than
+// pulled from the i18n dictionary other screens use.
+const NO_PROFILE_TEXT = 'No profile on file'
 import { canAssignClientOwners } from '@/lib/auth/sales-roles'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
 import { AssignClientOwnerForm } from './AssignClientOwnerForm'
@@ -49,7 +55,7 @@ export default async function AssignClientOwnersPage() {
 
   const salesEngineerOptions = salesUserIds.map((userId) => ({
     userId,
-    label: profiles.get(userId)?.fullName ?? profiles.get(userId)?.username ?? userId,
+    label: formatMemberName(profiles.get(userId), NO_PROFILE_TEXT),
   }))
 
   return (
@@ -72,7 +78,7 @@ export default async function AssignClientOwnersPage() {
           {(clients ?? []).map((client) => {
             const currentOwnerId = ownerByClientId.get(client.id)
             const currentOwnerLabel = currentOwnerId
-              ? (profiles.get(currentOwnerId)?.fullName ?? profiles.get(currentOwnerId)?.username ?? '—')
+              ? formatMemberName(profiles.get(currentOwnerId), NO_PROFILE_TEXT)
               : 'Unassigned'
 
             return (
