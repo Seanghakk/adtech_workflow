@@ -1014,6 +1014,52 @@ button {
   border-color: var(--warning-tint-border);
 }
 
+/* Brief 012 §3 — the assign/reassign PIC control, managers/admins only.
+   Deliberately plain (no card weight, no age colour) even though it sits
+   inside a heat-mapped board card — this is an administration action
+   borrowing the board's real estate, not a working-screen element, so it
+   keeps the flat/ruled admin treatment rather than picking up the card's
+   own band colour. stopPropagation on the form (AssignPicForm) keeps a
+   future click-through-card navigation from firing while using the
+   control. */
+.board-card__assign-pic {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  align-items: center;
+}
+.board-card__assign-pic select {
+  flex: 1;
+  min-width: 0;
+  font: 400 12px/1.3 var(--font-body);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+.board-card__assign-pic button {
+  flex: none;
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--navy);
+  color: #fff;
+  cursor: pointer;
+}
+.board-card__assign-pic button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.board-card__assign-pic-error {
+  display: block;
+  width: 100%;
+  font: 500 11px/1.4 var(--font-body);
+  color: var(--danger);
+}
+
 /* -----------------------------------------------------------------------
    Screen 6a — update-progress card
    ----------------------------------------------------------------------- */
@@ -1923,4 +1969,208 @@ button {
   color: var(--text-muted);
   margin-top: var(--space-2);
   max-width: 150px;
+}
+
+/* -----------------------------------------------------------------------
+   User management — Brief 012 §2 / Design Note Rev 3 §6, Token Spec v3
+   §2. THE ADMINISTRATION ARCHETYPE: a table, not cards; 1px rules between
+   rows, 2px above the header; radius 0, no shadows; NO age ladder, NO
+   card weight, NO heat map anywhere on this screen (§2.1/§4.8 — "a
+   person is not late; a person is just a person"). --wf-row-inactive was
+   already declared as a token (Token Spec v3 §2) with nothing consuming
+   it until now.
+   ----------------------------------------------------------------------- */
+.wf-admin {
+  max-width: 1100px;
+}
+.wf-admin__header {
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--rule-major);
+  margin-bottom: var(--space-6);
+}
+.wf-admin__kicker {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.wf-admin__title {
+  margin: var(--space-2) 0 0;
+  font: 800 28px/1.1 var(--font-heading);
+  letter-spacing: 0.2px;
+}
+
+/* §2.4 / Token Spec v3 §2 — "a blue field with a count... the one admin
+   element where an empty state is genuinely good news." Reuses
+   .empty-state--result's own visual language (navy field, large numeral)
+   under its own class name, since this one is always shown (count
+   included) rather than only appearing when a group happens to be
+   empty. */
+.wf-queue {
+  background: var(--navy-tint-bg);
+  border: 2px solid var(--navy);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-7);
+}
+.wf-queue__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.wf-queue__count {
+  font: 800 32px/1 var(--font-heading);
+  color: var(--navy);
+}
+.wf-queue__label {
+  font: 700 13px/1.3 var(--font-body);
+  letter-spacing: 0.02em;
+}
+.wf-queue__empty {
+  margin: var(--space-3) 0 0;
+  font: 500 14px/1.5 var(--font-body);
+  color: var(--text);
+}
+.wf-queue__list {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.wf-queue__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--navy-tint-border);
+  padding: var(--space-3) var(--space-4);
+}
+.wf-queue__row-identity {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+}
+.wf-queue__row-email {
+  font: 700 14px/1.3 var(--font-body);
+}
+.wf-queue__row-since {
+  font: 400 12px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.wf-queue__row select {
+  font: 400 13px/1.3 var(--font-body);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+.wf-queue__row button {
+  font: 700 13px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--navy);
+  color: #fff;
+  cursor: pointer;
+}
+.wf-queue__row button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wf-queue__row-error {
+  flex-basis: 100%;
+  font: 500 12px/1.4 var(--font-body);
+  color: var(--danger);
+}
+
+/* §2.2/§6.1 — the member table itself. 1px rules between rows, 2px above
+   the header. */
+.wf-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid var(--rule-major);
+}
+.wf-admin-table th {
+  text-align: left;
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.wf-admin-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font: 400 14px/1.4 var(--font-body);
+  vertical-align: middle;
+}
+/* §6.4 — inactive rows drop to --wf-row-inactive with muted text, never
+   hidden (Token Spec v3 §2's own table row). */
+.wf-admin-row--inactive td {
+  background: var(--wf-row-inactive);
+  color: var(--text-muted);
+}
+.wf-admin-row__deactivate {
+  font: 700 12px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--danger);
+  cursor: pointer;
+}
+.wf-admin-row__deactivate:hover {
+  background: var(--danger-tint-bg);
+}
+/* §2.6 — the confirmation naming the consequence, inline, before the
+   action — same "no modal, no toast" discipline 6a's own refusal state
+   uses (Design Note §4.2). */
+.wf-admin-row__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 260px;
+  background: var(--warning-tint-bg);
+  border: 1.5px solid var(--warning);
+  padding: var(--space-3);
+}
+.wf-admin-row__confirm-text {
+  margin: 0;
+  font: 500 12px/1.5 var(--font-body);
+  color: var(--warning-tint-deep);
+}
+.wf-admin-row__confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.wf-admin-row__confirm-yes {
+  font: 700 12px/1 var(--font-body);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--danger);
+  color: #fff;
+  cursor: pointer;
+}
+.wf-admin-row__confirm-actions button:not(.wf-admin-row__confirm-yes) {
+  font: 600 12px/1 var(--font-body);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.wf-admin-row__confirm-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wf-admin-row__confirm-error {
+  font: 500 12px/1.4 var(--font-body);
+  color: var(--danger);
 }

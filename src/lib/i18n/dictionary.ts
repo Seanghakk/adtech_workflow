@@ -37,8 +37,13 @@ const en = {
   loginResetPath: 'Forgot your password? Ask a project manager to reset it for you.',
 
   noAccessTitle: 'No access to the Workflow Tracker',
+  // Brief 012 §4 — wording matched to the User Management queue's own
+  // wording ("Accounts waiting to be linked" / "Link account") so a
+  // person told one thing finds the same thing happening on the other
+  // side. Previously said "Ask a manager to add you," a different verb
+  // than the queue this screen is the direct fix for.
   noAccessBody:
-    'Your account is signed in, but no active Workflow Tracker membership exists for it yet. Ask a manager to add you.',
+    "Your account is signed in, but it isn't linked to a Workflow Tracker member yet. Ask a project manager to link your account — you're already on the list they'll see.",
   noAccessSignOut: 'Sign out',
 
   // Kept under its original "dashboard" name (Brief 002) even though the
@@ -180,6 +185,58 @@ const en = {
     'View only — no create or write action lives on this screen. Contact Project Management to act on anything shown here.',
   salesMonitoringEmpty: 'No maintenance-flagged projects are visible to you yet.',
   salesAssignLinkLabel: 'Assign client owners',
+
+  // User management — Brief 012 §2 / Design Note Rev 3 §6. Administration
+  // archetype: no age ladder, no card weight, a table not cards (§2.1/2.2).
+  navUsers: 'Users',
+  usersKicker: 'Administration',
+  usersTitle: 'Members',
+
+  // §2.4 — the unlinked-account queue, "the most useful thing on this
+  // screen." Wording deliberately matches noAccessBody above.
+  usersQueueLabel: 'Accounts waiting to be linked',
+  usersQueueEmptyFact: 'No accounts are waiting to be linked.',
+  usersQueueEmail: 'Signed in as',
+  usersQueueTeamLabel: 'Team',
+  usersQueueRoleLabel: 'Role',
+  usersQueueLinkAction: 'Link account',
+  usersQueueLinkPending: 'Linking…',
+  usersQueueLinkError: 'Could not link this account. Nothing was changed — try again.',
+  usersQueueChooseTeam: 'Choose a team…',
+
+  usersColName: 'Name',
+  usersColAccount: 'Account',
+  usersColTeam: 'Team',
+  usersColRole: 'Role',
+  usersColStatus: 'Status',
+
+  usersRoleMember: 'Member',
+  usersRoleManager: 'Manager',
+  usersRoleAdmin: 'Admin',
+  usersStatusActive: 'Active',
+  usersStatusInactive: 'Inactive',
+
+  // §2.5/2.6 — deactivate, never delete; the confirmation names the
+  // consequence in plain words before the action, not after.
+  usersDeactivate: 'Deactivate',
+  usersDeactivateCancel: 'Cancel',
+  usersDeactivateConfirmAction: 'Yes, deactivate',
+  usersDeactivateConfirmPending: 'Deactivating…',
+  usersDeactivateConsequenceSignIn: 'This person will no longer be able to sign in.',
+  usersDeactivateConsequenceNoPic: 'They are not currently PIC of any project.',
+  usersDeactivateConsequencePicSuffix:
+    'as PIC — each becomes unassigned and un-updatable by anyone until reassigned.',
+  usersDeactivateError: 'Could not deactivate this member. Nothing was changed — try again.',
+
+  // §2.7 — restricted, not empty.
+  usersRestricted: 'You do not have access to User Management.',
+
+  // §3 — assigning a PIC, on the board (screen 4a), not here.
+  boardAssignPic: 'Assign PIC',
+  boardReassignPic: 'Reassign',
+  boardAssignPicChoose: 'Choose a PIC…',
+  boardAssignPicPending: 'Saving…',
+  boardAssignPicError: 'Could not assign this PIC. Nothing was changed — try again.',
 } as const
 
 export type DictionaryKey = keyof typeof en

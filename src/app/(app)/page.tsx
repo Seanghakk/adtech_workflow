@@ -3,7 +3,9 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isSalesTeamMember } from '@/lib/auth/sales-roles'
+import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getUserProfilesByIds } from '@/lib/auth/user-profiles'
+import { AssignPicForm } from '@/components/AssignPicForm'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getCardWeight, type CardWeight } from '@/lib/age'
@@ -91,11 +93,26 @@ export default async function ProjectBoardPage({
 
   const scoped = filterByScope(boardProjects, scope, member, teamIdByUserId)
 
-  const profiles = await getUserProfilesByIds(supabase, scoped.map((p) => p.picId))
+  // Brief 012 §3 — every active member's profile, not only scoped PICs'
+  // (unlike before this brief), so the assign-PIC dropdown has a full,
+  // real set of candidates rather than only whoever already happens to
+  // hold a project in the current scope.
+  const activeMemberIds = (activeMembers ?? []).map((m) => m.user_id)
+  const profiles = await getUserProfilesByIds(supabase, [
+    ...scoped.map((p) => p.picId),
+    ...activeMemberIds,
+  ])
   const picName = (picId: string): string =>
     profiles.get(picId)?.fullName ?? profiles.get(picId)?.username ?? picId
   const unassigned = t('dashboardUnassigned')
   const picLabel = (picId: string | null): string => (picId ? picName(picId).toUpperCase() : unassigned)
+
+  const canAssignPic = isManagerOrAdmin(member)
+  const picMemberOptions = canAssignPic
+    ? [...new Set(activeMemberIds)]
+        .map((userId) => ({ userId, label: picName(userId) }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+    : []
 
   const lanes = buildLanes(scoped, groupBy, picName)
 
@@ -216,6 +233,8 @@ export default async function ProjectBoardPage({
                     key={project.id}
                     project={project}
                     picLabel={picLabel(project.picId)}
+                    canAssignPic={canAssignPic}
+                    picMemberOptions={picMemberOptions}
                   />
                 ))}
               </div>
@@ -230,9 +249,13 @@ export default async function ProjectBoardPage({
 function ProjectBoardCard({
   project,
   picLabel,
+  canAssignPic,
+  picMemberOptions,
 }: {
   project: BoardProject
   picLabel: string
+  canAssignPic: boolean
+  picMemberOptions: { userId: string; label: string }[]
 }) {
   const weight = getCardWeight(project.stallDays)
   const className = `exception-card exception-card--${weight}`
@@ -262,6 +285,16 @@ function ProjectBoardCard({
           {picLabel}
         </span>
       </div>
+      {/* Brief 012 §3.1/§3.2 — the assign action lives on the board card,
+          not on User Management: a PIC is a fact about a project, fixed
+          where the problem is visible. Managers/admins only. */}
+      {canAssignPic && (
+        <AssignPicForm
+          projectId={project.id}
+          currentPicId={project.picId}
+          memberOptions={picMemberOptions}
+        />
+      )}
       <div style={{ marginTop: 'var(--space-4)' }}>
         <AgeLadder days={project.stallDays} label={`${project.stallDays}d since last movement`} full />
       </div>
