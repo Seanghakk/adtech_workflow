@@ -61,6 +61,12 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
           below it. */}
       <nav className="app-header__nav">
         <Link href="/requests/new">{t('navRequests')}</Link>
+        {/* Brief 018 §3 — the awaiting-SO queue is read-only status
+            visibility, same unconditional-access reasoning as the
+            request link beside it: RLS (can_view_project) already
+            narrows which rows a sales-restricted member sees, so no
+            extra role gate is layered on top here. */}
+        <Link href="/awaiting-so">{t('navAwaitingSo')}</Link>
       </nav>
       {isSalesTeamMember(member) && (
         <nav className="app-header__nav">

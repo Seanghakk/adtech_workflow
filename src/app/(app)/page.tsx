@@ -274,7 +274,9 @@ function ProjectBoardCard({
         )}{' '}
         <span className="stream-tag">{project.stream.toUpperCase()}</span>
       </div>
-      <div className="exception-card__title">{project.name}</div>
+      <Link href={`/projects/${project.id}`} className="exception-card__title exception-card__title--link">
+        {project.name}
+      </Link>
       <div className="exception-card__figures">
         <span className="exception-card__percent">{project.percentComplete}%</span>
       </div>

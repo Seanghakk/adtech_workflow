@@ -394,6 +394,65 @@ const en = {
   // §3.7 — surfaced plainly, not hidden in an advanced section.
   lookupsStageIsTerminalLabel: 'Ends the flow (terminal stage)',
   lookupsStageTerminalYes: 'Yes',
+
+  // Screens 2a/2b — the SO spine (Brief 018). Record/detail archetype
+  // (2a) and small focused panel archetype (2b), Design Note Rev 3
+  // §4.3/§4.4. Both read-only this round (§2.1/§4) — no approve, no
+  // edit, no "issue SO number" action lives on either screen.
+  navAwaitingSo: 'Awaiting SO',
+
+  soRecordNoSoYet: 'No SO number yet',
+  soRecordAwaitingSoNote: 'This project has no SO number yet — see the',
+  soRecordAwaitingSoNoteSuffix: 'queue.',
+  soRecordPicLabel: 'PIC',
+
+  soRecordStageStripTitle: 'Stage strip',
+  soRecordStageStripNoScopeType: 'No scope type is set for this project yet.',
+  soRecordStageStripEmpty:
+    'No stages are defined yet for this scope type — set them up in Lookup Table Admin.',
+
+  soRecordVariationsTitle: 'Variation lines',
+  soRecordVariationsCaption: 'nested under this SO · never their own SO number',
+  soRecordVariationsEmpty: 'No variations recorded against this SO.',
+  soRecordColDescription: 'Description',
+  soRecordColCommitted: 'Committed',
+  soRecordColApproval: 'Approval',
+  // §2.2 — the hard split's own callout. Wording kept generic rather than
+  // reusing the mockup's specific fixture story (a named PO/actuator
+  // example) — that flavour text belongs to the sample data, not to this
+  // app's permanent chrome.
+  soRecordAtRiskBannerKicker: 'Money at risk',
+  soRecordAtRiskBannerBody:
+    'Already committed against variations not yet approved. If any is declined, this exposure remains:',
+  soRecordAtRisk: 'At risk',
+  soRecordApproved: 'Approved',
+  soRecordNotApproved: 'Not approved',
+
+  soRecordLinkedRequestsTitle: 'Linked requests',
+  soRecordLinkedRequestsEmpty: 'No open requests linked to this project.',
+  soRecordLinkedProcurementTitle: 'Linked procurement',
+  soRecordLinkedProcurementEmpty: 'No procurement lines recorded yet.',
+  soRecordProcurementPoIssued: 'PO issued',
+  soRecordProcurementDelivered: 'Delivered in full',
+  soRecordProcurementSourcing: 'Sourcing, no PO yet',
+
+  // §3.1/§3.3 — the queue, and its own empty state read as good news
+  // (Design Note §4.9's "empty states drawn as results" rule).
+  awaitingSoKicker: 'The SO spine',
+  awaitingSoTitle: 'Awaiting SO',
+  awaitingSoEmptyFact: 'No projects are waiting on an SO number right now.',
+  awaitingSoRestrictedNotice:
+    'Sales-team access is restricted to maintenance-flagged projects under clients you own — this may not be every project awaiting an SO.',
+  awaitingSoRestrictedEmpty:
+    'No maintenance-flagged projects under a client you own are awaiting an SO — this is not the same as "none app-wide."',
+  awaitingSoAccountable: 'Accountable',
+  awaitingSoSinceWon: 'since won',
+  // §3.1 — pre-SO activity given somewhere legitimate to live; the one
+  // line backed by a real column (procurement_lines.sourcing_started_at).
+  awaitingSoSourcingNotePrefix: 'Sourcing already started —',
+  awaitingSoSourcingNoteSuffix: 'procurement line(s) in progress.',
+  awaitingSoCommitmentBlockedNote: 'Commitment (MR/PO) stays blocked until this project has an SO number.',
+  awaitingSoViewRecord: 'View SO record',
 } as const
 
 export type DictionaryKey = keyof typeof en
