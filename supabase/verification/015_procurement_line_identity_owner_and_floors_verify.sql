@@ -1,16 +1,21 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Verification queries for Migration 015
 -- Brief: ADTECH_WF_Brief_022_Procurement_Line_Identity_Owner_And_Floors §1/§6/§7
--- AMENDED per Brief 022 Amendment A §5 — see block 0b below.
+-- AMENDED per Brief 022 Amendment A §5 (block 0b) and Amendment B §4
+-- (block 0c) — see both below.
 --
--- Run blocks 0 and 0b by hand BEFORE applying migration 015. Block 0
+-- Run blocks 0, 0b, and 0c by hand BEFORE applying migration 015. Block 0
 -- decides which branch the description-column NOT NULL logic takes. Block
--- 0b re-confirms, at apply time, the live policy text this migration's
+-- 0b re-confirms, at apply time, the live policy TEXT this migration's
 -- SELECT fix depends on — Amendment A §5's standing rule: "a policy's
 -- CURRENT definition lives in pg_policies. The migration that CREATED it
--- may have been superseded by a later one." Do not skip 0b on the
--- assumption Amendment A's own reading (17 Sep 2026) still holds; confirm
--- it again at apply time. Run the rest AFTER applying — and after having
+-- may have been superseded by a later one." Block 0c confirms the
+-- separate fact that RLS is actually ENABLED on procurement_lines at all
+-- — Amendment B §4/§2: correct policy text and RLS being on are two
+-- different things, and the sibling ADTECH CMMS has already had them
+-- come apart in production once. Do not skip 0b or 0c on the assumption
+-- Amendments A and B's own readings (17 Sep 2026) still hold; confirm
+-- both again at apply time. Run the rest AFTER applying — and after having
 -- run the rollback against a non-production target first (rollback-test
 -- project carrying 001-013 plus the stub public.user_profiles; migration
 -- 014 may or may not be applied there, and does not need to be for this
@@ -44,6 +49,30 @@ select count(*) from workflow.procurement_lines;
 select policyname, cmd, qual
 from pg_policies
 where schemaname = 'workflow' and tablename = 'procurement_lines' and policyname = 'procurement_lines_select';
+
+
+-- 0c. PRE-FLIGHT (Amendment B §4) — confirms RLS is actually ENABLED on
+--     workflow.procurement_lines, not just that its policies read
+--     correctly. These are two separate facts: block 0b checks policy
+--     TEXT, this checks whether RLS is even being enforced at all. The
+--     distinction is not academic — the sibling ADTECH CMMS had RLS
+--     toggled off on production tables by an emergency rollback while
+--     every policy still read as correct, and it was found by inspection,
+--     not by anything failing. Checked via pg_class.relrowsecurity, the
+--     actual enforcement flag, not the presence of rows in pg_policies
+--     (a table can carry policies while RLS itself is off — the policies
+--     simply do not run).
+-- Expect relrowsecurity = true. If false, STOP: procurement_line_floors_
+-- select's is_member() AND exists(...) check (Amendment B §3) is the
+-- reason this table's own exposure stays bounded even in that case, but
+-- procurement_lines itself would be fully exposed — this is a
+-- production-readiness blocker independent of migration 015, not
+-- something migration 015 can fix by itself. Keep this check in the
+-- verify file permanently, not as a one-off (Amendment B §4).
+select relrowsecurity
+from pg_class
+where relname = 'procurement_lines'
+  and relnamespace = 'workflow'::regnamespace;
 
 
 -- 1. workflow.procurement_lines has the two new columns, with the right
@@ -102,13 +131,15 @@ where tc.table_schema = 'workflow' and tc.table_name = 'procurement_line_floors'
 order by kcu.ordinal_position;
 
 
--- 4. workflow.procurement_line_floors' policies — select (EXISTS-joined
---    through procurement_lines, AMENDED per Amendment A §3.1 — no longer a
---    flat is_member()), insert and delete (both current_team-gated), no
---    update.
+-- 4. workflow.procurement_line_floors' policies — select (AMENDED TWICE:
+--    is_member() AND an EXISTS join through procurement_lines, per
+--    Amendment A §3.1 and Amendment B §3 — no longer a bare is_member()
+--    alone, and the join is no longer the sole check), insert and delete
+--    (both current_team-gated), no update.
 -- Expect 3 rows: select, insert, delete. qual/with_check on insert and
--- delete both mention current_team; select's qual mentions
--- workflow.procurement_lines (an EXISTS join), NOT a bare is_member() call.
+-- delete both mention current_team; select's qual mentions BOTH
+-- is_member() AND workflow.procurement_lines (an EXISTS join) — if it
+-- mentions only one of the two, the amendment did not apply cleanly.
 select policyname, cmd, qual, with_check
 from pg_policies
 where schemaname = 'workflow' and tablename = 'procurement_line_floors'

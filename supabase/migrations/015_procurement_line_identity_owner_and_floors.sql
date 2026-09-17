@@ -62,7 +62,7 @@
 --      floors without being owned by any one of them. A line with NO rows
 --      here applies to the whole project — the ordinary, supported case
 --      (§4.4), same rule migration 008 established for projects themselves.
---      RLS (AMENDED, Brief 022 Amendment A §1/§3): §4.3's own instruction to
+--      RLS (AMENDED TWICE, Brief 022 Amendments A and B): §4.3's own instruction to
 --      match procurement_lines_select with a flat workflow.is_member() check
 --      was written on a false premise. Result 022 §3 read
 --      procurement_lines_select out of migration 001, where it genuinely was
@@ -86,8 +86,22 @@
 --      querying procurement_lines from inside this policy runs under
 --      procurement_lines' own RLS, so if procurement_lines_select changes
 --      again, this join table follows automatically rather than drifting a
---      second time. Everything else in this migration (§3.2) is unchanged
---      by the amendment.
+--      second time.
+--      AMENDMENT B §3 adds one more thing: the join alone carries no check
+--      of its own, so its protection holds only while RLS is actually
+--      ENABLED on procurement_lines — a fact separate from whether that
+--      table's policies are correct, and one the sibling ADTECH CMMS got
+--      wrong in production once (policies read correctly while an
+--      emergency rollback had quietly left RLS disabled). workflow.
+--      is_member() is added back ALONGSIDE the join as deliberate
+--      redundancy: with RLS enabled this changes nothing (procurement_lines_select
+--      already requires is_member()); with RLS accidentally disabled on
+--      procurement_lines, is_member() is what still limits this table's
+--      exposure to application members instead of opening it to anyone
+--      holding the anon key. §3.4's survey of the rest of workflow's
+--      policies for the same join-with-no-check-of-its-own pattern is
+--      reported, not fixed, in this round's Result doc. Everything else in
+--      this migration (§3.2 of both amendments) is unchanged.
 --      Write policy: the SAME team-keyed check migration 014 uses on
 --      procurement_lines itself — workflow.current_team() in
 --      ('procurement_local', 'procurement_overseas') — read directly from
@@ -187,26 +201,38 @@ alter table workflow.procurement_line_floors enable row level security;
 drop policy if exists procurement_line_floors_select on workflow.procurement_line_floors;
 create policy procurement_line_floors_select on workflow.procurement_line_floors
   for select using (
-    exists (
+    workflow.is_member()
+    and exists (
       select 1 from workflow.procurement_lines pl
       where pl.id = procurement_line_floors.procurement_line_id
     )
   );
 
 comment on policy procurement_line_floors_select on workflow.procurement_line_floors is
-  'AMENDED — Brief 022 Amendment A §1/§3.1. Brief 022 §4.3 asked for a flat
-   workflow.is_member() check on the stated premise that
+  'AMENDED TWICE. Brief 022 Amendment A §1/§3.1: Brief 022 §4.3 asked for a
+   flat workflow.is_member() check on the stated premise that
    procurement_lines_select (migration 001) was itself flat. That premise
    was false: migration 004 redefined procurement_lines_select to the same
    can_view_project() project-scoping qc_inspection_floors_select uses, and
    the live pg_policies text confirmed it on 17 Sep 2026 (see this
    migration''s header). A flat is_member() policy here would have made
-   this join table MORE permissive than procurement_lines itself. Scoped by
-   EXISTS-joining through workflow.procurement_lines rather than
-   re-deriving can_view_project()''s own arguments — this runs under
-   procurement_lines'' own RLS, so it tracks procurement_lines_select
-   automatically if that policy changes again, instead of drifting a second
-   time the way this one just did.';
+   this join table MORE permissive than procurement_lines itself.
+   Amendment A scoped it by EXISTS-joining through
+   workflow.procurement_lines rather than re-deriving can_view_project()''s
+   own arguments — this runs under procurement_lines'' own RLS, so it
+   tracks procurement_lines_select automatically if that policy changes
+   again, instead of drifting a second time the way this one just did.
+   Brief 022 Amendment B §3 then added the workflow.is_member() check back
+   ALONGSIDE the join, deliberately redundant: the join alone carries no
+   check of its own and protects this table only for as long as RLS stays
+   enabled on procurement_lines. This is not hypothetical — the sibling
+   ADTECH CMMS had RLS toggled off in production by an emergency rollback
+   while every policy still read as correct. With RLS enabled on
+   procurement_lines this changes nothing, since procurement_lines_select
+   already requires is_member(). With RLS accidentally disabled there, the
+   join is satisfied for every row, and is_member() is what keeps exposure
+   limited to application members rather than opening the table to anyone
+   holding the anon key. Do not simplify this back down to the join alone.';
 
 drop policy if exists procurement_line_floors_insert on workflow.procurement_line_floors;
 create policy procurement_line_floors_insert on workflow.procurement_line_floors
