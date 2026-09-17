@@ -294,6 +294,9 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
               </div>
             </div>
           )}
+          <Link href={`/projects/${project.id}/procurement`} className="awaiting-so-card__link">
+            {t('soRecordViewProcurement')}
+          </Link>
         </div>
       </div>
     </div>

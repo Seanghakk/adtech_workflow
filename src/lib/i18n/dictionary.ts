@@ -436,6 +436,35 @@ const en = {
   soRecordProcurementDelivered: 'Delivered in full',
   soRecordProcurementSourcing: 'Sourcing, no PO yet',
 
+  // Screen 2c (Brief 019) — two bands, two clocks, per §2. See
+  // src/app/(app)/projects/[projectId]/procurement/page.tsx's own comment
+  // for the data-model gaps this screen reports rather than invents
+  // around (no per-line name, no floor reference, no per-line owner).
+  procurementLineKicker: 'Procurement',
+  procurementLineBackLink: 'Back to SO record',
+  procurementLineFloorGapNote:
+    'This project tracks individual floors, but procurement lines are not yet linked to a floor — every line below applies to the project as a whole.',
+  procurementLineSectionTitle: 'Procurement lines',
+  procurementLineEmpty: 'No procurement lines recorded yet for this project.',
+  procurementLineWriteNote: 'Only an active member of the Procurement team can add or update these lines.',
+  procurementLineOrdinalPrefix: 'Procurement line',
+  procurementLineSourcingBand: 'Sourcing',
+  procurementLineSourcingNotStarted: 'Not started yet',
+  procurementLineSinceSourcingStarted: 'since sourcing started',
+  procurementLinePoBand: 'PO',
+  procurementLineMrNotSubmitted: 'MR not yet submitted',
+  procurementLineMrAwaitingApproval: 'MR submitted, awaiting approval',
+  procurementLineMrApprovedAfter: 'MR approved after',
+  procurementLineSinceMrApproved: 'since MR approved',
+  procurementLinePoIssued: 'PO issued',
+  procurementLinePoNotYetIssued: 'PO not yet issued',
+  procurementLineDeliveryLabel: 'Delivery',
+  procurementLineDeliveredCount: 'delivered',
+  procurementLineDeliveryNotTracked: 'Not tracked',
+  procurementLineCustomsLabel: 'Logistics / customs',
+  procurementLineCustomsNone: 'No status recorded yet',
+  soRecordViewProcurement: 'View procurement lines',
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',
