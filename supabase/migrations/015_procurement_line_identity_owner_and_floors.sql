@@ -172,7 +172,7 @@ comment on column workflow.procurement_lines.assigned_to is
    every other person FK in this schema (confirmed by grep — projects.
    pic_id, project_items.pic_id, requests.requester_id/current_owner_id,
    request_handoffs.from_owner_id/to_owner_id, progress_updates.author_id,
-   catalogue_items/catalogue_events'' verifier/recorder columns, sales'
+   catalogue_items/catalogue_events'' verifier/recorder columns, sales''
    assignment columns, variations.raised_by/approved_by — all RESTRICT, no
    exceptions).';
 
