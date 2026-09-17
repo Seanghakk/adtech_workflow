@@ -62,11 +62,32 @@
 --      floors without being owned by any one of them. A line with NO rows
 --      here applies to the whole project — the ordinary, supported case
 --      (§4.4), same rule migration 008 established for projects themselves.
---      RLS: SELECT is workflow.is_member(), matching procurement_lines_select
---      exactly, per §4.3's own instruction, rather than the narrower
---      can_view_project() join qc_inspection_floors itself uses (that join
---      exists because qc_inspections_select is scoped that way;
---      procurement_lines_select is not, so nothing here should be either).
+--      RLS (AMENDED, Brief 022 Amendment A §1/§3): §4.3's own instruction to
+--      match procurement_lines_select with a flat workflow.is_member() check
+--      was written on a false premise. Result 022 §3 read
+--      procurement_lines_select out of migration 001, where it genuinely was
+--      flat — but migration 004 later REDEFINED it when sales roles and
+--      client ownership arrived. Queried live from pg_policies on 17 Sep
+--      2026 (Amendment A §1), procurement_lines_select's actual qual is:
+--        (workflow.is_member() AND (EXISTS (
+--           SELECT 1 FROM workflow.projects p
+--           WHERE p.id = procurement_lines.project_id
+--             AND workflow.can_view_project(p.client_id,
+--                                           p.is_maintenance_contract))))
+--      i.e. project-scoped, through exactly the can_view_project() join
+--      qc_inspection_floors_select itself uses — the opposite of what §4.3
+--      assumed. A flat is_member() policy here would have made this join
+--      table MORE permissive than procurement_lines itself: a sales member
+--      with no ownership of a project's client could not read that
+--      project's procurement_lines but could still read its
+--      procurement_line_floors rows. Per Amendment A §3.1, the fix is an
+--      EXISTS join through procurement_lines itself, not a re-derived
+--      can_view_project() call duplicating that policy's own arguments —
+--      querying procurement_lines from inside this policy runs under
+--      procurement_lines' own RLS, so if procurement_lines_select changes
+--      again, this join table follows automatically rather than drifting a
+--      second time. Everything else in this migration (§3.2) is unchanged
+--      by the amendment.
 --      Write policy: the SAME team-keyed check migration 014 uses on
 --      procurement_lines itself — workflow.current_team() in
 --      ('procurement_local', 'procurement_overseas') — read directly from
@@ -165,15 +186,27 @@ alter table workflow.procurement_line_floors enable row level security;
 
 drop policy if exists procurement_line_floors_select on workflow.procurement_line_floors;
 create policy procurement_line_floors_select on workflow.procurement_line_floors
-  for select using (workflow.is_member());
+  for select using (
+    exists (
+      select 1 from workflow.procurement_lines pl
+      where pl.id = procurement_line_floors.procurement_line_id
+    )
+  );
 
 comment on policy procurement_line_floors_select on workflow.procurement_line_floors is
-  'Matches procurement_lines_select (migration 001) exactly, per Brief 022
-   §4.3 — a flat workflow.is_member() check, NOT the narrower
-   can_view_project() join qc_inspection_floors_select uses, because
-   qc_inspections_select is scoped that way and procurement_lines_select is
-   not. Copying the narrower join here would silently add a restriction
-   procurement_lines itself does not have.';
+  'AMENDED — Brief 022 Amendment A §1/§3.1. Brief 022 §4.3 asked for a flat
+   workflow.is_member() check on the stated premise that
+   procurement_lines_select (migration 001) was itself flat. That premise
+   was false: migration 004 redefined procurement_lines_select to the same
+   can_view_project() project-scoping qc_inspection_floors_select uses, and
+   the live pg_policies text confirmed it on 17 Sep 2026 (see this
+   migration''s header). A flat is_member() policy here would have made
+   this join table MORE permissive than procurement_lines itself. Scoped by
+   EXISTS-joining through workflow.procurement_lines rather than
+   re-deriving can_view_project()''s own arguments — this runs under
+   procurement_lines'' own RLS, so it tracks procurement_lines_select
+   automatically if that policy changes again, instead of drifting a second
+   time the way this one just did.';
 
 drop policy if exists procurement_line_floors_insert on workflow.procurement_line_floors;
 create policy procurement_line_floors_insert on workflow.procurement_line_floors

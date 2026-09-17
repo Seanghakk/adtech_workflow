@@ -1,14 +1,20 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Verification queries for Migration 015
 -- Brief: ADTECH_WF_Brief_022_Procurement_Line_Identity_Owner_And_Floors §1/§6/§7
+-- AMENDED per Brief 022 Amendment A §5 — see block 0b below.
 --
--- Run block 0 by hand BEFORE applying migration 015 — it decides which
--- branch the description-column NOT NULL logic takes. Run the rest AFTER
--- applying — and after having run the rollback against a non-production
--- target first (rollback-test project carrying 001-013 plus the stub
--- public.user_profiles; migration 014 may or may not be applied there,
--- and does not need to be for this migration's own DDL to work — see this
--- migration's own header).
+-- Run blocks 0 and 0b by hand BEFORE applying migration 015. Block 0
+-- decides which branch the description-column NOT NULL logic takes. Block
+-- 0b re-confirms, at apply time, the live policy text this migration's
+-- SELECT fix depends on — Amendment A §5's standing rule: "a policy's
+-- CURRENT definition lives in pg_policies. The migration that CREATED it
+-- may have been superseded by a later one." Do not skip 0b on the
+-- assumption Amendment A's own reading (17 Sep 2026) still holds; confirm
+-- it again at apply time. Run the rest AFTER applying — and after having
+-- run the rollback against a non-production target first (rollback-test
+-- project carrying 001-013 plus the stub public.user_profiles; migration
+-- 014 may or may not be applied there, and does not need to be for this
+-- migration's own DDL to work — see this migration's own header).
 --
 -- STANDING TRAP (carried forward from every prior round's own verify
 -- file): these queries go through pg_policies (the view), never the raw
@@ -24,6 +30,20 @@
 -- Brief expects 0. If it is not 0, description will be left NULLABLE —
 -- confirm the migration's own NOTICE output says which branch it took.
 select count(*) from workflow.procurement_lines;
+
+
+-- 0b. PRE-FLIGHT (Amendment A §5) — confirms the premise this migration's
+--     procurement_line_floors_select fix depends on: that
+--     procurement_lines_select is project-scoped via can_view_project(),
+--     not a flat is_member() check. Expect qual to mention both
+--     is_member() and can_view_project(), matching the text quoted in this
+--     migration's own header and in Amendment A §1. If it does NOT match —
+--     i.e. procurement_lines_select has changed again since 17 Sep 2026 —
+--     STOP: the SELECT policy below needs re-deriving against whatever
+--     procurement_lines_select currently says, not applied as written.
+select policyname, cmd, qual
+from pg_policies
+where schemaname = 'workflow' and tablename = 'procurement_lines' and policyname = 'procurement_lines_select';
 
 
 -- 1. workflow.procurement_lines has the two new columns, with the right
@@ -82,14 +102,29 @@ where tc.table_schema = 'workflow' and tc.table_name = 'procurement_line_floors'
 order by kcu.ordinal_position;
 
 
--- 4. workflow.procurement_line_floors' policies — select (is_member),
---    insert and delete (both current_team-gated), no update.
+-- 4. workflow.procurement_line_floors' policies — select (EXISTS-joined
+--    through procurement_lines, AMENDED per Amendment A §3.1 — no longer a
+--    flat is_member()), insert and delete (both current_team-gated), no
+--    update.
 -- Expect 3 rows: select, insert, delete. qual/with_check on insert and
--- delete both mention current_team; select's qual mentions is_member.
+-- delete both mention current_team; select's qual mentions
+-- workflow.procurement_lines (an EXISTS join), NOT a bare is_member() call.
 select policyname, cmd, qual, with_check
 from pg_policies
 where schemaname = 'workflow' and tablename = 'procurement_line_floors'
 order by cmd;
+
+
+-- 4b. THE REGRESSION THIS AMENDMENT FIXES — confirm procurement_line_floors
+--     is no longer MORE permissive than procurement_lines. Expect these two
+--     counts to be equal: every procurement_line_floors row's line must be
+--     visible under procurement_lines_select for the same viewer, so a
+--     join back through procurement_lines should drop no rows relative to
+--     a straight count. (Run as an authenticated app user, not the SQL
+--     editor owner role — see this file's own standing trap note above.)
+select count(*) from workflow.procurement_line_floors;
+select count(*) from workflow.procurement_line_floors plf
+  join workflow.procurement_lines pl on pl.id = plf.procurement_line_id;
 
 
 -- 5. THE REAL TEST — cannot be proven from the SQL editor (see header).
