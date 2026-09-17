@@ -82,6 +82,9 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
           <Link href="/exceptions">{t('navExceptions')}</Link>
           <Link href="/load">{t('navLoad')}</Link>
           <Link href="/users">{t('navUsers')}</Link>
+          {/* Brief 017 §3.9 — "Managers and admins," same gate as /users
+              (an actual RLS-backed access boundary, not just navigation). */}
+          <Link href="/lookups">{t('navLookups')}</Link>
         </nav>
       )}
       <div className="app-header__actions">
