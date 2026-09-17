@@ -327,6 +327,73 @@ const en = {
   requestHint: 'This is saved as a record. Nobody is notified automatically yet.',
   requestConfirmation: 'Request posted — saved as a record. Nobody is notified automatically yet.',
   requestConfirmationDismiss: 'Dismiss',
+
+  // Lookup Table Admin (Brief 017). Administration archetype, same as
+  // /users — table, not cards, no age ladder, no card weight (§3.1). The
+  // vocabulary rows themselves render label_en/label_km straight from the
+  // database, never through this dictionary (dictionary.ts's own header
+  // note) — everything below is screen CHROME only: titles, column
+  // headers, and the edit/add form controls around that data.
+  navLookups: 'Lookup tables',
+  lookupsKicker: 'Administration',
+  lookupsTitle: 'Lookup Tables',
+
+  lookupsReasonCodesTitle: 'Reason codes',
+  lookupsScopeTypesTitle: 'Scope types',
+  lookupsStagesTitle: 'Stages',
+
+  lookupsColCode: 'Code',
+  lookupsColLabelEn: 'Label (English)',
+  lookupsColLabelKm: 'Label (Khmer)',
+  lookupsColSortOrder: 'Sort order',
+  lookupsColStatus: 'Status',
+
+  // §3.6 — a row with English but no real Khmer must be surfaced as
+  // needing attention rather than passing silently, even where (like the
+  // 8 existing reason_codes) it is already active from before this screen
+  // existed.
+  lookupsNeedsAttention: 'Needs a real Khmer label',
+
+  lookupsEdit: 'Edit',
+  lookupsCancel: 'Cancel',
+  lookupsSave: 'Save',
+  lookupsSaving: 'Saving…',
+  lookupsSaveError: 'Could not save this row. Nothing was changed — try again.',
+
+  lookupsActiveLabel: 'Active',
+  // §3.6 — the activation gate itself, named in plain words beside the
+  // control it blocks, same "no modal, no toast" discipline as every
+  // other refusal state in this app.
+  lookupsActivateBlockedHint:
+    'Both a Label (English) and a real Label (Khmer) are required before this row can go active.',
+
+  lookupsAddTitle: 'Add new',
+  lookupsAddAction: 'Add',
+  lookupsAddPending: 'Adding…',
+  lookupsAddError: 'Could not add this row. Nothing was saved — try again.',
+  // §3.4 — code is immutable after creation; stated here rather than only
+  // silently refused later.
+  lookupsCodeLabel: 'Code',
+  lookupsCodeHint: 'Cannot be changed after this row is created',
+  lookupsLabelEnLabel: 'Label (English)',
+  lookupsLabelKmLabel: 'Label (Khmer)',
+  lookupsLabelKmOptionalHint: 'Optional for now — required before this row can go active',
+  lookupsSortOrderLabel: 'Sort order',
+
+  // §3.8 — stages is empty right now, and that is the first thing a
+  // person sees here. Reads as "nothing defined yet, add the first one",
+  // never as a blank or an error.
+  lookupsStagesEmpty: 'Nothing defined yet for any scope type. Add the first one below.',
+
+  lookupsStageColScopeType: 'Scope type',
+  lookupsStageColSequence: 'Sequence',
+  lookupsStageColOwnerTeam: 'Owner team',
+  lookupsStageColTerminal: 'Terminal',
+  lookupsStageScopeTypeChoose: 'Choose a scope type…',
+  lookupsStageOwnerTeamChoose: 'Choose a team…',
+  // §3.7 — surfaced plainly, not hidden in an advanced section.
+  lookupsStageIsTerminalLabel: 'Ends the flow (terminal stage)',
+  lookupsStageTerminalYes: 'Yes',
 } as const
 
 export type DictionaryKey = keyof typeof en
