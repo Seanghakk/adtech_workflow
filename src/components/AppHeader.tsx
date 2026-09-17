@@ -61,6 +61,9 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
           below it. */}
       <nav className="app-header__nav">
         <Link href="/requests/new">{t('navRequests')}</Link>
+        {/* Brief 021 §1.1 — "who triages: any active member," same
+            unconditional-access reasoning as the request link beside it. */}
+        <Link href="/triage">{t('navTriage')}</Link>
         {/* Brief 018 §3 — the awaiting-SO queue is read-only status
             visibility, same unconditional-access reasoning as the
             request link beside it: RLS (can_view_project) already
