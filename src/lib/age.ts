@@ -37,20 +37,39 @@ const BANDS: readonly AgeBand[] = ['moving', 'waiting', 'late', 'stalled']
 /** Day count at which each of the 4 segments lights up. */
 const SEGMENT_THRESHOLDS: readonly number[] = [1, 6, 11, 16]
 
+/** Hour count at which each of triage's 4 segments lights up (Brief 021
+ *  §2.2: "0-2 / 2-4 / 4-8 / 8+", screen 1c's own hours-scale clock, kept
+ *  in this SAME shared helper so it cannot drift from the day bands —
+ *  the brief's own instruction). Starts at 0, not 1 like SEGMENT_THRESHOLDS
+ *  above: triage's clock is continuous from the moment of posting (hour 0
+ *  is a real, immediate state), unlike daysSinceICT's calendar-day
+ *  boundary, where day 0 is "not yet a full day old." JUDGMENT CALL, cheap
+ *  to change here alone if discovery disagrees. */
+const HOUR_SEGMENT_THRESHOLDS: readonly number[] = [0, 2, 4, 8]
+
 export interface AgeLadderSegment {
   filled: boolean
   band: AgeBand
 }
 
-/** The single place both getAgeLadderSegments() and getCardWeight() read
- *  the current band from — walks the thresholds from the most severe end
- *  so the two can never disagree (Design Note Rev 3 §2.3). */
-function bandForDays(days: number): AgeBand {
-  const safeDays = Math.max(0, Math.floor(days))
-  for (let i = SEGMENT_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (safeDays >= SEGMENT_THRESHOLDS[i]) return BANDS[i]
+/** The one place every band lookup in this file reads from — walks a
+ *  thresholds array from the most severe end so no two callers using the
+ *  same thresholds can ever disagree (Design Note Rev 3 §2.3 / Brief 021
+ *  §2.2, both of which require exactly this "one place" property). */
+function bandForValue(value: number, thresholds: readonly number[]): AgeBand {
+  const safeValue = Math.max(0, Math.floor(value))
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (safeValue >= thresholds[i]) return BANDS[i]
   }
   return BANDS[0]
+}
+
+function bandForDays(days: number): AgeBand {
+  return bandForValue(days, SEGMENT_THRESHOLDS)
+}
+
+function bandForHours(hours: number): AgeBand {
+  return bandForValue(Math.floor(hours), HOUR_SEGMENT_THRESHOLDS)
 }
 
 /** Text-label colour/weight band for the age-ladder's caption — extended
@@ -67,6 +86,23 @@ export function getAgeLadderSegments(days: number): AgeLadderSegment[] {
   const safeDays = Math.max(0, Math.floor(days))
   return SEGMENT_THRESHOLDS.map((threshold, i) => ({
     filled: safeDays >= threshold,
+    band: BANDS[i],
+  }))
+}
+
+/** Hours version of getAgeLabelBand, for screen 1c only (Brief 021 §2.2) —
+ *  every other screen in this app uses the day version above. */
+export function getHourLabelBand(hours: number): AgeBand {
+  return bandForHours(hours)
+}
+
+/** Hours version of getAgeLadderSegments, for screen 1c only (Brief 021
+ *  §2.2). Hours need not be an integer; callers pass the raw elapsed value
+ *  from hoursSinceICT(). */
+export function getHourLadderSegments(hours: number): AgeLadderSegment[] {
+  const safeHours = Math.max(0, Math.floor(hours))
+  return HOUR_SEGMENT_THRESHOLDS.map((threshold, i) => ({
+    filled: safeHours >= threshold,
     band: BANDS[i],
   }))
 }

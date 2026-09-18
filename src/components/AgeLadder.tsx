@@ -1,4 +1,4 @@
-import { getAgeLabelBand, getAgeLadderSegments } from '@/lib/age'
+import { getAgeLabelBand, getAgeLadderSegments, getHourLabelBand, getHourLadderSegments } from '@/lib/age'
 
 /**
  * The four-segment age ladder, shared across every screen that draws age
@@ -9,10 +9,16 @@ import { getAgeLabelBand, getAgeLadderSegments } from '@/lib/age'
  */
 export function AgeLadder({
   days,
+  hours,
   label,
   full = false,
 }: {
-  days: number
+  /** Omit when `hours` is given. */
+  days?: number
+  /** Screen 1c only (Brief 021 §2.2) — triage's own hours-scale clock,
+   *  same shared thresholds (src/lib/age.ts), same visual mechanic. Pass
+   *  exactly one of `days`/`hours`. */
+  hours?: number
   /** e.g. "7 days since last movement" — screen 6a's specific caption. */
   label: string
   /** Stretch the bar to the full width of its container (§3.3: "Inside
@@ -20,8 +26,8 @@ export function AgeLadder({
    *  band") — set by callers that render inside a card (screen 6b). */
   full?: boolean
 }) {
-  const segments = getAgeLadderSegments(days)
-  const labelBand = getAgeLabelBand(days)
+  const segments = hours !== undefined ? getHourLadderSegments(hours) : getAgeLadderSegments(days ?? 0)
+  const labelBand = hours !== undefined ? getHourLabelBand(hours) : getAgeLabelBand(days ?? 0)
 
   return (
     <div className={full ? 'age-ladder age-ladder--full' : 'age-ladder'}>
