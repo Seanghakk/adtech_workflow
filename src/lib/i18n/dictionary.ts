@@ -485,6 +485,69 @@ const en = {
   awaitingSoCommitmentBlockedNote: 'Commitment (MR/PO) stays blocked until this project has an SO number.',
   awaitingSoViewRecord: 'View SO record',
 
+  // Screen 6a's floor breakdown + QC recording (Brief 024). Sub-stage,
+  // drawing-type, and handover-deliverable labels are fixed CHECK-
+  // constraint vocabulary (migration 008), not lookup-table content, so
+  // they are hardcoded here rather than sourced from a table — unlike
+  // team codes and reason codes, which never go through this dictionary.
+  floorBreakdownExpand: 'Floor breakdown',
+  floorBreakdownCollapse: 'Hide floor breakdown',
+  floorBreakdownCalculated: 'Calculated',
+  floorBreakdownOverride: 'Override',
+  floorBreakdownOverrideActive: 'Overridden',
+  floorBreakdownOverrideCancel: 'Cancel override',
+  floorBreakdownAddFloor: 'Add floor',
+  floorBreakdownFloorLabel: 'Floor label',
+  floorBreakdownFloorLabelPlaceholder: 'e.g. B1, Roof, 12',
+  floorBreakdownAddFloorSubmit: 'Add',
+  floorBreakdownProjectLevelTitle: 'Project-level shop drawing',
+  floorBreakdownNoFloors: 'No floors added yet.',
+  floorBreakdownShopDrawingTitle: 'Shop drawing',
+  floorBreakdownInstallationTitle: 'Installation',
+  floorBreakdownTncTitle: 'TNC',
+  floorBreakdownHandoverTitle: 'Handover checklist',
+  floorBreakdownPicOnlyNote: 'Only this project’s PIC can change floor detail here.',
+  floorBreakdownExceptionsTitle: 'QC exceptions',
+  floorBreakdownExceptionsEmpty: 'No sub-stage is marked done without a passed inspection.',
+  floorBreakdownExceptionFlag: 'No passed inspection',
+  floorBreakdownRecordInspection: 'Record inspection',
+  floorBreakdownRecordInspectionCancel: 'Cancel',
+  floorBreakdownInspectionStatus: 'Result',
+  floorBreakdownInspectionNotes: 'Notes',
+  floorBreakdownInspectionNotesOptional: '(optional)',
+  floorBreakdownInspectionSave: 'Save inspection',
+  floorBreakdownInspectionQcOnlyNote: 'Only an active member of the QC team can record an inspection.',
+  floorBreakdownMaterialInspectionTitle: 'Material inspection',
+  floorBreakdownMaterialInspectionFloors: 'Floors this shipment serves',
+  floorBreakdownLastInspection: 'Last inspection',
+  floorBreakdownNoInspectionYet: 'No inspection recorded yet',
+
+  drawingTypeSchematic: 'System schematic',
+  drawingTypeTypicalSection: 'Section / typical drawing',
+  drawingTypeLayout: 'Layout drawing',
+  drawingTypeDetailConnection: 'Detail connection',
+
+  subStageFirstFix: 'First fix — cable containment',
+  subStageSecondFix: 'Second fix — cabling',
+  subStageThirdFix: 'Third fix — devices & head-end',
+  subStagePreCommissioning: 'Pre-commissioning',
+  subStageCommissioning: 'Commissioning',
+
+  handoverMaterialApproval: 'Material approval',
+  handoverFinalBomSpares: 'Final BOM and spare parts list',
+  handoverTcDocument: 'T&C document',
+  handoverAsBuiltDrawing: 'As-built drawing',
+  handoverTrainingOmManual: 'Training and O&M manual',
+  handoverWarrantyDocuments: 'Warranty documents',
+
+  statusNotStarted: 'Not started',
+  statusInProgress: 'In progress',
+  statusDone: 'Done',
+
+  inspectionStatusPass: 'Pass',
+  inspectionStatusFail: 'Fail',
+  inspectionStatusPending: 'Pending',
+
   // Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
   // Design Note Rev 3 §4.4. Runs its clock in HOURS, not days (§2.2) —
   // the one screen in the app that does not use the day ladder.
