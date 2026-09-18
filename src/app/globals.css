@@ -3819,3 +3819,120 @@ button {
   color: var(--text-muted);
   margin-top: var(--space-3);
 }
+.catalogue-item__pou-demo {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--ink);
+}
+
+/* -----------------------------------------------------------------------
+   Screen 3b — warning at point of use (Brief 027). 800px small-focused-
+   panel archetype. Amber for the warning card itself (this brief's own
+   §3 — "waiting/caution meaning, consistent with the rest of the app").
+   Radius 0, no shadows, flat and ruled. The successor's own name stays
+   ink, not red — Rev 3 reserves red for delay only, and a superseded
+   part number is not a schedule delay.
+----------------------------------------------------------------------- */
+.pou-warning {
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.pou-warning__demo-banner {
+  border: 1px dashed var(--border);
+  background: var(--bg);
+  padding: var(--space-3) var(--space-4);
+}
+.pou-warning__demo-label {
+  display: block;
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+.pou-warning__demo-note {
+  margin: 0;
+  font: 400 11px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.pou-warning__card {
+  border: 1.5px solid var(--warning);
+  background: var(--warning-tint-bg);
+  padding: var(--space-4) var(--space-5);
+}
+.pou-warning__badge {
+  display: inline-block;
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warning-tint-deep);
+  background: var(--surface);
+  border: 1px solid var(--warning);
+  padding: 4px 7px;
+  margin-bottom: var(--space-3);
+}
+.pou-warning__headline {
+  font: 600 15px/1.4 var(--font-body);
+  margin: 0 0 var(--space-4);
+}
+.pou-warning__successor {
+  font-weight: 700;
+  color: var(--ink);
+}
+.pou-warning__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+.pou-warning__action {
+  font: 700 12.5px/1 var(--font-body);
+  letter-spacing: 0.01em;
+}
+.pou-warning__action--primary,
+.pou-warning__action--outline {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+}
+.pou-warning__action--primary {
+  background: var(--navy);
+  color: #fff;
+  border: 1.5px solid var(--navy);
+}
+/* Equal visual weight to --primary (§2's own rule: "price it anyway" is
+   never styled as scary or lesser) — same padding, same border weight,
+   fill inverted rather than reduced. */
+.pou-warning__action--outline {
+  background: var(--surface);
+  color: var(--navy);
+  border: 1.5px solid var(--navy);
+}
+.pou-warning__action--plain {
+  color: var(--navy);
+  text-decoration: underline;
+}
+.pou-warning__microcopy {
+  margin: 0;
+  font: 400 11.5px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.pou-warning__staleness {
+  border-left: 3px solid var(--warning);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+}
+.pou-warning__staleness-badge {
+  display: block;
+  font: 700 9px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warning-tint-deep);
+  margin-bottom: var(--space-2);
+}
+.pou-warning__staleness-body {
+  margin: 0 0 var(--space-2);
+  font: 400 12px/1.4 var(--font-body);
+}
