@@ -140,6 +140,18 @@ export default async function ProjectBoardPage({
     stalled: t('boardBandStalledCaption'),
   }
 
+  // Screen 5b — 4a on a tablet (Brief 025 / README "5b · 4a on a
+  // tablet"): "a jump strip is pinned above the board so counts and
+  // overdue flags stay visible even when their lanes are off-screen."
+  // "Overdue" here reuses the exact same weight bands every card and
+  // lane on this app already keys off (getCardWeight) — late or stalled,
+  // never a second definition of lateness invented for this strip.
+  const laneIsOverdue = (lane: BoardLane): boolean =>
+    lane.projects.some((p) => {
+      const weight = getCardWeight(p.stallDays)
+      return weight === 'late' || weight === 'stalled'
+    })
+
   const laneCaption = (lane: BoardLane): string => {
     const oldest = oldestStallDays(lane)
     const oldestText = oldest === null ? '' : `${oldest}d ${t('boardOldest')}`
@@ -221,30 +233,51 @@ export default async function ProjectBoardPage({
       {scoped.length === 0 ? (
         <p className="empty-state">{restricted ? t('boardRestrictedEmpty') : t('boardEmpty')}</p>
       ) : (
-        <div className="board__lanes">
-          {lanes.map((lane) => (
-            <div key={lane.id} className="board-lane">
-              <div className="board-lane__head">
-                <div className="board-lane__title-row">
-                  <span className="board-lane__title">{laneTitle(lane)}</span>
-                  <span className="board-lane__count">{lane.projects.length}</span>
+        <>
+          {/* Screen 5b (Brief 025) — CSS-only, hidden above the tablet
+              breakpoint (see .board__jump-strip in globals.css). Sits
+              OUTSIDE .board__lanes' own scrolling container, in normal
+              document flow above it, so it never scrolls away with the
+              lanes — no sticky positioning needed for that. Plain
+              same-page anchor links, no client state, same pattern the
+              rest of this app already uses for scope/group tabs. */}
+          <div className="board__jump-strip" aria-label={t('boardJumpStripLabel')}>
+            {lanes.map((lane) => (
+              <a key={lane.id} href={`#lane-${lane.id}`} className="board__jump-chip">
+                <span className="board__jump-chip-title">{laneTitle(lane)}</span>
+                <span className="board__jump-chip-count">{lane.projects.length}</span>
+                {laneIsOverdue(lane) && (
+                  <span className="board__jump-chip-flag" title={t('boardJumpStripOverdue')} aria-hidden="true" />
+                )}
+              </a>
+            ))}
+          </div>
+
+          <div className="board__lanes">
+            {lanes.map((lane) => (
+              <div key={lane.id} id={`lane-${lane.id}`} className="board-lane">
+                <div className="board-lane__head">
+                  <div className="board-lane__title-row">
+                    <span className="board-lane__title">{laneTitle(lane)}</span>
+                    <span className="board-lane__count">{lane.projects.length}</span>
+                  </div>
+                  <div className="board-lane__caption">{laneCaption(lane)}</div>
                 </div>
-                <div className="board-lane__caption">{laneCaption(lane)}</div>
+                <div className="board-lane__body">
+                  {lane.projects.map((project) => (
+                    <ProjectBoardCard
+                      key={project.id}
+                      project={project}
+                      picLabel={picLabel(project.picId)}
+                      canAssignPic={canAssignPic}
+                      picMemberOptions={picMemberOptions}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="board-lane__body">
-                {lane.projects.map((project) => (
-                  <ProjectBoardCard
-                    key={project.id}
-                    project={project}
-                    picLabel={picLabel(project.picId)}
-                    canAssignPic={canAssignPic}
-                    picMemberOptions={picMemberOptions}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

@@ -950,7 +950,12 @@ button {
   /* One column per lane, however many there are (stream/PIC groupings
      vary in count; age-band is always exactly 4) — same 300px floor and
      sideways scroll as 6b's board (Brief 010 §5 / Brief 011 §2), not a
-     fixed repeat(4, ...) since this board's lane count isn't fixed. */
+     fixed repeat(4, ...) since this board's lane count isn't fixed. This
+     300px floor is also what makes Screen 5b's "lanes do not shrink to
+     fit" rule (Brief 025 / README "5b · 4a on a tablet") already true at
+     1024px width with NO further change here — 4 lanes at 300px already
+     exceeds a 1024px viewport's content width, so overflow-x below is
+     already doing 5b's job at every width, not only the tablet one. */
   grid-auto-flow: column;
   grid-auto-columns: minmax(300px, 1fr);
   border: 2px solid var(--rule-major);
@@ -962,6 +967,9 @@ button {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  /* Anchor target for .board__jump-chip below — keeps a jumped-to lane
+     from landing flush against the container edge. */
+  scroll-margin-left: var(--space-4);
 }
 .board-lane:last-child {
   border-right: none;
@@ -1058,6 +1066,64 @@ button {
   width: 100%;
   font: 500 11px/1.4 var(--font-body);
   color: var(--danger);
+}
+
+/* -----------------------------------------------------------------------
+   Screen 5b — 4a on a tablet (Brief 025). CSS-only breakpoint on 4a's
+   existing markup, no new route, no new data — see the board page's own
+   comment on .board__jump-strip and laneIsOverdue for what's built and
+   why. 1180px: comfortably above the README's 1024x768 landscape target
+   (so real 1024px hardware is inside the breakpoint, not sitting right
+   on its edge) while staying well under the 1300px desktop board, so
+   nothing here fires at ordinary desktop widths.
+----------------------------------------------------------------------- */
+.board__jump-strip {
+  display: none;
+}
+@media (max-width: 1180px) {
+  .board__jump-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  /* This screen's own "cards lose the third line of metadata" rule
+     (README, 5b) — counting the card's own rows top to bottom (SO/stream
+     meta, title, percent figures, PIC, age ladder), the percent row is
+     literally third. It is also the one row that is neither of the two
+     invariant marks (owner, age — Design Note §4.9), so it is the only
+     row this rule COULD safely drop without breaking them. Scoped to
+     .board specifically, not .exception-card generally, so 6b's own
+     board (out of scope for this brief) is unaffected at any width. */
+  .board .exception-card__figures {
+    display: none;
+  }
+}
+.board__jump-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  color: var(--text);
+}
+.board__jump-chip-title {
+  font: 700 10.5px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.board__jump-chip-count {
+  font: 700 12px/1 var(--font-heading);
+}
+.board__jump-chip-flag {
+  /* Square, not a dot — Design Note Rev 3 §4.9's "Radius 0" rule has no
+     stated exception for a small indicator, so this stays a square
+     rather than reaching for border-radius. */
+  width: 7px;
+  height: 7px;
+  background: var(--danger);
 }
 
 /* -----------------------------------------------------------------------
