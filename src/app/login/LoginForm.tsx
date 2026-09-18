@@ -17,12 +17,17 @@ const initialState: SignInState = { error: null }
  * globals.css's own "Login screen" section; see that file for the
  * reasoning behind each.
  */
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const { t } = useLanguage()
   const [state, action, pending] = useActionState(signIn, initialState)
 
   return (
     <form action={action} className="login-form">
+      {/* Brief 028 §3 — deep-link cold start: a Telegram button that
+          opens this app signed-out must land back on the intended page
+          after sign-in, not always on the board. Validated server-side
+          in actions.ts before ever being used as a redirect target. */}
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="login-form__header">
         <span className="brand-mark brand-mark--lg" aria-hidden="true">
           <span className="brand-mark__blocks">
