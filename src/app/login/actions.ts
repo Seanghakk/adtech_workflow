@@ -13,6 +13,21 @@ export interface SignInState {
   error: string | null
 }
 
+/**
+ * Brief 028 §3 — only a same-origin relative path is ever redirected to.
+ * `next` comes from a URL search param, i.e. attacker-controllable input
+ * (anyone can craft a link to this login page with any `next` value) —
+ * a bare "starts with /" check is not enough, since `//evil.com` and
+ * `/\evil.com` are both browser-interpreted as protocol-relative
+ * external URLs, not app-internal paths. Requiring exactly one leading
+ * slash and rejecting a second slash/backslash right after it closes
+ * that off.
+ */
+function safeNextPath(next: FormDataEntryValue | null): string | null {
+  const value = String(next ?? '')
+  return /^\/(?!\/|\\)/.test(value) ? value : null
+}
+
 export async function signIn(_prevState: SignInState, formData: FormData): Promise<SignInState> {
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
@@ -30,5 +45,5 @@ export async function signIn(_prevState: SignInState, formData: FormData): Promi
     return { error: 'Could not sign in with those details.' }
   }
 
-  redirect('/')
+  redirect(safeNextPath(formData.get('next')) ?? '/')
 }

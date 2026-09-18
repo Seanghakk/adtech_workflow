@@ -144,5 +144,9 @@ export async function closeRequest(
   }
 
   revalidatePath(`/requests/${requestId}`)
+  // Brief 028 — the phone status frame (screen 3c) reuses this same
+  // action via CloseRequestControl; without this the phone view could
+  // keep showing "not closed" after a successful close from there.
+  revalidatePath(`/requests/${requestId}/status`)
   return { error: null }
 }

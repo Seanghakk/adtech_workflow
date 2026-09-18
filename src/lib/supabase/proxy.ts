@@ -51,6 +51,13 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isPublicPath) {
     const loginUrl = new URL('/login', request.url)
+    // Brief 028 §3 — deep-link cold start: carry the original destination
+    // through login so a Telegram button opened signed-out still lands
+    // where it was pointed, not always on the board. pathname+search
+    // only, never request.url's own origin — login/actions.ts's
+    // safeNextPath() is the actual trust boundary, this is just what
+    // gets offered to it.
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
     return NextResponse.redirect(loginUrl)
   }
 

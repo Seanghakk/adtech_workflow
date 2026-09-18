@@ -3570,3 +3570,208 @@ button {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
+
+/* -----------------------------------------------------------------------
+   Screen 3c — phone, two frames (Brief 028). Its own archetype (README
+   "Phone — two jobs only"), NOT a scaled-down desktop screen — a narrow
+   intrinsic column, generous type, 44px+ hit targets, built fresh rather
+   than squeezed from 1e/2a's own markup. Radius 0, flat and ruled, same
+   two invariants (owner then age) as everywhere else in this app.
+----------------------------------------------------------------------- */
+.phone-status,
+.phone-approve {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+/* §4's own "hit targets 44px minimum" — CloseRequestControl reuses the
+   app-wide .btn class, whose default padding falls short of that on its
+   own; bumped here rather than changed globally, since every OTHER
+   caller of .btn sits at a desktop control size that's correct as is. */
+.phone-status .btn,
+.phone-approve .btn {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  font-size: 15px;
+}
+
+.phone-status__kicker,
+.phone-approve__kicker {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.phone-status__closed-badge {
+  align-self: flex-start;
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border: 1.5px solid var(--ink);
+}
+.phone-status__body,
+.phone-approve__title {
+  font: 700 19px/1.35 var(--font-heading);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.phone-status__owner-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1.5px solid var(--ink);
+  background: var(--surface);
+}
+.phone-status__owner-label {
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.phone-status__owner-name {
+  font: 700 22px/1.2 var(--font-heading);
+}
+.phone-status__owner-team {
+  font: 400 13px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.phone-status__clock {
+  /* AgeLadder's own segments read small by default (20x9px) — scaled up
+     here so the figure resolves at arm's length, same reasoning the
+     README gives for 6c's own large-figure treatment. */
+  font-size: 17px;
+}
+.phone-status__clock .age-ladder__label {
+  font-size: 17px;
+  font-weight: 800;
+}
+.phone-status__total-age {
+  font: 600 13px/1 var(--font-body);
+  color: var(--text-muted);
+}
+
+.phone-status__panel {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-4);
+}
+.phone-status__panel-title {
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+.phone-status__empty {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.phone-status__legs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.phone-status__leg {
+  font: 400 14px/1.4 var(--font-body);
+}
+.phone-status__leg-to {
+  font-weight: 600;
+}
+
+.phone-status__actions,
+.phone-approve__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--ink);
+}
+.phone-status__nudge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.phone-status__nudge-note,
+.phone-approve__blocked-note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin: 0;
+}
+.phone-status__full-detail-link,
+.phone-approve__full-detail-link {
+  align-self: flex-start;
+  font: 600 13px/1 var(--font-body);
+  color: var(--navy);
+}
+
+/* Inert action elements — not real controls yet on either frame (see
+   each page's own comment for why). Same visible size/weight as a real
+   .btn would carry, deliberately: what's missing is the write path
+   behind them, not their own legibility. */
+.phone-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  font: 700 15px/1 var(--font-body);
+  text-align: center;
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  background: var(--bg);
+}
+.phone-btn--primary {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+.phone-btn--plain {
+  border: none;
+  background: none;
+  text-decoration: underline;
+  min-height: auto;
+  padding: var(--space-2) 0;
+}
+.phone-btn--disabled {
+  cursor: default;
+}
+
+.phone-approve__context {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.phone-approve__context-line {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.phone-approve__approved-badge {
+  align-self: flex-start;
+  font: 700 12px/1 var(--font-body);
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+}
+.phone-approve__approved-meta {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.phone-approve__figures {
+  display: flex;
+  gap: var(--space-6);
+}
+.phone-approve__figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.phone-approve__figure-label {
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.phone-approve__figure-value {
+  font: 800 24px/1 var(--font-heading);
+}

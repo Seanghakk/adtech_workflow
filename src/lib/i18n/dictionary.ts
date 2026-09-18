@@ -509,6 +509,34 @@ const en = {
   dependencyChainWriteNote:
     'Read-only. Setting day allowances, recording start/end dates, and marking links complete are not available on this screen yet.',
 
+  // Screen 3c — phone, two frames (Brief 028). Its own archetype, NOT a
+  // shrunken desktop screen (§2's own instruction). See each route's own
+  // comment for the real blockers found and how each was handled.
+  phoneStatusKicker: 'Status',
+  phoneStatusHeldByLabel: 'Held by',
+  phoneStatusInStateLabel: 'in this state',
+  phoneStatusTotalAgeLabel: 'total age',
+  phoneStatusRecentActivityTitle: 'Recent activity',
+  phoneStatusNoLegs: 'No handoffs yet — still with the original owner.',
+  phoneStatusNudgeAction: 'Nudge',
+  phoneStatusNudgeUnavailableNote:
+    "Sending a Telegram nudge isn't wired up in this app yet — see Brief 029's Result.",
+  phoneStatusOpenFullDetail: 'Open full detail',
+
+  phoneApproveKicker: 'Approval needed',
+  phoneApproveOrdinalPrefix: 'Variation',
+  phoneApproveRaisedBy: 'raised by',
+  phoneApproveValueLabel: 'Value',
+  phoneApproveWaitingLabel: 'waiting',
+  phoneApproveAlreadyApproved: 'Already approved',
+  phoneApproveApprovedOn: 'Approved',
+  phoneApproveAction: 'Approve',
+  phoneApproveDeclineAction: 'Decline',
+  phoneApproveAskQuestionAction: 'Ask a question',
+  phoneApproveBlockedNote:
+    "These actions aren't available yet. There is no write permission in the database for approving a variation, no decline state is modelled, and asking a question has no reply mechanism — flagged for a future brief rather than built on a guess.",
+  phoneApproveOpenFullDetail: 'Open SO record',
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',
