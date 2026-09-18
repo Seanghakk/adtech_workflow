@@ -557,6 +557,27 @@ const en = {
   catalogueItemGapNote:
     "This screen shows every field the database actually holds for this item. The mockup's origin/distributor and HS-code fields, the successor's price and lead time, and a \"where it's referenced\" list are not backed by any column yet and are left out rather than invented.",
 
+  // Screen 3b — warning at point of use (Brief 027). A reusable,
+  // standalone component (src/components/WarningAtPointOfUse.tsx) — the
+  // real host (a tender line being priced) is genuinely blocked on
+  // process discovery (§1), so these keys are demonstrated on 3a's own
+  // page rather than on an invented tender screen. See that component's
+  // own comment.
+  warningAtUseBadge: 'Status warning',
+  warningAtUseReplacedBy: 'Replaced by',
+  warningAtUseSwapAction: 'Swap to',
+  warningAtUsePriceAnyway: 'Price it anyway',
+  warningAtUseAskProcurement: 'Ask Procurement',
+  warningAtUseMicrocopy:
+    'Choosing price it anyway records the decision on the tender line, so the reason exists later. It does not ask you to justify it now.',
+  warningAtUseStalenessBadge: 'Staleness',
+  warningAtUseStalenessAgo: 'days ago',
+  warningAtUseStalenessBody: 'Verify the price and lead time before submitting.',
+  warningAtUseAskProcurementVerify: 'Ask Procurement to verify',
+  warningAtUseDemoLabel: 'Preview — how this warning appears at the point of use',
+  warningAtUseDemoNote:
+    'This is a demonstration, not a live warning. The real trigger point — pricing a tender line — does not exist in this app yet; tender internals remain blocked on process discovery. The actions below are inert here, ready to wire up once a real host exists.',
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',
