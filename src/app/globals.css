@@ -1,3 +1,27 @@
+
+/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Globals · CSS
 /**
  * Design tokens + semantic classes.
  *
@@ -23,7 +47,7 @@
  * hardcoded hex (Design Note Rev 3 §7's one hard requirement). Keep it
  * that way.
  */
-
+ 
 :root {
   /* ---- Ink, ground, surface — documented (Handoff v1 §3) ---- */
   --ink: #201e1d;
@@ -33,19 +57,19 @@
      not addressed by any doc; kept from the CMMS round since "no hover
      lift" (Handoff v1 §1) bans the transform, not a background change. */
   --surface-hover: #eef1f4;
-
+ 
   /* Back-compat aliases — most of this file's ~150 existing declarations
      already read --text/--bg by name; aliasing rather than renaming every
      call site keeps this round's diff to the values that actually
      changed, not a cosmetic rename. */
   --text: var(--ink);
   --bg: var(--ground);
-
+ 
   /* INFERRED — no doc gives muted text a literal hex; it was always ink
      at reduced opacity relative to full-strength ink, so that relation is
      kept rather than reusing the CMMS's own unrelated --text-muted hex. */
   --text-muted: rgba(32, 30, 29, 0.6);
-
+ 
   /* ---- Rule weights — documented (this brief §3.1 / Handoff v1 §5):
      "2px at 40% ink between major sections, 1px at 25% ink between
      rows." --border is this file's existing generic 1px divider/outline
@@ -60,7 +84,7 @@
      documented at 16% ink (§3.2), a third, lighter opacity than either
      rule weight above; kept as its own token rather than reused. */
   --card-hairline: rgba(32, 30, 29, 0.16);
-
+ 
   /* ---- Semantic colour — one job each, documented (Handoff v1 §3) ---- */
   --navy: #0e5c86; /* ownership, the SO spine, primary action, links, active nav */
   --danger: #c62430; /* delay only — never a button, never brand, never general emphasis */
@@ -71,14 +95,14 @@
      the one call site (a "movement clears the stall" flag) moves to navy,
      the same "healthy state reads blue, not green" rule the docs state
      for empty states. */
-
+ 
   /* INFERRED — hover/focus shades for navy. Neither doc specifies a
      hover-darken or a focus-ring colour; both are carried forward
      unchanged from the CMMS round rather than invented fresh, since nothing
      here argues for a different relationship to --navy. */
   --navy-deep: #0a3f5c;
   --blue-glow: rgba(14, 92, 134, 0.15);
-
+ 
   /* Tint triads — fill / border / deep-text — documented (this brief §2 /
      Handoff v1 §3, §4). Used for badges/tags (fill+border, 1px, radius 0
      now — "square tags with 1px tinted borders", Handoff v1 §1) and for
@@ -93,7 +117,7 @@
   --danger-tint-border: #e3a7a2;
   --danger-tint-deep: #8e1620;
   --grey: #d7d3d3; /* documented — unreached age-ladder segments */
-
+ 
   /* Neutral tint (owner-mark, a plain non-semantic badge) — JUDGMENT CALL:
      no doc defines a neutral triad, so this reuses two values documented
      for other purposes rather than inventing new ones: the admin
@@ -101,7 +125,7 @@
      grey as the border. */
   --neutral-tint-bg: #f7f6f6;
   --neutral-tint-border: #d7d3d3;
-
+ 
   /* Age-ladder segment fill colours, one per band — documented (Handoff
      v1 §4, "The age ladder, redrawn"). Bands 2-4 reuse the semantic/deep
      tokens above verbatim (same colours, same meaning); band 1 is its own
@@ -110,12 +134,12 @@
   --age-band-2: var(--warning); /* days 6-10 */
   --age-band-3: var(--danger); /* days 11-15 */
   --age-band-4: var(--danger-tint-deep); /* days 16+ */
-
+ 
   /* ---- Shape — documented: "Radius 0 everywhere. No shadows anywhere
      in this app." One token, not a retired sm/md/lg/pill scale aliased
      alongside it — every border-radius in this file reads this. ---- */
   --radius: 0;
-
+ 
   /* ---- Type — unchanged from the CMMS round (this brief §3.1: "KEEP
      Poppins body and Almarai headings. DO NOT adopt Archivo. This was
      decided" — Design Note Rev 3 §2.1). KM mode keeps Noto Sans Khmer. ---- */
@@ -124,7 +148,7 @@
   --font-heading: var(--font-almarai), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Arial, sans-serif;
   --font-khmer: var(--font-noto-khmer), var(--font-body), Arial, sans-serif;
-
+ 
   /* Spacing — unchanged. Not addressed by this round's source docs; the
      conventional scale adopted in the CMMS round stands. */
   --space-1: 4px;
@@ -136,7 +160,7 @@
   --space-7: 32px;
   --space-8: 40px;
   --space-9: 48px;
-
+ 
   /* ---- Administration archetype — documented (Token Spec v3 §2), not
      yet consumed by any screen: login and user management aren't built
      this round (Design Note Rev 3 §7 sequences them after this restyle).
@@ -146,17 +170,17 @@
   --wf-control-h-lg: 48px;
   --wf-row-inactive: #f7f6f6;
 }
-
+ 
 * {
   box-sizing: border-box;
 }
-
+ 
 html,
 body {
   padding: 0;
   margin: 0;
 }
-
+ 
 body {
   background: var(--bg);
   color: var(--text);
@@ -166,11 +190,11 @@ body {
   font-size: 15px;
   line-height: 1.6;
 }
-
+ 
 :lang(km) body {
   font-family: var(--font-khmer);
 }
-
+ 
 h1,
 h2,
 h3 {
@@ -179,7 +203,7 @@ h3 {
   letter-spacing: 0.2px;
   margin: 0;
 }
-
+ 
 a {
   color: var(--navy);
   transition: color 0.15s ease;
@@ -187,18 +211,18 @@ a {
 a:hover {
   color: var(--navy-deep);
 }
-
+ 
 :focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--blue-glow);
   border-radius: var(--radius);
 }
-
+ 
 button {
   font-family: inherit;
   cursor: pointer;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Brand box (login screen only — see .brand-mark below for the app
    header). Out of scope this round: the login screen belongs to the
@@ -234,7 +258,7 @@ button {
 .brand-box--compact {
   padding: var(--space-2) var(--space-3);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Brand mark (this brief §3.5) — the app header's mark, replacing
    .brand-box there. "Two flush rectangles, blue then ink, no gap and no
@@ -293,7 +317,7 @@ button {
 .brand-mark--lg .brand-mark__app {
   font-size: 28px;
 }
-
+ 
 /* -----------------------------------------------------------------------
    App shell / nav
    ----------------------------------------------------------------------- */
@@ -361,7 +385,7 @@ button {
   width: 100%;
   margin: 0 auto;
 }
-
+ 
 .lang-toggle {
   display: flex;
   border: 1px solid var(--border);
@@ -383,7 +407,7 @@ button {
   background: var(--navy);
   color: #fff;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Buttons
    ----------------------------------------------------------------------- */
@@ -431,7 +455,7 @@ button {
   background: var(--surface-hover);
   color: var(--text);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Cards
    ----------------------------------------------------------------------- */
@@ -442,14 +466,14 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Age ladder — this brief §3.3 / Handoff v1 §4, "The age ladder,
    redrawn": four segments at 20x9px with 2px gaps, "substantially larger
    than the current thin strip, so it resolves at 1024px and at room
    distance." Unreached segments render --grey, NEVER empty/transparent —
    bar LENGTH must never be the signal, colour always is.
-
+ 
    Shared across "/" and "/sales" too (the interim pre-4a project lists),
    not just 6a/6b/6c — it is the one component every age-bearing screen
    already goes through, so this round's palette/geometry change reaches
@@ -517,7 +541,7 @@ button {
   color: var(--age-band-4);
   font-weight: 600;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Shared identity chrome — SO number, stream tag
    ----------------------------------------------------------------------- */
@@ -543,7 +567,7 @@ button {
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
 }
-
+ 
 /* -----------------------------------------------------------------------
    PIC / owner identity marks — screen 6a's header chrome. Fable Brief 003
    §4.2: the PIC (the field that actually governs write permission since
@@ -602,7 +626,7 @@ button {
   border: 1px solid var(--neutral-tint-border);
   display: inline-block;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Login screen — REBUILT to the administration archetype, Brief 010 §2
    (Design Note Rev 3 §5, Token Spec v3 §2). This screen predated Rev 3
@@ -667,7 +691,7 @@ button {
   font: 400 13px/1.4 var(--font-body);
   color: var(--text-muted);
 }
-
+ 
 .field {
   display: flex;
   flex-direction: column;
@@ -719,7 +743,7 @@ button {
   height: var(--wf-control-h-lg);
   justify-content: center;
 }
-
+ 
 /* -----------------------------------------------------------------------
    No-access screen
    ----------------------------------------------------------------------- */
@@ -744,7 +768,7 @@ button {
   margin: 0;
   text-wrap: pretty;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Empty states — a hard requirement, not polish (Brief 002 §5.4)
    ----------------------------------------------------------------------- */
@@ -790,7 +814,7 @@ button {
 .empty-state--caveat .empty-state__figure {
   color: var(--warning);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Dashboard / project list — the interim landing route this class pair
    was built for is gone as of Fable Brief 009 (screen 4a now owns "/",
@@ -856,7 +880,7 @@ button {
 .project-list__percent-sign {
   font-size: 15px;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 4a — "one board, three scopes" (Fable Brief 009 + Amendment A).
    Board archetype, Rev 3 §4.1 — same visual system as 6b's exception
@@ -892,7 +916,7 @@ button {
   font: 800 28px/1.1 var(--font-heading);
   letter-spacing: 0.2px;
 }
-
+ 
 .board__controls {
   display: flex;
   align-items: center;
@@ -932,7 +956,7 @@ button {
   background: var(--navy);
   color: #fff;
 }
-
+ 
 /* §4 — the visibility problem. A notice, not an empty-state variant: it
    applies whether the scope returns zero projects or a hundred, since a
    restricted member's "Everything" is never literally everything. */
@@ -944,7 +968,7 @@ button {
   margin-bottom: var(--space-6);
   font: 500 13px/1.4 var(--font-body);
 }
-
+ 
 .board__lanes {
   display: grid;
   /* One column per lane, however many there are (stream/PIC groupings
@@ -1009,7 +1033,7 @@ button {
   gap: var(--space-3);
   flex: 1;
 }
-
+ 
 /* The PIC badge's unassigned state (Brief 009 §5 — "visible on the board
    and visibly marked as such, not hidden and not silently rendered as
    owned by nobody"). Reuses .exception-card__pic's box model, amber
@@ -1021,7 +1045,7 @@ button {
   color: var(--warning-tint-deep);
   border-color: var(--warning-tint-border);
 }
-
+ 
 /* Brief 012 §3 — the assign/reassign PIC control, managers/admins only.
    Deliberately plain (no card weight, no age colour) even though it sits
    inside a heat-mapped board card — this is an administration action
@@ -1067,7 +1091,7 @@ button {
   font: 500 11px/1.4 var(--font-body);
   color: var(--danger);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 5b — 4a on a tablet (Brief 025). CSS-only breakpoint on 4a's
    existing markup, no new route, no new data — see the board page's own
@@ -1125,7 +1149,7 @@ button {
   height: 7px;
   background: var(--danger);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 6a — update-progress card
    ----------------------------------------------------------------------- */
@@ -1164,7 +1188,7 @@ button {
   color: var(--text-muted);
   margin-top: var(--space-2);
 }
-
+ 
 .update-card__figures {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -1248,14 +1272,14 @@ button {
 .update-card__movement-flag--flat {
   color: var(--ink);
 }
-
+ 
 .update-card__stall-row {
   display: flex;
   align-items: center;
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border);
 }
-
+ 
 .update-card__reason {
   padding: var(--space-4) var(--space-6);
   /* Documented directly (Handoff v1 §8, "Forms 720px"): "2px rule above
@@ -1285,7 +1309,7 @@ button {
   color: var(--text-muted);
   border: 1px solid var(--neutral-tint-border);
 }
-
+ 
 .reason-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1327,7 +1351,7 @@ button {
 .reason-option--selected .reason-option__label {
   font-weight: 700;
 }
-
+ 
 .update-card__footer {
   display: flex;
   align-items: center;
@@ -1369,7 +1393,7 @@ button {
   font: 500 13px/1.4 var(--font-body);
   color: var(--danger);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Sales monitoring (ADTECH_WF_Brief_003_Sales_Roles) — reuses .dashboard,
    .project-list and .empty-state from the "/" list above; only the
@@ -1428,7 +1452,7 @@ button {
   font: 500 12px/1.4 var(--font-body);
   color: var(--danger);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 6b — reviewer exception board (Fable Brief 002 §2). Card weight
    reuses getCardWeight() (src/lib/age.ts) — 'plain' | 'elevated' | 'severe'
@@ -1476,7 +1500,7 @@ button {
   color: var(--text-muted);
   margin-top: var(--space-1);
 }
-
+ 
 .exception-board__banner {
   border: 1.5px solid var(--warning);
   border-radius: var(--radius);
@@ -1511,7 +1535,7 @@ button {
   flex-direction: column;
   gap: var(--space-3);
 }
-
+ 
 .exception-board__groups {
   display: grid;
   /* Brief 010 §5 — FIX: was repeat(4, 1fr) with overflow: hidden and no
@@ -1598,7 +1622,7 @@ button {
   gap: var(--space-3);
   flex: 1;
 }
-
+ 
 /* Card weight — Visual Round Restyle §3.2 / Design Note Rev 3 §2.3, the
    one logic-adjacent change in an otherwise visual round: four bands,
    collapsed onto the same thresholds the age ladder already uses (see
@@ -1709,7 +1733,7 @@ button {
   font-weight: 700;
   color: var(--text);
 }
-
+ 
 .pic-breach-card {
   border: 1px solid var(--warning);
   border-radius: var(--radius);
@@ -1803,7 +1827,7 @@ button {
   font: 400 12px/1.35 var(--font-body);
   color: var(--text-muted);
 }
-
+ 
 .exception-board__footnote {
   padding: var(--space-4) 0;
   border-top: 1px solid var(--border);
@@ -1813,7 +1837,7 @@ button {
   max-width: 820px;
   text-wrap: pretty;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 6c — load, per person and per stream (Fable Brief 002 §3).
    ----------------------------------------------------------------------- */
@@ -1843,7 +1867,7 @@ button {
   color: var(--text-muted);
   margin-left: auto;
 }
-
+ 
 .load-board__panels {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1884,7 +1908,7 @@ button {
   max-width: 520px;
   text-wrap: pretty;
 }
-
+ 
 .load-bars {
   display: flex;
   flex-direction: column;
@@ -1963,7 +1987,7 @@ button {
   font: 400 12px/1.3 var(--font-body);
   color: var(--text-muted);
 }
-
+ 
 .stream-chart {
   display: flex;
   align-items: flex-end;
@@ -2036,7 +2060,7 @@ button {
   margin-top: var(--space-2);
   max-width: 150px;
 }
-
+ 
 /* -----------------------------------------------------------------------
    User management — Brief 012 §2 / Design Note Rev 3 §6, Token Spec v3
    §2. THE ADMINISTRATION ARCHETYPE: a table, not cards; 1px rules between
@@ -2065,7 +2089,7 @@ button {
   font: 800 28px/1.1 var(--font-heading);
   letter-spacing: 0.2px;
 }
-
+ 
 /* §2.4 / Token Spec v3 §2 — "a blue field with a count... the one admin
    element where an empty state is genuinely good news." Reuses
    .empty-state--result's own visual language (navy field, large numeral)
@@ -2151,7 +2175,7 @@ button {
   font: 500 12px/1.4 var(--font-body);
   color: var(--danger);
 }
-
+ 
 /* §2.2/§6.1 — the member table itself. 1px rules between rows, 2px above
    the header. */
 .wf-admin-table {
@@ -2287,7 +2311,7 @@ button {
   font: 500 12px/1.4 var(--font-body);
   color: var(--danger);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 1a — post a request (Brief 015). Reuses .update-card for the
    720px card shell, and .reason-grid/.reason-option (defined above, for
@@ -2370,7 +2394,7 @@ button {
   cursor: pointer;
   padding: 0;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Lookup Table Admin (Brief 017). Reuses .wf-admin / .wf-admin-table /
    .wf-admin-row--inactive / .wf-admin-row__reactivate / .wf-admin-table__
@@ -2449,7 +2473,7 @@ button {
   flex-wrap: wrap;
   gap: var(--space-4);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 2a — SO record (Brief 018 §2). Record/detail archetype, Design
    Note Rev 3 §4.3: most information per screen, so the rule hierarchy
@@ -2518,7 +2542,7 @@ button {
   font: 400 11px/1 var(--font-body);
   color: var(--text-muted);
 }
-
+ 
 .so-record__section-title {
   font: 800 16px/1 var(--font-heading);
   letter-spacing: -0.02em;
@@ -2550,7 +2574,7 @@ button {
 .so-record__stage--upcoming {
   color: var(--text-muted);
 }
-
+ 
 .so-record__variations {
   margin-top: var(--space-4);
 }
@@ -2654,7 +2678,7 @@ button {
   background: var(--warning);
   color: #fff;
 }
-
+ 
 .so-record__panels {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2708,7 +2732,7 @@ button {
 .so-record__panel-row-age--danger {
   color: var(--danger);
 }
-
+ 
 /* Board card title, now a link to its SO record (Brief 018) — kept ink,
    not navy, so it does not compete with the PIC badge's own navy mark;
    underline on hover is the only affordance that it is clickable. */
@@ -2721,7 +2745,7 @@ button {
   color: var(--navy);
   text-decoration: underline;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 2b — Awaiting SO (Brief 018 §3). Small focused panel archetype,
    Design Note Rev 3 §4.4, built as a queue (§3.1) — cards reuse the
@@ -2783,7 +2807,7 @@ button {
   font: 600 12px/1 var(--font-body);
   color: var(--navy);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 2c — procurement line (Brief 019). Record/detail archetype,
    Design Note Rev 3 §4.3, 1300px, same family as .so-record. Two bands
@@ -2864,7 +2888,7 @@ button {
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
-
+ 
 .procurement-line-card {
   background: var(--surface);
   border: 1px solid var(--card-hairline);
@@ -2966,7 +2990,7 @@ button {
   );
   border: 1px solid var(--warning-tint-border);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 2d — dependency chain (Brief 023). Record/detail archetype,
    Design Note Rev 3 §4.3, same family as .procurement-line-card: radius
@@ -3091,7 +3115,7 @@ button {
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
-
+ 
 .dependency-link-card {
   background: var(--surface);
   border: 1px solid var(--card-hairline);
@@ -3178,7 +3202,7 @@ button {
 .dependency-link-card__date-value {
   font: 600 11px/1 var(--font-body);
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 6a's floor breakdown + QC recording (Brief 024). Flat and
    ruled, same family as .procurement-line-card — radius 0, no shadows,
@@ -3195,7 +3219,7 @@ button {
   flex-direction: column;
   gap: var(--space-3);
 }
-
+ 
 .floor-breakdown {
   margin-top: var(--space-4);
 }
@@ -3394,7 +3418,7 @@ button {
   color: var(--danger);
   flex-basis: 100%;
 }
-
+ 
 /* -----------------------------------------------------------------------
    Screen 1e — Request Detail (Brief 021 §3). Record and detail archetype,
    Design Note Rev 3 §4.3 — same shell width and panel shape as .so-record
@@ -3570,8 +3594,255 @@ button {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
-
+ 
 /* -----------------------------------------------------------------------
+   Catalogue index (Brief 026) — plain table, not one of the 18 named
+   screens; exists only so 3a is reachable. No age ladder, no card
+   weight — inventory rows, not worked items.
+----------------------------------------------------------------------- */
+.catalogue-index {
+  max-width: 1100px;
+}
+.catalogue-index__header {
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--rule-major);
+  margin-bottom: var(--space-6);
+}
+.catalogue-index__kicker {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.catalogue-index__title {
+  margin: var(--space-2) 0 0;
+  font: 800 28px/1.1 var(--font-heading);
+  letter-spacing: 0.2px;
+}
+.catalogue-index-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid var(--rule-major);
+}
+.catalogue-index-table th {
+  text-align: left;
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.catalogue-index-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font: 400 14px/1.4 var(--font-body);
+  vertical-align: middle;
+}
+.catalogue-index-table__link {
+  font: 600 14px/1.4 var(--font-body);
+  color: var(--navy);
+}
+ 
+/* -----------------------------------------------------------------------
+   Screen 3a — catalogue item (Brief 026). Small-focused-panel archetype,
+   Design Note Rev 3 §4.4, 700px. Radius 0, no shadows, --surface panels,
+   1px hairlines. No age ladder anywhere on this screen (§3's own
+   instruction) — see the page's own comment for why the active
+   lifecycle step is ink, not the mockup's amber.
+----------------------------------------------------------------------- */
+.catalogue-item {
+  max-width: 700px;
+}
+.catalogue-item__header {
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: var(--space-5);
+}
+.catalogue-item__kicker {
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 5px 7px;
+  border: 1.5px solid var(--ink);
+  display: inline-block;
+  margin-bottom: var(--space-3);
+}
+.catalogue-item__title {
+  font: 800 26px/1.1 var(--font-heading);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+.catalogue-item__description {
+  font: 400 14px/1.4 var(--font-body);
+  margin-bottom: var(--space-2);
+}
+.catalogue-item__manufacturer {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.catalogue-item__manufacturer-label {
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.catalogue-item__back-link {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font: 600 12px/1 var(--font-body);
+  color: var(--navy);
+}
+ 
+.catalogue-item__lifecycle-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-5);
+}
+.catalogue-item__lifecycle-step {
+  padding: var(--space-3) var(--space-2);
+  text-align: center;
+  font: 600 11px/1.3 var(--font-body);
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+.catalogue-item__lifecycle-step:last-child {
+  border-right: none;
+}
+.catalogue-item__lifecycle-step--active {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  border-top: 3px solid var(--ink);
+  padding-top: calc(var(--space-3) - 2px);
+}
+ 
+.catalogue-item__reason-block {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.catalogue-item__reason-label {
+  font: 600 9.5px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.catalogue-item__reason-meta {
+  display: block;
+  margin-top: var(--space-1);
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.catalogue-item__reason-text {
+  margin-top: var(--space-2);
+  font: 400 14px/1.5 var(--font-body);
+}
+.catalogue-item__reason-text--empty {
+  color: var(--text-muted);
+}
+ 
+.catalogue-item__panel {
+  margin-bottom: var(--space-5);
+}
+.catalogue-item__panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font: 600 9.5px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.catalogue-item__panel-count {
+  font: 700 11px/1 var(--font-body);
+  color: var(--text);
+}
+.catalogue-item__successor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--card-hairline);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+  text-decoration: none;
+}
+.catalogue-item__successor-part {
+  font: 700 14px/1.3 var(--font-body);
+  color: var(--navy);
+}
+.catalogue-item__successor-status {
+  font: 600 11px/1 var(--font-body);
+  color: var(--text-muted);
+}
+.catalogue-item__verified {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  border: 1px solid var(--card-hairline);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+}
+.catalogue-item__verified-date {
+  font: 700 13px/1.3 var(--font-body);
+}
+.catalogue-item__verified-by {
+  font: 400 12px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.catalogue-item__staleness {
+  margin-left: auto;
+  font: 700 12px/1 var(--font-body);
+  color: var(--warning-tint-deep);
+  background: var(--warning-tint-bg);
+  border: 1px solid var(--warning-tint-border);
+  padding: 4px 8px;
+}
+ 
+.catalogue-item__history-list {
+  display: flex;
+  flex-direction: column;
+}
+.catalogue-item__history-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font: 400 12.5px/1.4 var(--font-body);
+}
+.catalogue-item__history-row:last-child {
+  border-bottom: none;
+}
+.catalogue-item__history-step {
+  flex: 1;
+  font-weight: 600;
+}
+.catalogue-item__history-date {
+  color: var(--text-muted);
+}
+.catalogue-item__history-by {
+  color: var(--text-muted);
+  min-width: 100px;
+  text-align: right;
+}
+ 
+.catalogue-item__gap-note {
+  font: 400 11px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.catalogue-item__write-note {
+  font: 400 11px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin-top: var(--space-3);
+}
    Screen 3c — phone, two frames (Brief 028). Its own archetype (README
    "Phone — two jobs only"), NOT a scaled-down desktop screen — a narrow
    intrinsic column, generous type, 44px+ hit targets, built fresh rather
@@ -3595,7 +3866,7 @@ button {
   padding: var(--space-3) var(--space-5);
   font-size: 15px;
 }
-
+ 
 .phone-status__kicker,
 .phone-approve__kicker {
   font: 700 11px/1 var(--font-body);
@@ -3617,7 +3888,7 @@ button {
   letter-spacing: -0.01em;
   margin: 0;
 }
-
+ 
 .phone-status__owner-block {
   display: flex;
   flex-direction: column;
@@ -3653,7 +3924,7 @@ button {
   font: 600 13px/1 var(--font-body);
   color: var(--text-muted);
 }
-
+ 
 .phone-status__panel {
   border-top: 1px solid var(--border);
   padding-top: var(--space-4);
@@ -3680,7 +3951,7 @@ button {
 .phone-status__leg-to {
   font-weight: 600;
 }
-
+ 
 .phone-status__actions,
 .phone-approve__actions {
   display: flex;
@@ -3706,7 +3977,7 @@ button {
   font: 600 13px/1 var(--font-body);
   color: var(--navy);
 }
-
+ 
 /* Inert action elements — not real controls yet on either frame (see
    each page's own comment for why). Same visible size/weight as a real
    .btn would carry, deliberately: what's missing is the write path
@@ -3737,7 +4008,7 @@ button {
 .phone-btn--disabled {
   cursor: default;
 }
-
+ 
 .phone-approve__context {
   display: flex;
   flex-direction: column;
@@ -3775,3 +4046,4 @@ button {
 .phone-approve__figure-value {
   font: 800 24px/1 var(--font-heading);
 }
+ 

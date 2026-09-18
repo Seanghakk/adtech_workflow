@@ -70,6 +70,9 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
             narrows which rows a sales-restricted member sees, so no
             extra role gate is layered on top here. */}
         <Link href="/awaiting-so">{t('navAwaitingSo')}</Link>
+        {/* Brief 026 §3 — catalogue_items_select is plain is_member(),
+            same unconditional-access reasoning as the two links above. */}
+        <Link href="/catalogue">{t('navCatalogue')}</Link>
       </nav>
       {isSalesTeamMember(member) && (
         <nav className="app-header__nav">
