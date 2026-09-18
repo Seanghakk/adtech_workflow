@@ -279,6 +279,8 @@ const en = {
   // same 720px/one-decision-per-block shape as 6a (Design Note Rev 3
   // §4.2). Reached from the header nav by any active member (§4).
   navRequests: 'Post a request',
+  // Screen 1c — Triage (Brief 021 §2). Any active member (§1.1).
+  navTriage: 'Triage',
 
   requestKicker: 'New request',
   requestTitle: 'Post a request',
@@ -545,6 +547,44 @@ const en = {
   inspectionStatusPass: 'Pass',
   inspectionStatusFail: 'Fail',
   inspectionStatusPending: 'Pending',
+
+  // Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
+  // Design Note Rev 3 §4.4. Runs its clock in HOURS, not days (§2.2) —
+  // the one screen in the app that does not use the day ladder.
+  triageKicker: 'The daily request loop',
+  triageTitle: 'Triage',
+  triageEmptyFact: 'Nothing is waiting on a team — everything posted has been routed.',
+  triageHoursSuffix: 'h',
+  triageSinceOpened: 'since posted',
+  triageRouteChoose: 'Choose a team',
+  triageRoute: 'Route',
+  triageRoutePending: 'Routing…',
+
+  // Screen 1e — Request Detail (Brief 021 §3). Record/detail archetype,
+  // Design Note Rev 3 §4.3. Two clocks that disagree on purpose (§3.1);
+  // the handoff history is the point of the screen (§3.2); the approval
+  // chain stays amber-hatched (§3.3, workflow.approval_steps is empty by
+  // design pending stakeholder discovery).
+  requestDetailKicker: 'Request',
+  requestDetailClosedBadge: 'Closed',
+  requestDetailUnsureBadge: "Not sure — awaiting triage",
+  requestDetailRequestedBy: 'Requested by',
+  requestDetailOwnerLabel: 'Current owner',
+  requestDetailTotalAge: 'Total age — since opened',
+  requestDetailAgeInCurrentState: 'Age in current state — since this handoff leg began',
+  requestDetailDaySuffix: 'd',
+  requestDetailHandoffHistoryTitle: 'Handoff history',
+  requestDetailHandoffHistoryEmpty: 'Not yet claimed — no handoff has been recorded.',
+  requestDetailHandoffFromNone: 'Triage',
+  requestDetailApprovalChainTitle: 'Approval chain',
+  requestDetailApprovalChainHatched:
+    'Not yet defined — pending stakeholder discovery on the approval model.',
+  requestDetailHandOffLabel: 'Hand it on',
+  requestDetailHandOffChoose: 'Choose a person',
+  requestDetailHandOff: 'Hand on',
+  requestDetailHandOffPending: 'Handing on…',
+  requestDetailClose: 'Close request',
+  requestDetailClosePending: 'Closing…',
 } as const
 
 export type DictionaryKey = keyof typeof en

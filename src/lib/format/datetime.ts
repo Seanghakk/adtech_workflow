@@ -72,3 +72,15 @@ export function daysSinceICT(value: FormatInput, now: FormatInput = new Date()):
   const msPerDay = 24 * 60 * 60 * 1000
   return Math.round((startOfDayICT(toDate(now)) - startOfDayICT(toDate(value))) / msPerDay)
 }
+
+/**
+ * Raw elapsed hours between a timestamp and now — Brief 021 §2.2, screen
+ * 1c's triage clock. Deliberately NOT calendar-boundary-based like
+ * daysSinceICT above: triage's clock starts ticking the instant a request
+ * is posted (hour 0 is a real, immediate state, not "not yet day 1"), so
+ * this is a plain continuous ms diff, not an ICT-midnight comparison.
+ */
+export function hoursSinceICT(value: FormatInput, now: FormatInput = new Date()): number {
+  const msPerHour = 60 * 60 * 1000
+  return (toDate(now).getTime() - toDate(value).getTime()) / msPerHour
+}
