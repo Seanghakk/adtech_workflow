@@ -79,6 +79,11 @@ const en = {
   boardBandStalledCaption: 'Gone quiet — no movement in over two weeks.',
   boardOldest: 'oldest',
   boardEmpty: 'No open projects in this scope.',
+  // Screen 5b — 4a on a tablet (Brief 025). The jump strip only renders
+  // at the tablet breakpoint (src/app/globals.css) — see the board
+  // page's own comment for why.
+  boardJumpStripLabel: 'Jump to lane',
+  boardJumpStripOverdue: 'has late or stalled projects',
   // §4 — the visibility problem, required not optional: a sales-team
   // member's view is restricted by workflow.can_view_project() to
   // maintenance-flagged projects under a client they (or their
