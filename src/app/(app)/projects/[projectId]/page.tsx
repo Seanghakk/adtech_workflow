@@ -8,6 +8,7 @@ import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { formatUsd0 } from '@/lib/format/money'
 import { getServerTranslator, getServerLang } from '@/lib/i18n/server'
 import { localizedLabel } from '@/lib/i18n/localized-label'
+import { computeDependencyChain } from '@/lib/reporting/dependency-chain'
 
 export const metadata: Metadata = {
   title: 'SO record — ADTECH Workflow Tracker',
@@ -68,6 +69,7 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
     { data: stages },
     { data: linkedRequests },
     { data: procurementLines },
+    { data: dependencyLinks },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -92,6 +94,11 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
       .from('procurement_lines')
       .select('id, sourcing_started_at, po_issued_at, delivery_received, delivery_total')
       .eq('project_id', project.id),
+    supabase
+      .from('dependency_links')
+      .select('id, sequence, name, days_allowed, started_at, ended_at, created_at')
+      .eq('project_id', project.id)
+      .order('sequence', { ascending: true }),
   ])
 
   const profiles = await getUserProfilesByIds(supabase, [
@@ -146,6 +153,8 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
     ).length,
     sourcingNoPoYet: procurementRows.filter((p) => !p.po_issued_at && p.sourcing_started_at).length,
   }
+
+  const { rows: dependencyRows, totalSlip: dependencySlip } = computeDependencyChain(dependencyLinks ?? [])
 
   return (
     <div className="so-record">
@@ -296,6 +305,36 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
           )}
           <Link href={`/projects/${project.id}/procurement`} className="awaiting-so-card__link">
             {t('soRecordViewProcurement')}
+          </Link>
+        </div>
+
+        <div className="so-record__panel">
+          <div className="so-record__panel-head">
+            <span className="so-record__panel-title">{t('soRecordLinkedDependencyChainTitle')}</span>
+            <span className="so-record__panel-count">{dependencyRows.length}</span>
+          </div>
+          {dependencyRows.length === 0 ? (
+            <p className="empty-state">{t('soRecordLinkedDependencyChainEmpty')}</p>
+          ) : (
+            <div className="so-record__panel-list">
+              <div className="so-record__panel-row">
+                <span className="so-record__panel-row-body">
+                  {dependencySlip > 0 ? t('soRecordDependencyChainSlipped') : t('soRecordDependencyChainOnTrack')}
+                </span>
+                <span
+                  className={
+                    dependencySlip > 0
+                      ? 'so-record__panel-row-age so-record__panel-row-age--danger'
+                      : 'so-record__panel-row-age'
+                  }
+                >
+                  {dependencySlip > 0 ? `+${dependencySlip}d` : '—'}
+                </span>
+              </div>
+            </div>
+          )}
+          <Link href={`/projects/${project.id}/dependencies`} className="awaiting-so-card__link">
+            {t('soRecordViewDependencyChain')}
           </Link>
         </div>
       </div>
