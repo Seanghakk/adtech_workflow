@@ -466,6 +466,43 @@ const en = {
   procurementLineCustomsLabel: 'Logistics / customs',
   procurementLineCustomsNone: 'No status recorded yet',
   soRecordViewProcurement: 'View procurement lines',
+  soRecordLinkedDependencyChainTitle: 'Dependency chain',
+  soRecordLinkedDependencyChainEmpty: 'No dependency chain recorded yet.',
+  soRecordDependencyChainSlipped: 'Slip carried to chain end',
+  soRecordDependencyChainOnTrack: 'No slip accumulated',
+  soRecordViewDependencyChain: 'View dependency chain',
+
+  // Screen 2d (Brief 023) — the dependency chain, days taken against days
+  // allowed per link. See
+  // src/app/(app)/projects/[projectId]/dependencies/page.tsx's own comment
+  // for the schema findings this screen reports rather than invents
+  // around (no per-link owner column; no target/planned handover date, so
+  // slip is shown as an accumulated day count, never a pushed calendar
+  // date).
+  dependencyChainKicker: 'Dependency chain',
+  dependencyChainBackLink: 'Back to SO record',
+  dependencyChainOwnerGapNote:
+    'Each link has no owner of its own recorded in the database — the project PIC below is shown for identification only, not as who is holding this link.',
+  dependencyChainSectionTitle: 'Chain',
+  dependencyChainEmpty: 'No dependency chain recorded yet for this project.',
+  dependencyChainSequencePrefix: 'Link',
+  dependencyChainNotStarted: 'Not started yet',
+  dependencyChainInProgress: 'In progress',
+  dependencyChainDone: 'Done',
+  dependencyChainStartedLabel: 'Started',
+  dependencyChainEndedLabel: 'Ended',
+  dependencyChainDaysTakenLabel: 'taken',
+  dependencyChainDaysAllowedLabel: 'allowed',
+  dependencyChainNoAllowance: 'No allowance set for this link',
+  dependencyChainOverrunTag: 'over',
+  dependencyChainUpstreamSlip: 'carried in from upstream',
+  dependencyChainSlipTitle: 'Cumulative slip carried to the end of the chain',
+  dependencyChainSlipNone: 'No slip accumulated across the chain yet.',
+  dependencyChainSlipInto: 'as of',
+  dependencyChainNoDateNote:
+    'No target or planned date is recorded anywhere in the schema for this project, so only the accumulated day count can be shown here — not a pushed calendar date.',
+  dependencyChainWriteNote:
+    'Read-only. Setting day allowances, recording start/end dates, and marking links complete are not available on this screen yet.',
 
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
