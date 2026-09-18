@@ -556,6 +556,28 @@ const en = {
   // table exists).
   catalogueItemGapNote:
     "This screen shows every field the database actually holds for this item. The mockup's origin/distributor and HS-code fields, the successor's price and lead time, and a \"where it's referenced\" list are not backed by any column yet and are left out rather than invented.",
+
+  // Screen 3b — warning at point of use (Brief 027). A reusable,
+  // standalone component (src/components/WarningAtPointOfUse.tsx) — the
+  // real host (a tender line being priced) is genuinely blocked on
+  // process discovery (§1), so these keys are demonstrated on 3a's own
+  // page rather than on an invented tender screen. See that component's
+  // own comment.
+  warningAtUseBadge: 'Status warning',
+  warningAtUseReplacedBy: 'Replaced by',
+  warningAtUseSwapAction: 'Swap to',
+  warningAtUsePriceAnyway: 'Price it anyway',
+  warningAtUseAskProcurement: 'Ask Procurement',
+  warningAtUseMicrocopy:
+    'Choosing price it anyway records the decision on the tender line, so the reason exists later. It does not ask you to justify it now.',
+  warningAtUseStalenessBadge: 'Staleness',
+  warningAtUseStalenessAgo: 'days ago',
+  warningAtUseStalenessBody: 'Verify the price and lead time before submitting.',
+  warningAtUseAskProcurementVerify: 'Ask Procurement to verify',
+  warningAtUseDemoLabel: 'Preview — how this warning appears at the point of use',
+  warningAtUseDemoNote:
+    'This is a demonstration, not a live warning. The real trigger point — pricing a tender line — does not exist in this app yet; tender internals remain blocked on process discovery. The actions below are inert here, ready to wire up once a real host exists.',
+
   // Screen 3c — phone, two frames (Brief 028). Its own archetype, NOT a
   // shrunken desktop screen (§2's own instruction). See each route's own
   // comment for the real blockers found and how each was handled.
@@ -569,7 +591,7 @@ const en = {
   phoneStatusNudgeUnavailableNote:
     "Sending a Telegram nudge isn't wired up in this app yet — see Brief 029's Result.",
   phoneStatusOpenFullDetail: 'Open full detail',
- 
+
   phoneApproveKicker: 'Approval needed',
   phoneApproveOrdinalPrefix: 'Variation',
   phoneApproveRaisedBy: 'raised by',
@@ -583,7 +605,7 @@ const en = {
   phoneApproveBlockedNote:
     "These actions aren't available yet. There is no write permission in the database for approving a variation, no decline state is modelled, and asking a question has no reply mechanism — flagged for a future brief rather than built on a guess.",
   phoneApproveOpenFullDetail: 'Open SO record',
- 
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',

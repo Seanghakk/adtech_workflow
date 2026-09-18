@@ -7,6 +7,7 @@ import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { LIFECYCLE_STEPS, lifecycleStepLabel } from '@/lib/reporting/catalogue'
+import { WarningAtPointOfUse } from '@/components/WarningAtPointOfUse'
 
 export const metadata: Metadata = {
   title: 'Catalogue item — ADTECH Workflow Tracker',
@@ -67,6 +68,14 @@ export const metadata: Metadata = {
  * instruction) — this is inventory data, not a worked item with an
  * owner and a clock. The staleness figure is a plain day count, not run
  * through getCardWeight/AgeLadder.
+ *
+ * BRIEF 027'S OWN DEMONSTRATION HOST: when an item has a successor on
+ * file, this page also renders WarningAtPointOfUse (src/components/
+ * WarningAtPointOfUse.tsx) as a clearly-labelled preview — Screen 3b's
+ * real host (a tender line being priced) doesn't exist yet (blocked on
+ * process discovery), and this brief's own §1 names 3a as exactly the
+ * kind of real, existing screen to demonstrate it on instead of
+ * inventing a fake tender screen. See that component's own comment.
  */
 export default async function CatalogueItemPage({ params }: PageProps<'/catalogue/[itemId]'>) {
   const { itemId } = await params
@@ -225,6 +234,20 @@ export default async function CatalogueItemPage({ params }: PageProps<'/catalogu
           </div>
         )}
       </div>
+
+      {successor && (
+        <div className="catalogue-item__pou-demo">
+          <WarningAtPointOfUse
+            t={t}
+            statusLabel={t(lifecycleStepLabel(item.lifecycle_step))}
+            reason={currentEvent?.reason ?? null}
+            successorPartNumber={successor.part_number}
+            verifiedDateLabel={item.last_verified_at ? formatDateICT(item.last_verified_at) : null}
+            stalenessDays={stalenessDays}
+            demo
+          />
+        </div>
+      )}
 
       <p className="catalogue-item__gap-note">{t('catalogueItemGapNote')}</p>
       <p className="catalogue-item__write-note">{t('catalogueItemWriteNote')}</p>
