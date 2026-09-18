@@ -1,26 +1,3 @@
-
-/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Dictionary · TS
 /**
  * Single bilingual EN/KM dictionary for this app's own surrounding UI
