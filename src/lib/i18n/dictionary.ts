@@ -537,6 +537,21 @@ const en = {
     "These actions aren't available yet. There is no write permission in the database for approving a variation, no decline state is modelled, and asking a question has no reply mechanism — flagged for a future brief rather than built on a guess.",
   phoneApproveOpenFullDetail: 'Open SO record',
 
+  // Screen 5a — Telegram message spec (Brief 029). A reference/preview
+  // page, not a live send — see /notifications and src/lib/telegram/
+  // messages.ts's own comments for what is and is not built this round.
+  navNotifications: 'Telegram messages',
+  notificationsKicker: 'Reference',
+  notificationsTitle: 'Telegram message spec',
+  notificationsIntro:
+    'Six messages and nothing else — every trigger, audience, and the exact text and buttons each one sends. This page is a reference, not a live feed: none of these have ever actually been sent (see the note below each blocked one) and no button here is live.',
+  notificationsTriggerLabel: 'Trigger',
+  notificationsAudienceLabel: 'Audience',
+  notificationsButtonsLabel: 'Buttons',
+  notificationsBlockedBadge: 'Cannot fire yet',
+  notificationsSendGapNote:
+    "This app has no configured way to actually send any of these yet — no TELEGRAM_BOT_TOKEN, and no wiring from a real event (a request posted, a bounce, an escalation) into a send call. That is a deployment and architecture decision, not made here. See the Result doc for the full account.",
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',

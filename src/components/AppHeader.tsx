@@ -94,6 +94,10 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
           {/* Brief 017 §3.9 — "Managers and admins," same gate as /users
               (an actual RLS-backed access boundary, not just navigation). */}
           <Link href="/lookups">{t('navLookups')}</Link>
+          {/* Brief 029 §3 — a reference page, not an access boundary in
+              its own right (it reads no data at all); grouped here
+              anyway since it is not a screen anyone needs day to day. */}
+          <Link href="/notifications">{t('navNotifications')}</Link>
         </nav>
       )}
       <div className="app-header__actions">

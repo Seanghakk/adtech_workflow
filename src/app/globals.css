@@ -3775,3 +3775,102 @@ button {
 .phone-approve__figure-value {
   font: 800 24px/1 var(--font-heading);
 }
+
+/* -----------------------------------------------------------------------
+   Screen 5a — Telegram message spec (Brief 029). Administration
+   archetype (reuses .wf-admin's own header, same as /lookups/users) —
+   a reference page, not a working screen.
+----------------------------------------------------------------------- */
+.notifications__intro {
+  font: 400 14px/1.5 var(--font-body);
+  margin: 0 0 var(--space-4);
+  max-width: 640px;
+}
+.notifications__gap-note {
+  font: 400 12px/1.5 var(--font-body);
+  color: var(--warning-tint-deep);
+  background: var(--warning-tint-bg);
+  border-left: 4px solid var(--warning);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  max-width: 640px;
+}
+.notifications__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.notifications__card {
+  border: 1px solid var(--card-hairline);
+  background: var(--surface);
+  padding: var(--space-4) var(--space-5);
+}
+.notifications__card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.notifications__number {
+  flex: none;
+  font: 800 20px/1 var(--font-heading);
+  color: var(--navy);
+  width: 28px;
+}
+.notifications__meta-row {
+  display: flex;
+  gap: var(--space-2);
+  font: 400 13px/1.5 var(--font-body);
+}
+.notifications__meta-label {
+  font: 600 9.5px/1.5 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex: none;
+  min-width: 68px;
+}
+.notifications__blocked-badge {
+  margin-left: auto;
+  flex: none;
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  padding: 4px 7px;
+}
+.notifications__audience-note,
+.notifications__blocked-note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+}
+.notifications__blocked-note {
+  color: var(--danger);
+}
+.notifications__message {
+  font: 400 12.5px/1.6 ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.notifications__buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.notifications__button-row {
+  display: flex;
+  gap: var(--space-2);
+}
+.notifications__button {
+  font: 600 12px/1 var(--font-body);
+  border: 1px solid var(--navy);
+  color: var(--navy);
+  padding: var(--space-2) var(--space-3);
+}
