@@ -1,4 +1,3 @@
-Dictionary · TS
 /**
  * Single bilingual EN/KM dictionary for this app's own surrounding UI
  * chrome (Brief 002 §5.2). Domain nouns NEVER go through this — team
