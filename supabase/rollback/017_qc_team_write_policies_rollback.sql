@@ -15,14 +15,33 @@
 -- and does not touch workflow.current_team() (migration 001's own helper,
 -- reused, not modified).
 --
+-- AMENDED per ADTECH_WF_Brief_024_Amendment_A_Rollback_Fails_On_Unapplied_
+-- State: the original version of this file CREATEd all six restored
+-- policies unconditionally, which only succeeds if migration 017 already
+-- dropped them first. Run against a database where migration 017 was
+-- never applied (the state this file must also handle, per this repo's
+-- own rollback-must-survive-every-state convention — same lesson as
+-- migration 015's Amendment C, opposite direction: that one CREATEd
+-- against a table that didn't exist yet, this one CREATEs a policy name
+-- that already exists), it failed with:
+--   ERROR: 42710: policy "qc_inspections_delete" for table
+--   "qc_inspections" already exists
+-- Fixed by preceding EACH of the six restored CREATE POLICY statements
+-- with its own DROP POLICY IF EXISTS immediately above it, kept paired
+-- for a future reader rather than batched. This makes every CREATE below
+-- idempotent against all three states: never applied (the six original
+-- policies are already there under these names — dropped, then
+-- recreated identically), fully applied (the two team-keyed policies
+-- from migration 017 are dropped, restoring the six PIC-keyed ones), and
+-- partially applied (whichever of the six happens to be present is
+-- dropped first regardless of which state that is).
+--
 -- Wrapped in an explicit transaction, matching every other file here.
 -- =============================================================================
 
 begin;
 
 drop policy if exists qc_inspections_insert on workflow.qc_inspections;
-drop policy if exists qc_inspections_update on workflow.qc_inspections;
-
 create policy qc_inspections_insert on workflow.qc_inspections
   for insert with check (
     exists (
@@ -32,6 +51,7 @@ create policy qc_inspections_insert on workflow.qc_inspections
     )
   );
 
+drop policy if exists qc_inspections_update on workflow.qc_inspections;
 create policy qc_inspections_update on workflow.qc_inspections
   for update using (
     exists (
@@ -47,6 +67,7 @@ create policy qc_inspections_update on workflow.qc_inspections
     )
   );
 
+drop policy if exists qc_inspections_delete on workflow.qc_inspections;
 create policy qc_inspections_delete on workflow.qc_inspections
   for delete using (
     exists (
@@ -57,8 +78,6 @@ create policy qc_inspections_delete on workflow.qc_inspections
   );
 
 drop policy if exists qc_inspection_floors_insert on workflow.qc_inspection_floors;
-drop policy if exists qc_inspection_floors_update on workflow.qc_inspection_floors;
-
 create policy qc_inspection_floors_insert on workflow.qc_inspection_floors
   for insert with check (
     exists (
@@ -69,6 +88,7 @@ create policy qc_inspection_floors_insert on workflow.qc_inspection_floors
     )
   );
 
+drop policy if exists qc_inspection_floors_update on workflow.qc_inspection_floors;
 create policy qc_inspection_floors_update on workflow.qc_inspection_floors
   for update using (
     exists (
@@ -86,6 +106,7 @@ create policy qc_inspection_floors_update on workflow.qc_inspection_floors
     )
   );
 
+drop policy if exists qc_inspection_floors_delete on workflow.qc_inspection_floors;
 create policy qc_inspection_floors_delete on workflow.qc_inspection_floors
   for delete using (
     exists (
