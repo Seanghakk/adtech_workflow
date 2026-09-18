@@ -4,7 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { getCurrentMember } from '@/lib/auth/current-member'
 import { UpdateProgressForm } from './UpdateProgressForm'
+import { FloorTrackedProgress } from './FloorTrackedProgress'
+import { FloorBreakdown, type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
 
 /**
  * Fable Brief 002 §2.1 — "the unassigned-project state, required not
@@ -40,7 +43,7 @@ export default async function UpdateProgressPage({
   const { data: project } = await supabase
     .from('projects')
     .select(
-      'id, name, stream, so_number, percent_complete, last_meaningful_movement_at, opened_at, owner_id, pic_id',
+      'id, name, stream, so_number, percent_complete, percent_calculated, percent_override_at, last_meaningful_movement_at, opened_at, owner_id, pic_id',
     )
     .eq('id', projectId)
     .maybeSingle()
@@ -48,6 +51,9 @@ export default async function UpdateProgressPage({
   if (!project) {
     notFound()
   }
+
+  const { member } = await getCurrentMember()
+  const isQcMember = member?.teamCode === 'qc'
 
   const [{ data: reasonCodes }, { data: lastUpdate }, { count: openItemCount }] = await Promise.all([
     supabase
@@ -90,8 +96,84 @@ export default async function UpdateProgressPage({
   const stallAnchor = project.last_meaningful_movement_at ?? project.opened_at
   const daysSinceMovement = daysSinceICT(stallAnchor)
 
-  return (
-    <div className="update-screen">
+  // Brief 024 §2.1 — floor tracking is optional per project (Amendment
+  // §2.1/§2.4 to Brief 007). Only fetch/render the floor breakdown for a
+  // project that actually has floor rows; a project with zero stays on
+  // exactly today's code path, untouched.
+  const { data: floorRows } = await supabase
+    .from('project_floors')
+    .select('id, label, sort_order')
+    .eq('project_id', project.id)
+    .order('sort_order')
+
+  const floorIds = (floorRows ?? []).map((f) => f.id)
+  const tracksFloors = floorIds.length > 0
+
+  const [{ data: shopDrawingRows }, { data: subStageRows }, { data: inspectionRows }, { data: handoverRows }] =
+    await Promise.all([
+      supabase
+        .from('shop_drawing_items')
+        .select('id, floor_id, scope, drawing_type, status')
+        .eq('project_id', project.id),
+      floorIds.length > 0
+        ? supabase
+            .from('floor_sub_stages')
+            .select('id, floor_id, stage, sub_stage, sequence, status')
+            .in('floor_id', floorIds)
+            .order('sequence')
+        : Promise.resolve({ data: [] }),
+      // qc_inspections.project_id is always set (migration 008), so every
+      // inspection against this project — material, installation, or
+      // commissioning — comes back from one query keyed on it directly.
+      supabase
+        .from('qc_inspections')
+        .select('id, floor_sub_stage_id, status, created_at')
+        .eq('project_id', project.id)
+        .order('created_at', { ascending: false }),
+      supabase.from('project_handover_items').select('deliverable, status').eq('project_id', project.id),
+    ])
+
+  // Brief 024 §3.3 — the soft-gate exception flag: the LAST recorded
+  // inspection's status per sub-stage (for the "last inspection" caption),
+  // and whether ANY passed inspection exists against it (for the
+  // done-with-no-pass exception flag — a later fail/pending row must not
+  // erase an earlier pass).
+  const lastInspectionBySubStage = new Map<string, string>()
+  const passedSubStageIds = new Set<string>()
+  for (const row of inspectionRows ?? []) {
+    if (!row.floor_sub_stage_id) continue // material inspections have none
+    if (!lastInspectionBySubStage.has(row.floor_sub_stage_id)) {
+      lastInspectionBySubStage.set(row.floor_sub_stage_id, row.status)
+    }
+    if (row.status === 'pass') passedSubStageIds.add(row.floor_sub_stage_id)
+  }
+
+  const projectShopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
+    .filter((r) => r.scope === 'project')
+    .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status }))
+
+  const floors: FloorRow[] = (floorRows ?? []).map((floor) => {
+    const subStages: SubStageRow[] = (subStageRows ?? [])
+      .filter((s) => s.floor_id === floor.id)
+      .map((s) => ({
+        id: s.id,
+        stage: s.stage as 'installation' | 'tnc',
+        subStage: s.sub_stage,
+        status: s.status,
+        hasPassedInspection: passedSubStageIds.has(s.id),
+        lastInspectionStatus: lastInspectionBySubStage.get(s.id) ?? null,
+      }))
+
+    const shopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
+      .filter((r) => r.scope === 'floor' && r.floor_id === floor.id)
+      .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status }))
+
+    return { id: floor.id, label: floor.label, shopDrawing, subStages }
+  })
+
+  const handoverItems = (handoverRows ?? []).map((r) => ({ deliverable: r.deliverable, status: r.status }))
+
+  const updateForm = (
       <UpdateProgressForm
         project={{
           id: project.id,
@@ -150,6 +232,34 @@ export default async function UpdateProgressPage({
           picYou: t('updatePicYou'),
           ownerLabel: t('updateOwnerLabel'),
         }}
+      />
+  )
+
+  return (
+    <div className="update-screen">
+      {tracksFloors ? (
+        <FloorTrackedProgress percentCalculated={project.percent_calculated} overrideActive={Boolean(project.percent_override_at)}>
+          {updateForm}
+        </FloorTrackedProgress>
+      ) : (
+        updateForm
+      )}
+
+      {/* Always rendered, even at zero floor rows — "Add floor" (Brief
+          024 §2.2) is the only path from a today-ordinary, entered-
+          percent project into floor tracking, and it must be reachable
+          before any floor exists, not just after. FloorTrackedProgress
+          above stays gated on tracksFloors (Amendment §2.1: a project
+          with zero floor rows keeps percent ENTERED, unchanged), but the
+          breakdown section itself — including its own empty state and
+          Add-floor form — is not. */}
+      <FloorBreakdown
+        projectId={project.id}
+        isPic={isCurrentUserPic}
+        isQcMember={isQcMember}
+        floors={floors}
+        projectShopDrawing={projectShopDrawing}
+        handoverItems={handoverItems}
       />
     </div>
   )

@@ -2897,3 +2897,173 @@ button {
   );
   border: 1px solid var(--warning-tint-border);
 }
+
+/* -----------------------------------------------------------------------
+   Screen 6a's floor breakdown + QC recording (Brief 024). Flat and
+   ruled, same family as .procurement-line-card — radius 0, no shadows,
+   1px hairline rules between rows, --surface cards.
+   ----------------------------------------------------------------------- */
+.floor-tracked-progress__collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.floor-tracked-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.floor-breakdown {
+  margin-top: var(--space-4);
+}
+.floor-breakdown__toggle {
+  margin-bottom: var(--space-3);
+}
+.floor-breakdown__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.floor-breakdown__note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.floor-breakdown__section {
+  background: var(--surface);
+  border: 1px solid var(--card-hairline);
+  padding: var(--space-4);
+}
+.floor-breakdown__section-title {
+  font: 700 13px/1 var(--font-heading, var(--font-body));
+  margin-bottom: var(--space-3);
+}
+.floor-breakdown__subsection {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+.floor-breakdown__subsection:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.floor-breakdown__subsection-title {
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.floor-breakdown__drawing-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.floor-breakdown__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.floor-breakdown__row:first-child {
+  border-top: none;
+}
+.floor-breakdown__row-label {
+  flex: 1 1 auto;
+  font: 600 12.5px/1.3 var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.floor-breakdown__status-select {
+  font: 600 12px/1 var(--font-body);
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 0;
+}
+.floor-breakdown__last-inspection {
+  font: 400 11px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.floor-breakdown__exception-flag {
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--warning-tint-deep);
+  background: var(--warning-tint-bg);
+  border: 1px solid var(--warning-tint-border);
+  padding: 3px 6px;
+}
+.floor-breakdown__exception-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.floor-breakdown__exception-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 400 12px/1.3 var(--font-body);
+}
+.floor-breakdown__floor-card {
+  border-left: 3px solid var(--ink);
+}
+.floor-breakdown__inspection-form,
+.floor-breakdown__add-floor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+  background: var(--ground);
+  border: 1px solid var(--border);
+}
+.floor-breakdown__add-floor {
+  flex-direction: row;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.floor-breakdown__material-inspection {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.floor-breakdown__floor-select {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.floor-breakdown__floor-select legend {
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+.floor-breakdown__floor-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 400 12px/1.3 var(--font-body);
+}
+.floor-breakdown__handover-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.floor-breakdown__error {
+  font: 600 11.5px/1.3 var(--font-body);
+  color: var(--warning-tint-deep);
+}
