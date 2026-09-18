@@ -509,6 +509,54 @@ const en = {
   dependencyChainWriteNote:
     'Read-only. Setting day allowances, recording start/end dates, and marking links complete are not available on this screen yet.',
 
+  // Screen 3a — catalogue item (Brief 026). Small-focused-panel archetype,
+  // Design Note Rev 3 §4.4, 700px. workflow.catalogue_items/
+  // catalogue_events already existed (migration 001, theme 3's own tables,
+  // built ahead of any UI) — see the detail page's own comment for the
+  // mockup-vs-schema gaps reported rather than invented around (no
+  // manufacturer-country/HS-code fields, no successor price/lead-time, no
+  // "where it's referenced" panel, no write actions — no INSERT/UPDATE
+  // policy exists yet on either table).
+  navCatalogue: 'Catalogue',
+  catalogueIndexKicker: 'Catalogue',
+  catalogueIndexTitle: 'Product catalogue',
+  catalogueIndexEmpty: 'No catalogue items recorded yet.',
+  catalogueIndexColManufacturer: 'Manufacturer',
+  catalogueIndexColPartNumber: 'Part number',
+  catalogueIndexColStatus: 'Status',
+  catalogueItemKicker: 'Catalogue',
+  catalogueItemBackLink: 'Back to catalogue',
+  catalogueItemManufacturerLabel: 'Manufacturer',
+  // The four fixed lifecycle steps, read verbatim from the mockup markup
+  // (div id="3a") per the brief's own instruction not to invent labels —
+  // hardcoded here the same way age.ts's four bands are, NOT a /lookups
+  // table: workflow.catalogue_items.lifecycle_step is CHECK-constrained
+  // to exactly 1-4, the schema's own fixed classification, not an
+  // open-ended admin-editable vocabulary like workflow.stages.
+  catalogueLifecycleStep1: 'Preferred',
+  catalogueLifecycleStep2: 'Approved',
+  catalogueLifecycleStep3: 'Use with caution',
+  catalogueLifecycleStep4: 'Do not quote',
+  catalogueItemReasonLabel: 'Reason',
+  catalogueItemReasonNone: 'No reason recorded for the current status.',
+  catalogueItemSuccessorTitle: 'Successor part',
+  catalogueItemSuccessorNone: 'No successor on file.',
+  catalogueItemVerifiedTitle: 'Last verified',
+  catalogueItemVerifiedNever: 'Never verified.',
+  catalogueItemVerifiedBy: 'by',
+  catalogueItemStalenessLabel: 'days ago',
+  catalogueItemHistoryTitle: 'Status history',
+  catalogueItemHistoryEmpty: 'No status changes recorded yet.',
+  catalogueItemWriteNote:
+    'Read-only. Confirming the current status or changing it are not available on this screen yet.',
+  // §1's own gap, stated once on screen rather than per-field: fields the
+  // mockup shows that no column backs (origin/distributor, HS code,
+  // successor price and lead time, and any "where this is referenced"
+  // list — procurement_lines carries no catalogue_item_id and no tender
+  // table exists).
+  catalogueItemGapNote:
+    "This screen shows every field the database actually holds for this item. The mockup's origin/distributor and HS-code fields, the successor's price and lead time, and a \"where it's referenced\" list are not backed by any column yet and are left out rather than invented.",
+
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',
