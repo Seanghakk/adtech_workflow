@@ -2,12 +2,16 @@ import Link from 'next/link'
 import { LanguageToggle } from './LanguageToggle'
 import { SignOutButton } from './SignOutButton'
 import type { CurrentMember } from '@/lib/auth/current-member'
-import { isSalesTeamMember } from '@/lib/auth/sales-roles'
-import { isManagerOrAdmin } from '@/lib/auth/roles'
-import { getServerTranslator } from '@/lib/i18n/server'
 
 /**
- * App shell nav.
+ * App shell topbar — logo, identity, language/sign-out. Brief 039 §1
+ * moved every actual nav link (the old three role-gated <nav> blocks:
+ * unconditional, sales-only, manager/admin-only) out of here and into
+ * AppSidebar.tsx's collapsible side nav, mirroring the CMMS's own split
+ * between HubNav's topbar row and its sidebar. src/lib/nav.ts is now the
+ * single source of truth for that link list and its access gating
+ * (canSeeNavEntry) — see that file for the exact per-brief reasoning
+ * each entry used to carry inline in this file's old <nav> blocks.
  *
  * Brand mark — Visual Round Restyle §3.5 / Design Note Rev 3 §3: "Two
  * flush rectangles, blue then ink, no gap and no radius, ADTECH in the
@@ -21,22 +25,8 @@ import { getServerTranslator } from '@/lib/i18n/server'
  * dictionary — same treatment as the technical nouns Design Note §4.9
  * says stay upright English always (SO, BOQ, PIC, ...); a product name
  * isn't translated any more than those are.
- *
- * ADTECH_WF_Brief_003_Sales_Roles: the /sales link only renders for the
- * two tiers it's actually for (Sales Engineer/Supervisor) — everyone
- * else already has their own full, unrestricted view of every project
- * via "/", so a second link to the same underlying data would be
- * confusing rather than useful.
- *
- * Brief 010 §6 — this file's own nav links used to be hardcoded English,
- * bypassing the dictionary entirely even though navSales/navExceptions/
- * navLoad already existed as keys (SignOutButton, right beside this,
- * already used t('navSignOut') correctly). Fixed here: async Server
- * Component, same pattern as exceptions/page.tsx's getServerTranslator().
  */
-export async function AppHeader({ member }: { member: CurrentMember }) {
-  const t = await getServerTranslator()
-
+export function AppHeader({ member }: { member: CurrentMember }) {
   return (
     <header className="app-header">
       <Link href="/" className="brand-mark">
@@ -55,54 +45,7 @@ export async function AppHeader({ member }: { member: CurrentMember }) {
         </span>
         <span className="app-header__team">{member.teamLabelEn}</span>
       </div>
-      {/* Brief 015 §4 — any active member, no role gate: posting a request
-          is meant to be as easy as sending a Telegram message, so this
-          link is unconditional, unlike the two role-gated <nav> blocks
-          below it. */}
-      <nav className="app-header__nav">
-        <Link href="/requests/new">{t('navRequests')}</Link>
-        {/* Brief 021 §1.1 — "who triages: any active member," same
-            unconditional-access reasoning as the request link beside it. */}
-        <Link href="/triage">{t('navTriage')}</Link>
-        {/* Brief 018 §3 — the awaiting-SO queue is read-only status
-            visibility, same unconditional-access reasoning as the
-            request link beside it: RLS (can_view_project) already
-            narrows which rows a sales-restricted member sees, so no
-            extra role gate is layered on top here. */}
-        <Link href="/awaiting-so">{t('navAwaitingSo')}</Link>
-        {/* Brief 026 §3 — catalogue_items_select is plain is_member(),
-            same unconditional-access reasoning as the two links above. */}
-        <Link href="/catalogue">{t('navCatalogue')}</Link>
-      </nav>
-      {isSalesTeamMember(member) && (
-        <nav className="app-header__nav">
-          <Link href="/sales">{t('navSales')}</Link>
-        </nav>
-      )}
-      {isManagerOrAdmin(member) && (
-        // Fable Brief 002 §2/§3 — the reviewer board and load screens are
-        // built for whoever is running the weekly reporting review, same
-        // gating precedent as /sales above: everyone else already has a
-        // full, unrestricted view of their own work via "/", so a second
-        // link to the same underlying data would add noise, not access
-        // (the underlying RLS scoping is unchanged either way — this is
-        // a navigation judgment call, not a security boundary. See
-        // Result 003). /users (Brief 012 §2.7) joins this same group —
-        // an actual access boundary this time (workflow.members writes),
-        // not just a navigation one.
-        <nav className="app-header__nav">
-          <Link href="/exceptions">{t('navExceptions')}</Link>
-          <Link href="/load">{t('navLoad')}</Link>
-          <Link href="/users">{t('navUsers')}</Link>
-          {/* Brief 017 §3.9 — "Managers and admins," same gate as /users
-              (an actual RLS-backed access boundary, not just navigation). */}
-          <Link href="/lookups">{t('navLookups')}</Link>
-          {/* Brief 029 §3 — a reference page, not an access boundary in
-              its own right (it reads no data at all); grouped here
-              anyway since it is not a screen anyone needs day to day. */}
-          <Link href="/notifications">{t('navNotifications')}</Link>
-        </nav>
-      )}
+      <span style={{ marginLeft: 'auto' }} />
       <div className="app-header__actions">
         <LanguageToggle />
         <SignOutButton />
