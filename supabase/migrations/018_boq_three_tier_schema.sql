@@ -2,6 +2,19 @@
 -- ADTECH Workflow Tracker — Migration 018: three-tier BOQ schema
 -- Brief: ADTECH_WF_Brief_027_BOQ_Schema_Three_Tier
 -- Product decision: ADTECH_WF_BOQ_Architecture_And_MR_Gating_Decision
+-- REVISED per ADTECH_WF_Brief_035_BOQ_Schema_Revisions (answers to three
+-- open questions the first version of this file flagged rather than
+-- guessed at) — amended in place, not a new migration, since this file
+-- had not been applied anywhere yet when the revisions landed. Three
+-- changes: (1) shop_drawing_boq_line_locations now mirrors
+-- tender_boq_line_locations' own free-text-plus-optional-mapping shape,
+-- with a new workflow.shop_drawing_boq_location_map table, instead of a
+-- required FK to project_floors — see this file's own §3 for why;
+-- (2) the (project_id, system_type, part_number) cross-tier matching key
+-- is now confirmed intentional, not a placeholder — see the verification
+-- file's own block 6; (3) every quantity column changed from integer to
+-- numeric(14,2) to support fractional units — see the first quantity
+-- column below for the full reasoning, not repeated at each site.
 --
 -- SCHEMA ONLY, NO UI THIS ROUND — same convention migration 001 used for
 -- workflow.catalogue_items/catalogue_events ("tables only, no UI this
@@ -70,7 +83,21 @@ create table workflow.tender_boq_lines (
   model               text,
   part_number         text,
   unit                text not null,
-  total_quantity      integer not null,
+  -- Brief 035 §3 — numeric(14,2), not integer: Seanghakk confirmed
+  -- quantities need to support fractional units (e.g. metres of cable),
+  -- so integer (this migration's original type) would have truncated
+  -- real data. Precision matches workflow.projects.contract_value and
+  -- workflow.variations.committed_amount (both migration 013,
+  -- numeric(14,2)) — the only numeric precedent in this schema; no more
+  -- directly relevant quantity-specific numeric column exists to argue
+  -- for a different precision (workflow.procurement_lines' own
+  -- delivery_received/delivery_total stayed integer, but that table
+  -- tracks whole-unit delivery counts, not BOQ quantities in arbitrary
+  -- units, so it does not override Seanghakk's explicit instruction
+  -- here). Applies to every quantity column in this migration —
+  -- total_quantity, requested_quantity, both per-location quantity
+  -- columns, and contract_boq_lines.quantity.
+  total_quantity      numeric(14, 2) not null,
   remarks             text,
   -- §4 — running total of quantity requested via MR lines referencing
   -- this row. Plain application-maintained column, matching
@@ -82,7 +109,7 @@ create table workflow.tender_boq_lines (
   -- own MR write path is what will update this; a cumulative running
   -- total also already resolves the design doc §6 open question about
   -- partial requests (5 of 20 units) without needing a separate flag.
-  requested_quantity  integer not null default 0,
+  requested_quantity  numeric(14, 2) not null default 0,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
@@ -98,7 +125,7 @@ comment on table workflow.tender_boq_lines is
 create table workflow.tender_boq_line_locations (
   tender_boq_line_id  uuid not null references workflow.tender_boq_lines (id) on delete restrict,
   location_label      text not null,
-  quantity            integer not null,
+  quantity            numeric(14, 2) not null,
   primary key (tender_boq_line_id, location_label)
 );
 
@@ -175,13 +202,13 @@ create table workflow.contract_boq_lines (
   description         text not null,
   brand               text,
   unit                text not null,
-  quantity            integer not null,
+  quantity            numeric(14, 2) not null,
   -- §4's own dual-reference rule (an MR line may reference EITHER this
   -- table or shop_drawing_boq_lines) means this column belongs here too,
   -- even though the brief's own bullet list names it only once, under
   -- Shop Drawing BOQ — a low-risk, consistent extension, not a new
   -- decision (flagged in the Result rather than left silently implicit).
-  requested_quantity  integer not null default 0,
+  requested_quantity  numeric(14, 2) not null default 0,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
@@ -210,31 +237,40 @@ create policy contract_boq_lines_select on workflow.contract_boq_lines
   );
 
 -- -----------------------------------------------------------------------------
--- 3. workflow.shop_drawing_boq_lines + workflow.shop_drawing_boq_line_locations — §1
+-- 3. workflow.shop_drawing_boq_lines + workflow.shop_drawing_boq_line_locations
+--    + workflow.shop_drawing_boq_location_map — §1
 --
 -- Same shape as Tender BOQ (system-scoped, full part number, per-location
 -- quantity via a child table) — design doc §1's own words: "same
 -- location-breakdown shape as Shop Drawing BOQ."
 --
--- THE ONE REAL STRUCTURAL DIFFERENCE FROM TENDER BOQ: location here is a
--- REAL FOREIGN KEY to workflow.project_floors, not free text. Shop
--- Drawing BOQ is built late — "substantially complete by ~2/3 of the
--- project timeline" (design doc §1) — by which point the project''s real
--- floor rows already exist (PIC-defined at kickoff). Design doc §5 is
--- explicit that ONLY Tender BOQ''s locations need reconciliation, because
--- only Tender BOQ''s locations are guessed before real floor rows exist;
--- Shop Drawing BOQ needs no equivalent mapping table.
+-- REVISED, Brief 035 §1: this migration originally gave Shop Drawing BOQ
+-- a real NOT NULL foreign key to workflow.project_floors here, on the
+-- premise that floor rows always exist by the time Shop Drawing BOQ data
+-- is entered (design doc §1: "substantially complete by ~2/3 of the
+-- project timeline"). That migration''s own header flagged this as a
+-- judgment call rather than a confirmed fact — Seanghakk''s answer (Brief
+-- 035 decision 1): floor rows CAN genuinely lag behind Shop Drawing BOQ
+-- entry in practice. The asymmetry no longer holds, so Shop Drawing BOQ
+-- now mirrors Tender BOQ''s own already-working pattern exactly, rather
+-- than inventing a second shape: location_label is free text (same role
+-- as tender_boq_line_locations.location_label), and floor_id is a
+-- nullable, OPTIONAL direct reference rather than a required one.
 --
--- JUDGMENT CALL, flagged rather than silently assumed: floor_id is NOT
--- NULL here, which means a Shop Drawing BOQ line''s location rows cannot
--- be entered for a project before that project has at least one
--- project_floors row. The design doc''s own "often skipped until very
--- close to project end" does not GUARANTEE floor rows always precede
--- Shop Drawing BOQ entry for every project — if that ordering turns out
--- not to hold in practice, this constraint would need loosening (e.g. an
--- interim free-text location shape mirroring Tender BOQ''s own
--- reconciliation pattern). Confirm this ordering assumption is acceptable
--- before this constraint is relied on by a write UI.
+-- floor_id is kept as a column here (not removed down to Tender BOQ''s
+-- exact shape, which has no floor_id column at all) because Shop Drawing
+-- BOQ entry still MORE OFTEN than not happens after floor rows already
+-- exist — when the person entering a line already knows the real floor,
+-- recording it directly is strictly more useful than always forcing a
+-- lookup through workflow.shop_drawing_boq_location_map below. When it
+-- is not yet known, floor_id stays null and location_label plus that
+-- mapping table cover the same reconciliation Tender BOQ already uses.
+-- NOTE, not enforced by any constraint: a row''s own floor_id and
+-- whatever shop_drawing_boq_location_map holds for the same
+-- (project, location_label) could in principle disagree — no DB rule
+-- reconciles the two, the same "documented expectation, not a DB rule"
+-- choice migration 008 already made for qc_inspection_floors'' own
+-- type/floor pairing.
 -- -----------------------------------------------------------------------------
 
 create table workflow.shop_drawing_boq_lines (
@@ -246,9 +282,9 @@ create table workflow.shop_drawing_boq_lines (
   model               text,
   part_number         text,
   unit                text not null,
-  total_quantity      integer not null,
+  total_quantity      numeric(14, 2) not null,
   remarks             text,
-  requested_quantity  integer not null default 0,
+  requested_quantity  numeric(14, 2) not null default 0,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
@@ -262,21 +298,42 @@ comment on table workflow.shop_drawing_boq_lines is
 
 create table workflow.shop_drawing_boq_line_locations (
   shop_drawing_boq_line_id  uuid not null references workflow.shop_drawing_boq_lines (id) on delete restrict,
-  floor_id                  uuid not null references workflow.project_floors (id) on delete restrict,
-  quantity                  integer not null,
-  primary key (shop_drawing_boq_line_id, floor_id)
+  location_label            text not null,
+  floor_id                  uuid references workflow.project_floors (id) on delete restrict,
+  quantity                  numeric(14, 2) not null,
+  primary key (shop_drawing_boq_line_id, location_label)
 );
 
 comment on table workflow.shop_drawing_boq_line_locations is
-  'Real FK to workflow.project_floors, unlike tender_boq_line_locations''
-   free-text location_label — see this migration''s own §3 header for why
-   the two tiers differ here. No cross-project check that floor_id
-   actually belongs to shop_drawing_boq_line_id''s own project — the same
-   documented-expectation-not-DB-rule choice migration 008 already made
-   for qc_inspection_floors'' type/floor pairing, not enforced here either.';
+  'REVISED, Brief 035 §1 — now the same free-text-plus-optional-mapping
+   shape as tender_boq_line_locations/tender_boq_location_map, not the
+   required-FK shape this table originally had. floor_id is nullable and
+   OPTIONAL (populated directly when the real floor is already known at
+   entry time; left null and resolved later via
+   workflow.shop_drawing_boq_location_map otherwise) — see this
+   migration''s own §3 header for the full reasoning.';
+
+create table workflow.shop_drawing_boq_location_map (
+  project_id      uuid not null references workflow.projects (id) on delete restrict,
+  location_label  text not null,
+  floor_id        uuid references workflow.project_floors (id) on delete restrict,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  primary key (project_id, location_label)
+);
+
+comment on table workflow.shop_drawing_boq_location_map is
+  'Brief 035 §1 — mirrors workflow.tender_boq_location_map exactly (same
+   columns, same PK shape, same nullable-until-mapped floor_id, same
+   "unmapped is a valid state, never silently dropped" reasoning). A
+   separate table from tender_boq_location_map, not a shared one, because
+   a Tender BOQ label and a Shop Drawing BOQ label for the "same" real
+   floor are not guaranteed to be entered identically (different people,
+   different phases) — conflating them would risk a false match.';
 
 alter table workflow.shop_drawing_boq_lines enable row level security;
 alter table workflow.shop_drawing_boq_line_locations enable row level security;
+alter table workflow.shop_drawing_boq_location_map enable row level security;
 
 drop policy if exists shop_drawing_boq_lines_select on workflow.shop_drawing_boq_lines;
 create policy shop_drawing_boq_lines_select on workflow.shop_drawing_boq_lines
@@ -302,6 +359,22 @@ create policy shop_drawing_boq_line_locations_select on workflow.shop_drawing_bo
 comment on policy shop_drawing_boq_line_locations_select on workflow.shop_drawing_boq_line_locations is
   'Same is_member() + exists-join shape as tender_boq_line_locations_select
    above — see that policy''s own comment for the full reasoning.';
+
+drop policy if exists shop_drawing_boq_location_map_select on workflow.shop_drawing_boq_location_map;
+create policy shop_drawing_boq_location_map_select on workflow.shop_drawing_boq_location_map
+  for select using (
+    workflow.is_member()
+    and exists (
+      select 1 from workflow.projects p
+      where p.id = shop_drawing_boq_location_map.project_id
+        and workflow.can_view_project(p.client_id, p.is_maintenance_contract)
+    )
+  );
+
+comment on policy shop_drawing_boq_location_map_select on workflow.shop_drawing_boq_location_map is
+  'Same can_view_project() project-scoping shape as
+   tender_boq_location_map_select below — this table has project_id
+   directly, the same reasoning applies unchanged.';
 
 -- -----------------------------------------------------------------------------
 -- 4. workflow.tender_boq_location_map — §3
@@ -367,7 +440,9 @@ create policy tender_boq_location_map_select on workflow.tender_boq_location_map
 -- already cover SELECT/INSERT/UPDATE at the GRANT layer for every table
 -- created here automatically — nothing to add for that; RLS is the only
 -- thing standing between "grantable" and "actually writable," and none
--- of these six tables have a write policy yet.
+-- of these seven tables have a write policy yet (Brief 035 §1 added
+-- workflow.shop_drawing_boq_location_map, bringing the original six to
+-- seven).
 -- -----------------------------------------------------------------------------
 
 commit;

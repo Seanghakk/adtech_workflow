@@ -1,6 +1,9 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Rollback for Migration 018
 -- Brief: ADTECH_WF_Brief_027_BOQ_Schema_Three_Tier §6
+-- Revised per ADTECH_WF_Brief_035_BOQ_Schema_Revisions §1 — adds
+-- workflow.shop_drawing_boq_location_map, the new table that decision
+-- added alongside shop_drawing_boq_lines/shop_drawing_boq_line_locations.
 --
 -- REQUIRED before migration 018 is applied to prod, per this repo's own
 -- process: run this against the throwaway Supabase project first (Seanghakk
@@ -18,15 +21,16 @@
 -- ORDER MATTERS: child tables before their parents, so a not-yet-dropped
 -- FK never blocks a DROP TABLE. tender_boq_line_locations references
 -- tender_boq_lines; shop_drawing_boq_line_locations references
--- shop_drawing_boq_lines; tender_boq_location_map references
--- workflow.projects and workflow.project_floors only (both pre-existing,
--- untouched by this migration), so its own position relative to the other
--- five is not load-bearing, but it is still listed with the children for
+-- shop_drawing_boq_lines; tender_boq_location_map and
+-- shop_drawing_boq_location_map both reference workflow.projects and
+-- workflow.project_floors only (both pre-existing, untouched by this
+-- migration), so their own position relative to the other five is not
+-- load-bearing, but they are still listed with the children for
 -- readability.
 --
 -- Handles all three states migration 018 could be found in: not applied
 -- at all (every DROP TABLE IF EXISTS is a no-op), fully applied (removes
--- all six tables), and partially applied (each DROP TABLE IF EXISTS only
+-- all seven tables), and partially applied (each DROP TABLE IF EXISTS only
 -- depends on that one table's own existence, independent of the others).
 --
 -- Wrapped in an explicit transaction, matching every other file here.
@@ -37,6 +41,7 @@ begin;
 drop table if exists workflow.tender_boq_line_locations;
 drop table if exists workflow.shop_drawing_boq_line_locations;
 drop table if exists workflow.tender_boq_location_map;
+drop table if exists workflow.shop_drawing_boq_location_map;
 
 drop table if exists workflow.tender_boq_lines;
 drop table if exists workflow.contract_boq_lines;
