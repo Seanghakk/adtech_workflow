@@ -620,7 +620,6 @@ const en = {
   notificationsBlockedBadge: 'Cannot fire yet',
   notificationsSendGapNote:
     "This app has no configured way to actually send any of these yet — no TELEGRAM_BOT_TOKEN, and no wiring from a real event (a request posted, a bounce, an escalation) into a send call. That is a deployment and architecture decision, not made here. See the Result doc for the full account.",
-
   // §3.1/§3.3 — the queue, and its own empty state read as good news
   // (Design Note §4.9's "empty states drawn as results" rule).
   awaitingSoKicker: 'The SO spine',
