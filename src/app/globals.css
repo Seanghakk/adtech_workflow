@@ -3629,6 +3629,103 @@ button {
   align-items: flex-end;
   gap: var(--space-3);
 }
+
+/* -----------------------------------------------------------------------
+   Floor & Zone Configuration (Brief 047) — reuses .field/.btn/
+   .wf-admin-row__confirm* as-is; these classes cover the tower/floor
+   sections and their inline edit/add forms, mirroring contract-boq's own
+   .contract-boq__edit-form / .contract-boq__add-form shape rather than
+   inventing a fourth pattern.
+   ----------------------------------------------------------------------- */
+.floor-config__note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-3) 0;
+}
+.floor-config__tower {
+  background: var(--surface);
+  border: 1px solid var(--card-hairline);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
+.floor-config__tower--none {
+  border-style: dashed;
+}
+.floor-config__tower-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.floor-config__tower-title {
+  font: 700 13px/1 var(--font-heading, var(--font-body));
+  margin: 0 0 var(--space-3);
+}
+.floor-config__tower-head .floor-config__tower-title {
+  margin-bottom: 0;
+}
+.floor-config__floor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.floor-config__floor-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.floor-config__floor-row:first-child {
+  border-top: none;
+}
+.floor-config__floor-row--editing {
+  padding: var(--space-2) 0;
+}
+.floor-config__floor-label {
+  flex: 1 1 auto;
+  font: 600 12.5px/1.3 var(--font-body);
+}
+.floor-config__floor-order {
+  font: 400 11px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.floor-config__row-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.floor-config__add-form,
+.floor-config__edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.floor-config__edit-field {
+  min-width: 140px;
+  flex: 1;
+}
+.floor-config__edit-field--narrow {
+  min-width: 80px;
+  max-width: 100px;
+  flex: none;
+}
+.floor-config__edit-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.floor-config__error {
+  font: 600 11.5px/1.3 var(--font-body);
+  color: var(--warning-tint-deep);
+}
+
 /* -----------------------------------------------------------------------
    Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
    Design Note Rev 3 §4.4 — same shape as .awaiting-so (screen 2b), same
