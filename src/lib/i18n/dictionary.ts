@@ -485,6 +485,10 @@ const en = {
   soRecordLinkedContractBoqTitle: 'Contract BOQ',
   soRecordLinkedContractBoqEmpty: 'No Contract BOQ lines recorded yet.',
   soRecordViewContractBoq: 'View Contract BOQ',
+  // Brief 047 — the fifth so-record panel.
+  soRecordLinkedFloorsTitle: 'Floors',
+  soRecordLinkedFloorsEmpty: 'No floors configured yet.',
+  soRecordViewFloors: 'Configure floors',
 
   // Screen 2d (Brief 023) — the dependency chain, days taken against days
   // allowed per link. See
@@ -658,10 +662,9 @@ const en = {
   floorBreakdownOverride: 'Override',
   floorBreakdownOverrideActive: 'Overridden',
   floorBreakdownOverrideCancel: 'Cancel override',
-  floorBreakdownAddFloor: 'Add floor',
-  floorBreakdownFloorLabel: 'Floor label',
-  floorBreakdownFloorLabelPlaceholder: 'e.g. B1, Roof, 12',
-  floorBreakdownAddFloorSubmit: 'Add',
+  // Brief 050 §B — replaces the removed inline "Add floor" form; points
+  // to the real floor/tower configuration screen (Brief 047) instead.
+  floorBreakdownGoToFloorConfig: 'Add or manage floors →',
   floorBreakdownProjectLevelTitle: 'Project-level shop drawing',
   floorBreakdownNoFloors: 'No floors added yet.',
   floorBreakdownShopDrawingTitle: 'Shop drawing',
@@ -785,6 +788,36 @@ const en = {
   contractBoqLocationQuantity: 'Quantity',
   contractBoqLocationAdd: 'Add location',
   contractBoqLocationDelete: 'Remove',
+
+  // Floor & Zone (Tower/Wing) Configuration (Brief 047) — PIC-only writes
+  // (migration 021's project_towers policies; project_floors' own
+  // existing migration-009 policies, unchanged). !isPic renders every
+  // control disabled/hidden, same convention as contract-boq and update.
+  floorConfigKicker: 'Floor & zone configuration',
+  floorConfigBackToSoRecord: 'Back to SO record',
+  floorConfigNotPicNote: 'Only this project’s PIC can add or change floor/tower configuration here.',
+  floorConfigEmpty: 'No towers or floors configured yet.',
+  floorConfigNoFloorsHere: 'No floors here yet.',
+  floorConfigNoTower: 'No tower',
+  floorConfigTower: 'Tower',
+  floorConfigLabel: 'Label',
+  floorConfigOrder: 'Order',
+  floorConfigEdit: 'Edit',
+  floorConfigSave: 'Save',
+  floorConfigSaving: 'Saving…',
+  floorConfigCancel: 'Cancel',
+  floorConfigDeleting: 'Removing…',
+  floorConfigDeleteConfirmAction: 'Yes, remove',
+  floorConfigTowerLabel: 'Tower label',
+  floorConfigTowerPlaceholder: 'e.g. Tower 1',
+  floorConfigAddTowerTitle: 'Add a tower or wing',
+  floorConfigAddTowerSubmit: 'Add tower',
+  floorConfigDeleteTower: 'Delete tower',
+  floorConfigDeleteTowerConfirm: 'Delete this tower? Its floors must be reassigned or removed first.',
+  floorConfigFloorPlaceholder: 'e.g. L1, B2, Podium',
+  floorConfigAddFloorSubmit: 'Add floor',
+  floorConfigDeleteFloor: 'Delete floor',
+  floorConfigDeleteFloorConfirm: 'Delete this floor? This cannot be undone.',
 } as const
  
 export type DictionaryKey = keyof typeof en

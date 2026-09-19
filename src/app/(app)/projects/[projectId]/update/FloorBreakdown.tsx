@@ -8,17 +8,22 @@
  * checklist are NO LONGER PIC-keyed: sub-stage status is team-keyed,
  * STAGE-CONDITIONAL (Project team for installation rows, TNC team for
  * tnc rows), and handover is QC-team-keyed, mirroring the RLS policies'
- * own shape exactly. Floor add (still PIC-only, unchanged — screen 6a's
- * own lightweight form, distinct from the real /floors configuration
- * screen) and shop-drawing status (still PIC-only, migration 009,
- * unchanged by migration 022) keep the isPic gate they always had.
+ * own shape exactly. Shop-drawing status (still PIC-only, migration 009,
+ * unchanged by migration 022) keeps the isPic gate it always had.
  * Every gate here is app-layer belt-and-suspenders only — RLS is the
  * real enforcement in every case.
+ *
+ * Brief 050 §B — this screen's own lightweight "Add floor" form
+ * (add-only, no edit/delete/tower support) is REMOVED: the real floor/
+ * tower configuration screen (/projects/[projectId]/floors, Brief 047)
+ * now supersedes it. Floor DISPLAY and every sub-stage/drawing/handover
+ * status control below are unchanged — only the add-a-floor path moved.
  */
-import { useActionState, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useState, useTransition } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
-import { addFloor, updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
+import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
 
 const STATUS_KEYS: Record<string, DictionaryKey> = {
@@ -176,7 +181,11 @@ export function FloorBreakdown({
             ))
           )}
 
-          {isPic && <AddFloorForm projectId={projectId} />}
+          {isPic && (
+            <p className="floor-breakdown__note">
+              <Link href={`/projects/${projectId}/floors`}>{t('floorBreakdownGoToFloorConfig')}</Link>
+            </p>
+          )}
 
           <section className="floor-breakdown__section">
             <h3 className="floor-breakdown__section-title">{t('floorBreakdownHandoverTitle')}</h3>
@@ -512,23 +521,3 @@ function HandoverRowView({
   )
 }
 
-const addFloorInitialState = { error: null }
-
-function AddFloorForm({ projectId }: { projectId: string }) {
-  const { t } = useLanguage()
-  const [state, formAction, pending] = useActionState(addFloor, addFloorInitialState)
-
-  return (
-    <form action={formAction} className="floor-breakdown__add-floor">
-      <input type="hidden" name="projectId" value={projectId} />
-      <label className="field">
-        <span className="field__label">{t('floorBreakdownFloorLabel')}</span>
-        <input className="field__input" name="label" placeholder={t('floorBreakdownFloorLabelPlaceholder')} required />
-      </label>
-      <button type="submit" className="btn btn--outline" disabled={pending}>
-        {t('floorBreakdownAddFloorSubmit')}
-      </button>
-      {state.error && <span className="floor-breakdown__error">{state.error}</span>}
-    </form>
-  )
-}
