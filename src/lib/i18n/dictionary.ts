@@ -789,6 +789,21 @@ const en = {
   contractBoqLocationAdd: 'Add location',
   contractBoqLocationDelete: 'Remove',
 
+  // Contract BOQ Excel import (Brief 048) — additive only, PIC-gated
+  // (same requireProjectPic() pattern). Writes only the flat total
+  // quantity to contract_boq_lines; contract_boq_line_locations is
+  // deliberately untouched by this importer.
+  contractBoqGoToImport: 'Import from Excel',
+  contractBoqImportKicker: 'Import Contract BOQ',
+  contractBoqImportBackToList: 'Back to Contract BOQ',
+  contractBoqImportDownloadTemplate: 'Download template',
+  contractBoqImportFileLabel: 'File (.xlsx)',
+  contractBoqImportSubmit: 'Import',
+  contractBoqImportSubmitting: 'Importing…',
+  contractBoqImportSuccessPrefix: 'Imported',
+  contractBoqImportSuccessSuffix: 'line(s).',
+  contractBoqImportRejected: 'Nothing was imported — fix these and try again:',
+
   // Floor & Zone (Tower/Wing) Configuration (Brief 047) — PIC-only writes
   // (migration 021's project_towers policies; project_floors' own
   // existing migration-009 policies, unchanged). !isPic renders every

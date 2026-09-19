@@ -3625,6 +3625,35 @@ button {
 }
 
 /* -----------------------------------------------------------------------
+   Contract BOQ Excel import (Brief 048) — reuses .field/.btn/
+   .contract-boq__error as-is.
+   ----------------------------------------------------------------------- */
+.contract-boq-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  max-width: 480px;
+}
+.contract-boq-import__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.contract-boq-import__success {
+  font: 600 13px/1.4 var(--font-body);
+  color: var(--navy);
+}
+.contract-boq-import__row-errors ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+.contract-boq-import__row-errors li {
+  margin-bottom: var(--space-1);
+}
+
+/* -----------------------------------------------------------------------
    Floor & Zone Configuration (Brief 047) — reuses .field/.btn/
    .wf-admin-row__confirm* as-is; these classes cover the tower/floor
    sections and their inline edit/add forms, mirroring contract-boq's own

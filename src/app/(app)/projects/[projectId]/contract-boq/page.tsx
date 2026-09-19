@@ -83,6 +83,12 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
         <Link href={`/projects/${project.id}`}>{t('contractBoqBackToSoRecord')}</Link>
       </p>
 
+      {isPic && (
+        <p>
+          <Link href={`/projects/${project.id}/contract-boq/import`}>{t('contractBoqGoToImport')}</Link>
+        </p>
+      )}
+
       {!isPic && <p className="contract-boq__note">{t('contractBoqNotPicNote')}</p>}
 
       {lines.length === 0 ? (
