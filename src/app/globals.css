@@ -3819,6 +3819,8 @@ button {
   color: var(--text-muted);
   margin-top: var(--space-3);
 }
+
+/* -----------------------------------------------------------------------
    Screen 3c — phone, two frames (Brief 028). Its own archetype (README
    "Phone — two jobs only"), NOT a scaled-down desktop screen — a narrow
    intrinsic column, generous type, 44px+ hit targets, built fresh rather
