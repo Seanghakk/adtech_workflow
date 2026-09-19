@@ -480,7 +480,12 @@ const en = {
   soRecordDependencyChainSlipped: 'Slip carried to chain end',
   soRecordDependencyChainOnTrack: 'No slip accumulated',
   soRecordViewDependencyChain: 'View dependency chain',
- 
+  // Brief 046 / Amendment A — the fourth so-record panel, added once a
+  // real Contract BOQ entry screen existed to link to.
+  soRecordLinkedContractBoqTitle: 'Contract BOQ',
+  soRecordLinkedContractBoqEmpty: 'No Contract BOQ lines recorded yet.',
+  soRecordViewContractBoq: 'View Contract BOQ',
+
   // Screen 2d (Brief 023) — the dependency chain, days taken against days
   // allowed per link. See
   // src/app/(app)/projects/[projectId]/dependencies/page.tsx's own comment
@@ -742,6 +747,40 @@ const en = {
   requestDetailHandOffPending: 'Handing on…',
   requestDetailClose: 'Close request',
   requestDetailClosePending: 'Closing…',
+
+  // Contract BOQ entry (Brief 046 / Amendment A) — record/detail archetype
+  // list, mirroring the users/lookups admin-table shape. PIC-only writes
+  // (migration 020); !isPic renders every control disabled/hidden rather
+  // than hiding the screen, same convention as update/page.tsx's own
+  // isCurrentUserPic gate.
+  contractBoqKicker: 'Contract BOQ',
+  contractBoqBackToSoRecord: 'Back to SO record',
+  contractBoqNotPicNote: 'Only this project’s PIC can add or change Contract BOQ lines here.',
+  contractBoqEmpty: 'No Contract BOQ lines yet.',
+  contractBoqOptional: '(optional)',
+  contractBoqColSection: 'Section',
+  contractBoqColDescription: 'Description',
+  contractBoqColBrand: 'Brand',
+  contractBoqColUnit: 'Unit',
+  contractBoqColQuantity: 'Quantity',
+  contractBoqColRequested: 'Requested',
+  contractBoqAddSubmit: 'Add line',
+  contractBoqEdit: 'Edit',
+  contractBoqSave: 'Save',
+  contractBoqSaving: 'Saving…',
+  contractBoqCancel: 'Cancel',
+  contractBoqDelete: 'Delete',
+  contractBoqDeleteConfirm: 'Delete this Contract BOQ line? This cannot be undone.',
+  contractBoqDeleteConfirmAction: 'Yes, delete',
+  contractBoqDeleteConfirmPending: 'Deleting…',
+  contractBoqLocationsExpand: 'Locations',
+  contractBoqLocationsCollapse: 'Hide locations',
+  contractBoqLocationsTitle: 'Location breakdown',
+  contractBoqLocationsEmpty: 'No location breakdown recorded for this line yet.',
+  contractBoqLocationLabel: 'Location',
+  contractBoqLocationQuantity: 'Quantity',
+  contractBoqLocationAdd: 'Add location',
+  contractBoqLocationDelete: 'Remove',
 } as const
  
 export type DictionaryKey = keyof typeof en

@@ -3543,6 +3543,92 @@ button {
   font: 600 11.5px/1.3 var(--font-body);
   color: var(--warning-tint-deep);
 }
+
+/* -----------------------------------------------------------------------
+   Contract BOQ entry (Brief 046 / Amendment A) — the line list reuses
+   .wf-admin-table as-is; these classes cover the add/edit forms and the
+   expandable per-line location breakdown, mirroring .wf-lookup-edit* (the
+   inline-edit-row shape) and .floor-breakdown__row* (the per-item list
+   row shape) rather than inventing a third pattern.
+   ----------------------------------------------------------------------- */
+.contract-boq__note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-3) 0;
+}
+.contract-boq__add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+.contract-boq__edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+}
+.contract-boq__edit-field {
+  min-width: 140px;
+  flex: 1;
+}
+.contract-boq__edit-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.contract-boq__row-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.contract-boq__error {
+  font: 600 11.5px/1.3 var(--font-body);
+  color: var(--warning-tint-deep);
+}
+.contract-boq__locations {
+  background: var(--ground);
+  border: 1px solid var(--card-hairline);
+  padding: var(--space-4);
+}
+.contract-boq__locations-title {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+.contract-boq__location-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+.contract-boq__location-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.contract-boq__location-row:first-child {
+  border-top: none;
+}
+.contract-boq__location-label {
+  flex: 1 1 auto;
+  font: 600 12.5px/1.3 var(--font-body);
+}
+.contract-boq__location-quantity {
+  max-width: 110px;
+}
+.contract-boq__add-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
 /* -----------------------------------------------------------------------
    Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
    Design Note Rev 3 §4.4 — same shape as .awaiting-so (screen 2b), same

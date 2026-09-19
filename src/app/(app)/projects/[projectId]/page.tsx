@@ -70,6 +70,7 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
     { data: linkedRequests },
     { data: procurementLines },
     { data: dependencyLinks },
+    { count: contractBoqLineCount },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -99,6 +100,10 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
       .select('id, sequence, name, days_allowed, started_at, ended_at, created_at')
       .eq('project_id', project.id)
       .order('sequence', { ascending: true }),
+    supabase
+      .from('contract_boq_lines')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', project.id),
   ])
 
   const profiles = await getUserProfilesByIds(supabase, [
@@ -335,6 +340,23 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
           )}
           <Link href={`/projects/${project.id}/dependencies`} className="awaiting-so-card__link">
             {t('soRecordViewDependencyChain')}
+          </Link>
+        </div>
+
+        {/* Brief 046 / Amendment A — same panel shape as procurement/
+            dependencies above, added once a real entry screen for
+            Contract BOQ existed to link to (Result 046 confirmed no such
+            screen existed before this round). */}
+        <div className="so-record__panel">
+          <div className="so-record__panel-head">
+            <span className="so-record__panel-title">{t('soRecordLinkedContractBoqTitle')}</span>
+            <span className="so-record__panel-count">{contractBoqLineCount ?? 0}</span>
+          </div>
+          {!contractBoqLineCount ? (
+            <p className="empty-state">{t('soRecordLinkedContractBoqEmpty')}</p>
+          ) : null}
+          <Link href={`/projects/${project.id}/contract-boq`} className="awaiting-so-card__link">
+            {t('soRecordViewContractBoq')}
           </Link>
         </div>
       </div>
