@@ -54,6 +54,9 @@ export default async function UpdateProgressPage({
 
   const { member } = await getCurrentMember()
   const isQcMember = member?.teamCode === 'qc'
+  // Migration 022 / Brief 050 §C — sub-stage status write access.
+  const isProjectTeamMember = member?.teamCode === 'project_management'
+  const isTncTeamMember = member?.teamCode === 'tnc'
 
   const [{ data: reasonCodes }, { data: lastUpdate }, { count: openItemCount }] = await Promise.all([
     supabase
@@ -257,6 +260,8 @@ export default async function UpdateProgressPage({
         projectId={project.id}
         isPic={isCurrentUserPic}
         isQcMember={isQcMember}
+        isProjectTeamMember={isProjectTeamMember}
+        isTncTeamMember={isTncTeamMember}
         floors={floors}
         projectShopDrawing={projectShopDrawing}
         handoverItems={handoverItems}

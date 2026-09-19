@@ -14,9 +14,25 @@
  */
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentMember } from '@/lib/auth/current-member'
 
-export interface FloorActionState {
-  error: string | null
+/** Brief 050 §C — team-keyed gate, app-layer belt-and-suspenders matching
+ *  migration 022's own RLS shape (workflow.current_team() there, this
+ *  app's own already-resolved member.teamCode here — same global,
+ *  not-per-project team membership, no extra query needed). Mirrors
+ *  requireProjectPic's own shape/error convention, kept as its own local
+ *  function per this app's standing per-file-gate-helper convention. */
+async function requireTeam(teamCodes: string[], teamLabel: string): Promise<{ userId: string } | { error: string }> {
+  const { member } = await getCurrentMember()
+
+  if (!member) {
+    return { error: 'You need to be signed in to do this.' }
+  }
+  if (!teamCodes.includes(member.teamCode)) {
+    return { error: `Only the ${teamLabel} team can change this here. Nothing was recorded.` }
+  }
+
+  return { userId: member.userId }
 }
 
 async function requireProjectPic(
@@ -43,63 +59,53 @@ async function requireProjectPic(
   return { userId: user.id }
 }
 
-/** Brief §2.2 — "Add floor," PIC only. No creator-column alternative:
- *  workflow.projects carries no created_by/creator column anywhere
- *  (confirmed by reading migrations 001/004/005/006/013) — flagged in
- *  the Result doc per the brief's own instruction, "Add floor" is
- *  restricted to the PIC alone rather than guessing at a second path. */
-export async function addFloor(
-  _prevState: FloorActionState,
-  formData: FormData,
-): Promise<FloorActionState> {
-  const projectId = String(formData.get('projectId') ?? '')
-  const label = String(formData.get('label') ?? '').trim()
-
-  if (!projectId || !label) {
-    return { error: 'A floor label is required.' }
-  }
-
-  const supabase = await createClient()
-  const gate = await requireProjectPic(supabase, projectId)
-  if ('error' in gate) return gate
-
-  const { count } = await supabase
-    .from('project_floors')
-    .select('id', { count: 'exact', head: true })
-    .eq('project_id', projectId)
-
-  const { error } = await supabase.from('project_floors').insert({
-    project_id: projectId,
-    label,
-    sort_order: (count ?? 0) + 1,
-  })
-
-  if (error) {
-    return { error: 'Could not add this floor — check the label isn’t already used on this project.' }
-  }
-
-  revalidatePath(`/projects/${projectId}/update`)
-  return { error: null }
-}
+// "Add floor" (Brief 024 §2.2's own addFloor action) REMOVED per Brief
+// 050 §B — superseded by the real floor/tower configuration screen at
+// /projects/[projectId]/floors (Brief 047), which also supports edit,
+// delete, and tower assignment that this lightweight form never did.
+// Confirmed before removing: nothing else in the app called this action
+// (grepped the whole src tree — its only caller was FloorBreakdown.tsx's
+// own local AddFloorForm, also removed this round). Floor DISPLAY and
+// sub-stage status updates below are unaffected — only the add-a-floor
+// path is gone from this screen.
 
 const SUB_STAGE_STATUSES = ['not_started', 'in_progress', 'done'] as const
+const SUB_STAGE_STAGES = ['installation', 'tnc'] as const
 
-/** Brief §2.2 — inline sub-stage status edit, PIC only, migration 009's
- *  existing write policy on workflow.floor_sub_stages. */
+/** Migration 022 / Brief 050 §C — team-keyed, STAGE-CONDITIONAL, not
+ *  PIC-keyed: an installation-stage row needs the Project team, a
+ *  tnc-stage row needs the TNC team, mirroring the RLS policy's own
+ *  shape exactly. `stage` comes from the client (SubStageRowView already
+ *  has it from the row it's rendering) purely for this app-layer
+ *  pre-check's own error message — RLS re-checks the REAL row's actual
+ *  stage column independently and is the real enforcement regardless of
+ *  what's claimed here, same as every other app-layer gate in this file. */
 export async function updateSubStageStatus(formData: FormData): Promise<{ error: string | null }> {
   const projectId = String(formData.get('projectId') ?? '')
   const subStageId = String(formData.get('subStageId') ?? '')
   const status = String(formData.get('status') ?? '')
+  const stage = String(formData.get('stage') ?? '')
 
-  if (!projectId || !subStageId || !SUB_STAGE_STATUSES.includes(status as (typeof SUB_STAGE_STATUSES)[number])) {
+  if (
+    !projectId ||
+    !subStageId ||
+    !SUB_STAGE_STATUSES.includes(status as (typeof SUB_STAGE_STATUSES)[number]) ||
+    !SUB_STAGE_STAGES.includes(stage as (typeof SUB_STAGE_STAGES)[number])
+  ) {
     return { error: 'Invalid status.' }
   }
 
-  const supabase = await createClient()
-  const gate = await requireProjectPic(supabase, projectId)
+  const gate =
+    stage === 'installation'
+      ? await requireTeam(['project_management'], 'Project')
+      : await requireTeam(['tnc'], 'TNC')
   if ('error' in gate) return gate
 
-  const { error } = await supabase.from('floor_sub_stages').update({ status }).eq('id', subStageId)
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('floor_sub_stages')
+    .update({ status, updated_by: gate.userId })
+    .eq('id', subStageId)
   if (error) {
     return { error: 'Could not save this status.' }
   }
@@ -146,10 +152,15 @@ const HANDOVER_STATUSES = ['not_started', 'in_progress', 'done'] as const
 /** Brief §2.4 — the six-deliverable handover checklist. workflow.
  *  project_handover_items rows are NOT auto-seeded (migration 008's own
  *  comment) — a project with zero rows shows all six as virtual
- *  not_started, and the first edit on any of them UPSERTs the row,
- *  relying on migration 009's existing PIC-keyed INSERT/UPDATE policies.
- *  No mandatory-reason rule here — that is 6a's own percent-update rule
- *  only, not asked for on this checklist. */
+ *  not_started, and the first edit on any of them UPSERTs the row. No
+ *  mandatory-reason rule here — that is 6a's own percent-update rule
+ *  only, not asked for on this checklist.
+ *
+ *  Migration 022 / Brief 050 §C — QC team, not PIC-keyed. This is the
+ *  round's own real behaviour change on this action: the project's PIC
+ *  alone can no longer save a handover item unless they also happen to
+ *  be on the QC team — team-wide access replaces PIC-only here, matching
+ *  the RLS policy exactly. */
 export async function upsertHandoverItem(formData: FormData): Promise<{ error: string | null }> {
   const projectId = String(formData.get('projectId') ?? '')
   const deliverable = String(formData.get('deliverable') ?? '')
@@ -163,10 +174,10 @@ export async function upsertHandoverItem(formData: FormData): Promise<{ error: s
     return { error: 'Invalid deliverable or status.' }
   }
 
-  const supabase = await createClient()
-  const gate = await requireProjectPic(supabase, projectId)
+  const gate = await requireTeam(['qc'], 'QC')
   if ('error' in gate) return gate
 
+  const supabase = await createClient()
   const { error } = await supabase
     .from('project_handover_items')
     .upsert(
@@ -175,6 +186,7 @@ export async function upsertHandoverItem(formData: FormData): Promise<{ error: s
         deliverable,
         status,
         completed_at: status === 'done' ? new Date().toISOString() : null,
+        updated_by: gate.userId,
       },
       { onConflict: 'project_id,deliverable' },
     )
