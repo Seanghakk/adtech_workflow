@@ -15,10 +15,6 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
-export interface FloorActionState {
-  error: string | null
-}
-
 async function requireProjectPic(
   supabase: Awaited<ReturnType<typeof createClient>>,
   projectId: string,
@@ -43,44 +39,15 @@ async function requireProjectPic(
   return { userId: user.id }
 }
 
-/** Brief §2.2 — "Add floor," PIC only. No creator-column alternative:
- *  workflow.projects carries no created_by/creator column anywhere
- *  (confirmed by reading migrations 001/004/005/006/013) — flagged in
- *  the Result doc per the brief's own instruction, "Add floor" is
- *  restricted to the PIC alone rather than guessing at a second path. */
-export async function addFloor(
-  _prevState: FloorActionState,
-  formData: FormData,
-): Promise<FloorActionState> {
-  const projectId = String(formData.get('projectId') ?? '')
-  const label = String(formData.get('label') ?? '').trim()
-
-  if (!projectId || !label) {
-    return { error: 'A floor label is required.' }
-  }
-
-  const supabase = await createClient()
-  const gate = await requireProjectPic(supabase, projectId)
-  if ('error' in gate) return gate
-
-  const { count } = await supabase
-    .from('project_floors')
-    .select('id', { count: 'exact', head: true })
-    .eq('project_id', projectId)
-
-  const { error } = await supabase.from('project_floors').insert({
-    project_id: projectId,
-    label,
-    sort_order: (count ?? 0) + 1,
-  })
-
-  if (error) {
-    return { error: 'Could not add this floor — check the label isn’t already used on this project.' }
-  }
-
-  revalidatePath(`/projects/${projectId}/update`)
-  return { error: null }
-}
+// "Add floor" (Brief 024 §2.2's own addFloor action) REMOVED per Brief
+// 050 §B — superseded by the real floor/tower configuration screen at
+// /projects/[projectId]/floors (Brief 047), which also supports edit,
+// delete, and tower assignment that this lightweight form never did.
+// Confirmed before removing: nothing else in the app called this action
+// (grepped the whole src tree — its only caller was FloorBreakdown.tsx's
+// own local AddFloorForm, also removed this round). Floor DISPLAY and
+// sub-stage status updates below are unaffected — only the add-a-floor
+// path is gone from this screen.
 
 const SUB_STAGE_STATUSES = ['not_started', 'in_progress', 'done'] as const
 
