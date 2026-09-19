@@ -671,7 +671,11 @@ const en = {
   floorBreakdownInstallationTitle: 'Installation',
   floorBreakdownTncTitle: 'TNC',
   floorBreakdownHandoverTitle: 'Handover checklist',
-  floorBreakdownPicOnlyNote: 'Only this project’s PIC can change floor detail here.',
+  // Migration 022 / Brief 050 §C — shown only when NONE of the relevant
+  // gates apply (PIC, QC, Project, TNC team) — the old PIC-only wording
+  // would now be inaccurate for a team member who isn't the PIC.
+  floorBreakdownPicOnlyNote:
+    'You can view floor detail here, but changing it needs to be this project’s PIC or a member of the relevant team (Project, TNC, or QC).',
   floorBreakdownExceptionsTitle: 'QC exceptions',
   floorBreakdownExceptionsEmpty: 'No sub-stage is marked done without a passed inspection.',
   floorBreakdownExceptionFlag: 'No passed inspection',

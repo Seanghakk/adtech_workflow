@@ -4,14 +4,14 @@
  * Brief 024 §2/§3 — the expandable floor breakdown that opens out of
  * screen 6a on a floor-tracked project, plus QC inspection recording.
  *
- * Every status edit here (sub-stage status, shop-drawing status,
- * handover checklist) relies entirely on migration 009's existing
- * PIC-keyed write policies (Brief §2.2/§5 — sub-stage write access does
- * not change this round); every inspection insert relies on migration
- * 017's new QC-team-keyed policy (Brief §4). The isPic/isQcMember props
- * gate which controls even render, mirroring UpdateProgressForm's own
- * belt-and-suspenders convention — RLS is the real enforcement in both
- * cases.
+ * Migration 022 / Brief 050 §C — sub-stage status and the handover
+ * checklist are NO LONGER PIC-keyed: sub-stage status is team-keyed,
+ * STAGE-CONDITIONAL (Project team for installation rows, TNC team for
+ * tnc rows), and handover is QC-team-keyed, mirroring the RLS policies'
+ * own shape exactly. Shop-drawing status (still PIC-only, migration 009,
+ * unchanged by migration 022) keeps the isPic gate it always had.
+ * Every gate here is app-layer belt-and-suspenders only — RLS is the
+ * real enforcement in every case.
  *
  * Brief 050 §B — this screen's own lightweight "Add floor" form
  * (add-only, no edit/delete/tower support) is REMOVED: the real floor/
@@ -95,6 +95,8 @@ export function FloorBreakdown({
   projectId,
   isPic,
   isQcMember,
+  isProjectTeamMember,
+  isTncTeamMember,
   floors,
   projectShopDrawing,
   handoverItems,
@@ -102,6 +104,12 @@ export function FloorBreakdown({
   projectId: string
   isPic: boolean
   isQcMember: boolean
+  /** Migration 022 / Brief 050 §C — gates installation-stage sub-stage
+   *  status (workflow.teams.code = 'project_management'). */
+  isProjectTeamMember: boolean
+  /** Migration 022 / Brief 050 §C — gates tnc-stage sub-stage status
+   *  (workflow.teams.code = 'tnc'). */
+  isTncTeamMember: boolean
   floors: FloorRow[]
   projectShopDrawing: DrawingRow[]
   handoverItems: HandoverItem[]
@@ -125,7 +133,9 @@ export function FloorBreakdown({
 
       {expanded && (
         <div className="floor-breakdown__body">
-          {!isPic && <p className="floor-breakdown__note">{t('floorBreakdownPicOnlyNote')}</p>}
+          {!isPic && !isQcMember && !isProjectTeamMember && !isTncTeamMember && (
+            <p className="floor-breakdown__note">{t('floorBreakdownPicOnlyNote')}</p>
+          )}
 
           <section className="floor-breakdown__section">
             <h3 className="floor-breakdown__section-title">{t('floorBreakdownProjectLevelTitle')}</h3>
@@ -159,7 +169,15 @@ export function FloorBreakdown({
             <p className="empty-state">{t('floorBreakdownNoFloors')}</p>
           ) : (
             floors.map((floor) => (
-              <FloorCard key={floor.id} projectId={projectId} floor={floor} isPic={isPic} isQcMember={isQcMember} />
+              <FloorCard
+                key={floor.id}
+                projectId={projectId}
+                floor={floor}
+                isPic={isPic}
+                isQcMember={isQcMember}
+                isProjectTeamMember={isProjectTeamMember}
+                isTncTeamMember={isTncTeamMember}
+              />
             ))
           )}
 
@@ -178,7 +196,7 @@ export function FloorBreakdown({
                   projectId={projectId}
                   deliverable={deliverable}
                   status={handoverByDeliverable.get(deliverable) ?? 'not_started'}
-                  isPic={isPic}
+                  isQcMember={isQcMember}
                 />
               ))}
             </div>
@@ -194,11 +212,15 @@ function FloorCard({
   floor,
   isPic,
   isQcMember,
+  isProjectTeamMember,
+  isTncTeamMember,
 }: {
   projectId: string
   floor: FloorRow
   isPic: boolean
   isQcMember: boolean
+  isProjectTeamMember: boolean
+  isTncTeamMember: boolean
 }) {
   const { t } = useLanguage()
   const installation = floor.subStages.filter((s) => s.stage === 'installation')
@@ -220,14 +242,28 @@ function FloorCard({
       <div className="floor-breakdown__subsection">
         <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownInstallationTitle')}</h4>
         {installation.map((s) => (
-          <SubStageRowView key={s.id} projectId={projectId} subStage={s} isPic={isPic} isQcMember={isQcMember} inspectionType="installation" />
+          <SubStageRowView
+            key={s.id}
+            projectId={projectId}
+            subStage={s}
+            canWrite={isProjectTeamMember}
+            isQcMember={isQcMember}
+            inspectionType="installation"
+          />
         ))}
       </div>
 
       <div className="floor-breakdown__subsection">
         <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownTncTitle')}</h4>
         {tnc.map((s) => (
-          <SubStageRowView key={s.id} projectId={projectId} subStage={s} isPic={isPic} isQcMember={isQcMember} inspectionType="commissioning" />
+          <SubStageRowView
+            key={s.id}
+            projectId={projectId}
+            subStage={s}
+            canWrite={isTncTeamMember}
+            isQcMember={isQcMember}
+            inspectionType="commissioning"
+          />
         ))}
       </div>
     </section>
@@ -268,13 +304,15 @@ function DrawingRowView({ projectId, item, isPic }: { projectId: string; item: D
 function SubStageRowView({
   projectId,
   subStage,
-  isPic,
+  canWrite,
   isQcMember,
   inspectionType,
 }: {
   projectId: string
   subStage: SubStageRow
-  isPic: boolean
+  /** Migration 022 / Brief 050 §C — the Project or TNC team gate,
+   *  resolved by the caller from subStage.stage (installation vs tnc). */
+  canWrite: boolean
   isQcMember: boolean
   inspectionType: 'installation' | 'commissioning'
 }) {
@@ -292,12 +330,13 @@ function SubStageRowView({
       <select
         className="floor-breakdown__status-select"
         defaultValue={subStage.status}
-        disabled={!isPic || isPending}
+        disabled={!canWrite || isPending}
         onChange={(e) => {
           const formData = new FormData()
           formData.set('projectId', projectId)
           formData.set('subStageId', subStage.id)
           formData.set('status', e.target.value)
+          formData.set('stage', subStage.stage)
           startTransition(() => {
             updateSubStageStatus(formData)
           })
@@ -444,12 +483,13 @@ function HandoverRowView({
   projectId,
   deliverable,
   status,
-  isPic,
+  isQcMember,
 }: {
   projectId: string
   deliverable: string
   status: string
-  isPic: boolean
+  /** Migration 022 / Brief 050 §C — QC team, not PIC. */
+  isQcMember: boolean
 }) {
   const { t } = useLanguage()
   const [isPending, startTransition] = useTransition()
@@ -460,7 +500,7 @@ function HandoverRowView({
       <select
         className="floor-breakdown__status-select"
         defaultValue={status}
-        disabled={!isPic || isPending}
+        disabled={!isQcMember || isPending}
         onChange={(e) => {
           const formData = new FormData()
           formData.set('projectId', projectId)
