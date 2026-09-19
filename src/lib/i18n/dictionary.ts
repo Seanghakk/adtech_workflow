@@ -24,6 +24,10 @@ const en = {
   appKicker: 'Workflow Tracker',
   navSignOut: 'Sign out',
   navUpdateProgress: 'Update progress',
+  // Brief 039 §1 — the sidebar's own entry for "/", the project board
+  // (Screen 4a). Never had a nav label before this brief: the brand mark
+  // was the only link to it.
+  navBoard: 'Board',
   langToggleLabel: 'Language',
  
   loginTitle: 'Sign in',

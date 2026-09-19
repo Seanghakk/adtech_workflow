@@ -330,32 +330,116 @@ button {
   font: 400 12px/1 var(--font-body);
   color: var(--text-muted);
 }
-.app-header__nav {
-  display: flex;
-  align-items: center;
-  /* Fable Brief 003 §4.1 — the fix: these links had no gap at all, so
-     "Exceptions" and "Load" rendered as one run-together word on every
-     screen. */
-  gap: var(--space-4);
-}
-.app-header__nav a {
-  font: 600 13px/1 var(--font-body);
-  letter-spacing: 0.01em;
-  color: var(--navy);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.app-header__nav a:hover {
-  color: var(--navy-deep);
-  text-decoration: underline;
-}
 .app-header__actions {
   display: flex;
   align-items: center;
   gap: var(--space-4);
 }
+
+/* -----------------------------------------------------------------------
+   Collapsible sidebar (Brief 039 §1) — replaces the old .app-header__nav
+   link groups. Mirrors the CMMS's own HubNav sidebar STRUCTURE (icon
+   rail collapsed vs. full labels expanded, toggle pinned at the bottom,
+   scrollable link list) and BEHAVIOR (persisted collapse state — see
+   useSidebarCollapsed.ts), never its shape language: no radius, no
+   shadow, no hover lift — every value below reads this app's own
+   flat/ruled tokens, same as everything else in this file.
+
+   Unlike the CMMS, this stays visible at every viewport width rather
+   than hiding below 900px — see AppSidebar.tsx's own header for why
+   (no equivalent mobile drawer exists here, and at least one real screen
+   is phone-first). --sidebar-w / --sidebar-w-collapsed are their own
+   tokens (not --space-*) since a sidebar rail width isn't a spacing
+   value in the scale's own sense.
+   ----------------------------------------------------------------------- */
+.app-shell__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.app-sidebar {
+  --sidebar-w: 208px;
+  --sidebar-w-collapsed: 60px;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  /* Major-section boundary, same weight as the topbar's own bottom rule. */
+  border-right: 2px solid var(--rule-major);
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  transition: width 150ms ease;
+}
+.app-sidebar--collapsed {
+  width: var(--sidebar-w-collapsed);
+}
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.app-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-decoration: none;
+  /* Row divider, not a major rule — same weight the rest of the app uses
+     between rows (e.g. table rows), applied here as a bottom rule per
+     link rather than the CMMS's own left-accent-bar treatment, since
+     this app's ownership accent (--navy left rule) is already spoken
+     for elsewhere (the SO spine) and reusing it here would blur that. */
+  border-left: 3px solid transparent;
+}
+.app-sidebar-link svg {
+  flex: none;
+}
+.app-sidebar-link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.app-sidebar-link[aria-current='page'] {
+  color: var(--navy);
+  font-weight: 700;
+  border-left-color: var(--navy);
+  background: var(--navy-tint-bg);
+}
+.app-sidebar--collapsed .app-sidebar-link-label {
+  display: none;
+}
+.app-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-top: 2px solid var(--rule-major);
+  background: transparent;
+  color: var(--text-muted);
+  font: 600 12px/1 var(--font-body);
+}
+.app-sidebar-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.app-sidebar--collapsed .app-sidebar-toggle-label {
+  display: none;
+}
+
 .app-shell__main {
   flex: 1;
+  min-width: 0;
   padding: var(--space-6);
   max-width: 1300px;
   width: 100%;

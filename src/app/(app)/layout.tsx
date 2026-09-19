@@ -1,6 +1,9 @@
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { AppHeader } from '@/components/AppHeader'
+import { AppSidebar } from '@/components/AppSidebar'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { isSalesTeamMember } from '@/lib/auth/sales-roles'
+import { isManagerOrAdmin } from '@/lib/auth/roles'
 
 /**
  * The access gate lives here (Brief 002 §5.1) — every route under the
@@ -26,7 +29,10 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   return (
     <div className="app-shell">
       <AppHeader member={member} />
-      <main className="app-shell__main">{children}</main>
+      <div className="app-shell__body">
+        <AppSidebar isSales={isSalesTeamMember(member)} isManager={isManagerOrAdmin(member)} />
+        <main className="app-shell__main">{children}</main>
+      </div>
     </div>
   )
 }
