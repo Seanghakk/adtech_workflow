@@ -89,12 +89,15 @@ where schemaname = 'workflow'
     'contract_boq_lines',
     'shop_drawing_boq_lines', 'shop_drawing_boq_line_locations', 'shop_drawing_boq_location_map'
   )
-  and cmd in ('a', 'w', 'd')
+  and cmd in ('INSERT', 'UPDATE', 'DELETE')
 order by tablename, cmd;
 
 
 -- 7. DELETE grant on the seven BOQ tables. Expect exactly 7 rows, one per
--- table, privilege_type = 'DELETE', grantee = 'authenticated'.
+-- table, privilege_type = 'DELETE', grantee = 'authenticated'. (The table
+-- owner — 'postgres' in most Supabase projects — always implicitly holds
+-- every privilege and will show up here too if the grantee filter below
+-- is ever removed; that's not a grant this migration made.)
 select table_name, grantee, privilege_type
 from information_schema.role_table_grants
 where table_schema = 'workflow'
@@ -104,6 +107,7 @@ where table_schema = 'workflow'
     'shop_drawing_boq_lines', 'shop_drawing_boq_line_locations', 'shop_drawing_boq_location_map'
   )
   and privilege_type = 'DELETE'
+  and grantee = 'authenticated'
 order by table_name, grantee;
 
 
