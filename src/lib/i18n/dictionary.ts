@@ -662,10 +662,9 @@ const en = {
   floorBreakdownOverride: 'Override',
   floorBreakdownOverrideActive: 'Overridden',
   floorBreakdownOverrideCancel: 'Cancel override',
-  floorBreakdownAddFloor: 'Add floor',
-  floorBreakdownFloorLabel: 'Floor label',
-  floorBreakdownFloorLabelPlaceholder: 'e.g. B1, Roof, 12',
-  floorBreakdownAddFloorSubmit: 'Add',
+  // Brief 050 §B — replaces the removed inline "Add floor" form; points
+  // to the real floor/tower configuration screen (Brief 047) instead.
+  floorBreakdownGoToFloorConfig: 'Add or manage floors →',
   floorBreakdownProjectLevelTitle: 'Project-level shop drawing',
   floorBreakdownNoFloors: 'No floors added yet.',
   floorBreakdownShopDrawingTitle: 'Shop drawing',

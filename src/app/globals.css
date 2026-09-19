@@ -3492,8 +3492,7 @@ button {
 .floor-breakdown__floor-card {
   border-left: 3px solid var(--ink);
 }
-.floor-breakdown__inspection-form,
-.floor-breakdown__add-floor {
+.floor-breakdown__inspection-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -3501,11 +3500,6 @@ button {
   margin-top: var(--space-2);
   background: var(--ground);
   border: 1px solid var(--border);
-}
-.floor-breakdown__add-floor {
-  flex-direction: row;
-  align-items: flex-end;
-  flex-wrap: wrap;
 }
 .floor-breakdown__material-inspection {
   margin-top: var(--space-3);
