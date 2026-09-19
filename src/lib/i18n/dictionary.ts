@@ -781,6 +781,21 @@ const en = {
   contractBoqLocationQuantity: 'Quantity',
   contractBoqLocationAdd: 'Add location',
   contractBoqLocationDelete: 'Remove',
+
+  // Contract BOQ Excel import (Brief 048) — additive only, PIC-gated
+  // (same requireProjectPic() pattern). Writes only the flat total
+  // quantity to contract_boq_lines; contract_boq_line_locations is
+  // deliberately untouched by this importer.
+  contractBoqGoToImport: 'Import from Excel',
+  contractBoqImportKicker: 'Import Contract BOQ',
+  contractBoqImportBackToList: 'Back to Contract BOQ',
+  contractBoqImportDownloadTemplate: 'Download template',
+  contractBoqImportFileLabel: 'File (.xlsx)',
+  contractBoqImportSubmit: 'Import',
+  contractBoqImportSubmitting: 'Importing…',
+  contractBoqImportSuccessPrefix: 'Imported',
+  contractBoqImportSuccessSuffix: 'line(s).',
+  contractBoqImportRejected: 'Nothing was imported — fix these and try again:',
 } as const
  
 export type DictionaryKey = keyof typeof en
