@@ -65,10 +65,22 @@ const NAV_ICONS: Record<string, LucideIcon> = {
  *    visitor's first-ever load to collapsed below 640px specifically so
  *    it doesn't eat the screen before anyone's had a chance to fold it.
  */
-export function AppSidebar({ isSales, isManager }: { isSales: boolean; isManager: boolean }) {
+export function AppSidebar({
+  isSales,
+  isManager,
+  initialCollapsed,
+}: {
+  isSales: boolean
+  isManager: boolean
+  /** Brief 043 item 1 — the sidebar-collapsed cookie value the caller (a
+   *  Server Component) already read via `cookies()`. Undefined (no cookie
+   *  yet) falls through to useSidebarCollapsed()'s own client-side
+   *  default/localStorage handling — see that hook's own header. */
+  initialCollapsed?: boolean
+}) {
   const { t } = useLanguage()
   const pathname = usePathname()
-  const [collapsed, toggleCollapsed] = useSidebarCollapsed()
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed(initialCollapsed)
 
   const entries = NAV_ENTRIES.filter((entry) => canSeeNavEntry(entry, { isSales, isManager }))
 

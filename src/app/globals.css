@@ -311,6 +311,25 @@ button {
   /* Major-section boundary — the app shell's own header/content edge. */
   border-bottom: 2px solid var(--rule-major);
 }
+/* Brief 043 item 3 — real-device hand-verification (iPhone 14 Pro Max)
+   found the language toggle and sign-out button pushed off-screen,
+   unreachable: brand-mark + identity + actions never wrapped, and their
+   combined minimum width exceeds a phone viewport. Below the same
+   narrow-viewport line useSidebarCollapsed.ts already uses, the identity
+   block (owner name/team — the least essential piece for reaching a
+   control) drops to its own second line, so brand-mark and actions
+   always fit on the first line regardless of name/team label length. */
+@media (max-width: 640px) {
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+  .app-header__identity {
+    order: 3;
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+}
 .app-header__identity {
   display: flex;
   align-items: center;
@@ -370,7 +389,28 @@ button {
   position: sticky;
   top: 0;
   align-self: flex-start;
-  height: 100vh;
+  /* Brief 043 items 2 & 4 — was `height: 100vh`, confirmed by real-device
+     hand-verification (iPhone 14 Pro Max AND an ordinary, non-fullscreen
+     MacBook browser window: a HEIGHT bug, not a width one, exactly as
+     hand-verification suspected) to push the collapse toggle off-screen
+     on load. Root cause, confirmed via computed layout, not theorized:
+     .app-header is NOT sticky (unlike the CMMS's own topbar), so at the
+     top of the page the sidebar starts in normal flow BELOW it — but
+     `height: 100vh` sized the sidebar's box to the FULL viewport height
+     regardless of that offset, overflowing the viewport's bottom by
+     exactly the header's own height and carrying its last child (the
+     toggle) past the fold with it. `max-height` instead of a fixed
+     `height` sizes the box to its actual content (the nav list + toggle,
+     far shorter than one viewport) up to that cap, so it sits flush
+     below the header with no overflow at the top of the page, while
+     still being capped once scrolled — position: sticky's own job from
+     there. `100dvh` (dynamic viewport height, falling back to plain
+     `100vh` where unsupported) additionally accounts for the vertical
+     space real mobile browser chrome removes that a static `100vh`
+     doesn't — directly the mechanism Seanghakk's own MacBook finding
+     pointed at. */
+  max-height: 100vh;
+  max-height: 100dvh;
   transition: width 150ms ease;
 }
 .app-sidebar--collapsed {
