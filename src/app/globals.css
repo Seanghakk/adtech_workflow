@@ -438,9 +438,30 @@ button {
      .app-shell's own `--app-header-h` comment for how this was found).
      Subtracting it here is what actually closes that gap; top stays 0
      (the header itself is still not sticky, unchanged) since that's
-     correct for the common, unscrolled case this app actually hits. */
-  max-height: calc(100vh - var(--app-header-h));
-  max-height: calc(100dvh - var(--app-header-h));
+     correct for the common, unscrolled case this app actually hits.
+
+     Brief 045 — `max-height` was the wrong axis to fix on: a CAP only
+     stops the box from being too tall, it does nothing to stop the box
+     from being too SHORT, which is what this app's real ~11-item nav
+     always is on an ordinary screen (content far short of one viewport).
+     044 then pinned .app-sidebar-toggle separately with its own
+     `position: fixed` to keep IT reachable regardless — correct for
+     reachability, but it detached the toggle from a box that no longer
+     reliably reached the bottom, so ordinary hand-verification (a
+     normal desktop window, not any edge case) showed a visible strip of
+     bare page background between "Telegram messages" and "Collapse":
+     confirmed live, 10px+ gap, screenshotted, before writing this fix —
+     see Result 045 for the reproduction. `height` instead of
+     `max-height` makes the box a DEFINITE size — always exactly the
+     space below the header down to the true viewport bottom, whether
+     content is short (the common case) or long (needs its own internal
+     scroll, .app-sidebar-nav's own job below) — so .app-sidebar-toggle
+     could move back to being a normal flex child (see that rule) and
+     reach the true bottom by construction, the same way Result 039
+     originally intended, rather than by a second, independent fixed
+     position that could drift out of sync with the box's own edge. */
+  height: calc(100vh - var(--app-header-h));
+  height: calc(100dvh - var(--app-header-h));
   transition: width 150ms ease;
 }
 .app-sidebar--collapsed {
@@ -453,13 +474,14 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* Brief 044 — room for .app-sidebar-toggle, now `position: fixed` and
-     no longer a flex sibling taking up its own space in this column, so
-     the last link would otherwise sit directly behind it when the list
-     is long enough to scroll. Generous rather than pixel-exact (a little
-     extra whitespace at the bottom of a scrolled list is harmless; too
-     little would hide a link under the fixed footer). */
-  padding-bottom: var(--space-9);
+  /* Brief 044's `padding-bottom: var(--space-9)` here is REMOVED by
+     Brief 045 — it existed only to keep the last link clear of a
+     DETACHED, `position: fixed` toggle that could overlap scrolled
+     content. With the toggle back as a normal flex sibling below this
+     element (see .app-sidebar-toggle), it already occupies its own real
+     space in the column; flex layout keeps it clear of the list without
+     any manual padding, and the old padding would now just add stray
+     empty space at the end of a scrolled list for no reason. */
 }
 .app-sidebar-link {
   display: flex;
@@ -494,25 +516,18 @@ button {
 .app-sidebar--collapsed .app-sidebar-link-label {
   display: none;
 }
-/* Brief 044 — was the last item in .app-sidebar's own flex column, which
-   043's max-height fix (necessary — see that rule's own comment) turned
-   into a side effect: a content-sized sidebar means the box ends right
-   after the last link, so with a short list (this app's own ~11 items,
-   nowhere near a full viewport) the toggle sat right after "Telegram
-   messages" instead of anchored to the screen's own bottom edge —
-   confirmed live, re-reading the CURRENT post-043 markup/CSS rather than
-   assuming Result 039's old "pinned via flex:1" description still held.
-   `position: fixed` instead of trying to recreate that flex:1-fills-the-
-   box trick: this app's topbar can also be TWO ROWS at narrow widths
-   (item 3's own header wrap), so its height isn't one constant a sticky/
-   flex approach could safely subtract — fixed positioning is anchored to
-   the viewport directly and doesn't need to know the header's height at
-   all, sidestepping that coupling entirely. Left/width still track the
-   sidebar's own current state exactly (see width rules below) so it
-   reads as part of the same column, not a separate floating control. The
-   existing `border-top` already provides Brief 044's own "visually
-   separate it from the last link" requirement — a rule, not a shadow,
-   same flat/ruled token as every other major boundary in this file. */
+/* Brief 044 made this `position: fixed` to keep it reachable regardless
+   of .app-sidebar's own (then content-sized, via `max-height`) box
+   height. Brief 045 REVERTS that: now that .app-sidebar has a definite
+   `height` that always reaches the true viewport bottom (see that
+   rule's own comment), a normal last-flex-child toggle reaches the
+   bottom too, by construction — no independent positioning needed, and
+   no way for it to drift out of sync with the box's own edge (044's own
+   failure mode: a visible gap of bare page background between the last
+   link and a separately-pinned toggle, confirmed live and screenshotted
+   — see Result 045). This is Result 039's ORIGINAL intent, restored.
+   `border-top` still provides the "visually separate it from the last
+   link" separation Brief 044 asked for — unchanged, still correct. */
 .app-sidebar-toggle {
   display: flex;
   align-items: center;
@@ -521,17 +536,9 @@ button {
   padding: var(--space-3) var(--space-4);
   border: 0;
   border-top: 2px solid var(--rule-major);
-  background: var(--surface);
+  background: transparent;
   color: var(--text-muted);
   font: 600 12px/1 var(--font-body);
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: var(--sidebar-w, 208px);
-  transition: width 150ms ease;
-}
-.app-sidebar--collapsed .app-sidebar-toggle {
-  width: var(--sidebar-w-collapsed, 60px);
 }
 .app-sidebar-toggle:hover {
   background: var(--surface-hover);
