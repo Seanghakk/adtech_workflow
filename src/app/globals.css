@@ -60,7 +60,11 @@
      documented at 16% ink (§3.2), a third, lighter opacity than either
      rule weight above; kept as its own token rather than reused. */
   --card-hairline: rgba(32, 30, 29, 0.16);
- 
+  /* Brief 057 — this app's first full-screen overlay (the photo evidence
+     lightbox). No doc value for it; same ink-based approach as the tokens
+     above, just much darker, matching the CMMS's own scrim treatment. */
+  --scrim: rgba(32, 30, 29, 0.85);
+
   /* ---- Semantic colour — one job each, documented (Handoff v1 §3) ---- */
   --navy: #0e5c86; /* ownership, the SO spine, primary action, links, active nav */
   --danger: #c62430; /* delay only — never a button, never brand, never general emphasis */
@@ -1564,7 +1568,104 @@ button {
   font: 500 13px/1.4 var(--font-body);
   color: var(--danger);
 }
- 
+
+/* -----------------------------------------------------------------------
+   Photo evidence (Brief 057) — the new-update picker inside
+   .update-card__reason, and the small "last reported" thumbnail above.
+   Flat and ruled: radius 0, no shadows, same rule/space tokens as the
+   rest of this card.
+   ----------------------------------------------------------------------- */
+.update-card__photo {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.photo-input {
+  /* Visually hidden but still focusable/clickable via the ref — real
+     camera-capture file inputs render inconsistently across mobile
+     browsers when merely small, so this app hides it and drives it from
+     the styled btn--outline trigger instead, same approach as every
+     other custom control in this file (e.g. .reason-option). */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.photo-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.photo-picker__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+.photo-thumb {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-thumb--small {
+  width: 40px;
+  height: 40px;
+  margin-top: var(--space-3);
+}
+.photo-thumb__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--card-hairline);
+}
+.photo-thumb__progress-bar {
+  height: 100%;
+  background: var(--navy);
+  transition: width 0.15s ease;
+}
+.photo-retry {
+  border: none;
+  background: transparent;
+  color: var(--danger);
+  font: 600 13px/1.4 var(--font-body);
+  text-decoration: underline;
+  padding: 0;
+  cursor: pointer;
+}
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  z-index: 100;
+  cursor: pointer;
+}
+.photo-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius);
+}
+
 /* -----------------------------------------------------------------------
    Sales monitoring (ADTECH_WF_Brief_003_Sales_Roles) — reuses .dashboard,
    .project-list and .empty-state from the "/" list above; only the

@@ -52,3 +52,16 @@ export function getSupabaseAnonKey(): string {
   if (!key) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.')
   return key
 }
+
+/**
+ * Server-only. Brief 057 — this app's first use of Supabase Storage,
+ * mirroring the CMMS's service-role upload pattern (its src/lib/supabase/
+ * service.ts) so the client never depends on storage.objects RLS. Never
+ * import getSupabaseServiceRoleKey from a Client Component and never send
+ * this value to the browser.
+ */
+export function getSupabaseServiceRoleKey(): string {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set.')
+  return key
+}

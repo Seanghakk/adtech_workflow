@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useMemo, useState } from 'react'
+import { useActionState, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { localizedLabel } from '@/lib/i18n/localized-label'
 import { AgeLadder } from '@/components/AgeLadder'
+import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { submitProgressUpdate, type SubmitProgressUpdateState } from './actions'
 
 interface ReasonCode {
@@ -23,7 +24,7 @@ interface UpdateProgressFormProps {
     openItemCount: number
     ownerLabel: string | null
   }
-  lastReported: { dateLabel: string; byLabel: string | null } | null
+  lastReported: { dateLabel: string; byLabel: string | null; photoUrl: string | null } | null
   /** Fable Brief 002 §2.1 — the unassigned/not-your-project state, on 6a. */
   pic: { assigned: boolean; isCurrentUser: boolean; label: string | null }
   daysSinceMovement: number
@@ -56,6 +57,16 @@ interface UpdateProgressFormProps {
     picLabel: string
     picYou: string
     ownerLabel: string
+    photoLabel: string
+    photoOptional: string
+    photoAdd: string
+    photoRetake: string
+    photoRemove: string
+    photoUploading: string
+    photoRetry: string
+    photoRequiredTitle: string
+    photoRequiredBody: string
+    photoEvidenceAlt: string
   }
 }
 
@@ -78,6 +89,42 @@ export function UpdateProgressForm({
   const [reasonCode, setReasonCode] = useState<string>('')
   const [note, setNote] = useState('')
 
+  // Brief 057 §3/§5 — photo evidence. photoUrl is what actually gets
+  // submitted; uploadStatus/uploadProgress/uploadError only drive the UI.
+  // Deliberately separate state from newPercent/reasonCode/note so a
+  // failed or slow upload never touches what the person already typed
+  // (§5: "the update and the photo must not fail as one unit").
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pendingFileRef = useRef<File | null>(null)
+
+  const runUpload = async (file: File) => {
+    pendingFileRef.current = file
+    setUploadStatus('uploading')
+    setUploadProgress(0)
+    setUploadError(null)
+    try {
+      const dataUrl = await compressImage(file)
+      setPhotoPreview(dataUrl)
+      const { url } = await uploadProgressPhoto({
+        projectId: project.id,
+        dataUrl,
+        onProgress: setUploadProgress,
+      })
+      setPhotoUrl(url)
+      setUploadStatus('idle')
+      pendingFileRef.current = null
+    } catch (err) {
+      setUploadStatus('error')
+      setUploadError(err instanceof Error ? err.message : 'Upload failed.')
+    }
+  }
+
   const delta = newPercent - project.percentComplete
   const meetsThreshold = Math.abs(delta) >= MEANINGFUL_THRESHOLD
   const isNoChange = newPercent === project.percentComplete
@@ -87,12 +134,17 @@ export function UpdateProgressForm({
   // one. This gate takes priority over the reason-selection gate below —
   // there is no reason to pick if the save can never go through at all.
   const canWrite = pic.isCurrentUser
-  const canSave = canWrite && reasonCode !== '' && !pending
+  // Brief 057 §3 — required only when this save reaches 100%.
+  const needsPhoto = newPercent === 100
+  const hasPhoto = Boolean(photoUrl)
+  const canSave = canWrite && reasonCode !== '' && !pending && uploadStatus !== 'uploading' && (!needsPhoto || hasPhoto)
 
   const deltaLabel = useMemo(() => {
     if (delta === 0) return '0'
     return delta > 0 ? `+${delta}` : `${delta}`
   }, [delta])
+
+  const lastPhotoUrl = lastReported?.photoUrl ?? null
 
   return (
     <form
@@ -112,6 +164,7 @@ export function UpdateProgressForm({
       <input type="hidden" name="currentPercent" value={project.percentComplete} />
       <input type="hidden" name="newPercent" value={newPercent} />
       <input type="hidden" name="reasonCode" value={reasonCode} />
+      <input type="hidden" name="photoUrl" value={photoUrl ?? ''} />
 
       <div className="update-card__header">
         <div className="update-card__identity">
@@ -168,6 +221,16 @@ export function UpdateProgressForm({
               ? `${lastReported.dateLabel}${lastReported.byLabel ? `, ${s.by} ${lastReported.byLabel}` : ''}`
               : s.unreported}
           </div>
+          {lastPhotoUrl ? (
+            <button
+              type="button"
+              className="photo-thumb photo-thumb--small"
+              onClick={() => setOverlayUrl(lastPhotoUrl)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- stored evidence photo, next/image is the wrong tool for an external Storage URL thumbnail */}
+              <img src={lastPhotoUrl} alt={s.photoEvidenceAlt} />
+            </button>
+          ) : null}
         </div>
 
         <div className="update-card__figure">
@@ -264,6 +327,86 @@ export function UpdateProgressForm({
             rows={2}
           />
         </label>
+
+        {/* Brief 057 — photo evidence for the claim above. Optional in
+            general, required once newPercent reaches 100 (needsPhoto). */}
+        <div className="update-card__photo">
+          <div className="update-card__reason-head">
+            <span className="update-card__reason-label">{s.photoLabel}</span>
+            <span className="required-badge">{needsPhoto ? s.required : s.photoOptional}</span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="photo-input"
+            disabled={!canWrite}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (file) void runUpload(file)
+            }}
+          />
+
+          <div className="photo-picker">
+            {photoPreview ? (
+              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoUrl ?? photoPreview)}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- local/compressed preview data URL, next/image doesn't take data: URLs */}
+                <img src={photoPreview} alt={s.photoEvidenceAlt} />
+                {uploadStatus === 'uploading' ? (
+                  <span className="photo-thumb__progress">
+                    <span className="photo-thumb__progress-bar" style={{ width: `${uploadProgress}%` }} />
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
+
+            <div className="photo-picker__actions">
+              <button
+                type="button"
+                className="btn btn--outline"
+                disabled={!canWrite || uploadStatus === 'uploading'}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadStatus === 'uploading'
+                  ? `${s.photoUploading} ${uploadProgress}%`
+                  : photoPreview
+                    ? s.photoRetake
+                    : s.photoAdd}
+              </button>
+              {photoPreview ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={!canWrite || uploadStatus === 'uploading'}
+                  onClick={() => {
+                    setPhotoPreview(null)
+                    setPhotoUrl(null)
+                    setUploadStatus('idle')
+                    setUploadError(null)
+                  }}
+                >
+                  {s.photoRemove}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {uploadStatus === 'error' ? (
+            <div className="update-card__error" role="alert">
+              {uploadError}{' '}
+              <button
+                type="button"
+                className="photo-retry"
+                onClick={() => pendingFileRef.current && void runUpload(pendingFileRef.current)}
+              >
+                {s.photoRetry}
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="update-card__footer">
@@ -303,6 +446,9 @@ export function UpdateProgressForm({
             } else if (reasonCode === '') {
               e.preventDefault()
               console.log('[6a update] Save clicked with no reason selected — blocked client-side, not submitted')
+            } else if (needsPhoto && !hasPhoto) {
+              e.preventDefault()
+              console.log('[6a update] Save clicked at 100% with no photo evidence — blocked client-side, not submitted')
             }
           }}
         >
@@ -329,6 +475,11 @@ export function UpdateProgressForm({
             <div className="update-card__blocked-title">{s.blockedTitle}</div>
             <div className="update-card__blocked-body">{s.blockedBody}</div>
           </div>
+        ) : needsPhoto && !hasPhoto ? (
+          <div className="update-card__blocked-note">
+            <div className="update-card__blocked-title">{s.photoRequiredTitle}</div>
+            <div className="update-card__blocked-body">{s.photoRequiredBody}</div>
+          </div>
         ) : (
           <span className="update-card__hint">{s.saveHint}</span>
         )}
@@ -337,6 +488,13 @@ export function UpdateProgressForm({
       {state.error ? (
         <div className="update-card__error" role="alert">
           {state.error}
+        </div>
+      ) : null}
+
+      {overlayUrl ? (
+        <div className="photo-overlay" onClick={() => setOverlayUrl(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- full-size stored evidence photo */}
+          <img src={overlayUrl} alt={s.photoEvidenceAlt} />
         </div>
       ) : null}
     </form>
