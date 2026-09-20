@@ -3789,6 +3789,45 @@ button {
   margin-bottom: var(--space-1);
 }
 
+/* Brief 049 — grouped-view tabs, same shape as the project board's own
+   .board__control/.board__tabs/.board__tab (src/app/(app)/page.tsx,
+   Screen 4a) — the one existing precedent for a URL-search-param-driven
+   view switcher in this app. Own namespaced copy per this app's standing
+   convention, not shared with board's classes. */
+.shop-drawing-boq__control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.shop-drawing-boq__control-label {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.shop-drawing-boq__view-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.shop-drawing-boq__view-tab {
+  border-right: 1px solid var(--border);
+  padding: var(--space-2) var(--space-4);
+  font: 600 12px/1 var(--font-body);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.shop-drawing-boq__view-tab:last-child {
+  border-right: none;
+}
+.shop-drawing-boq__view-tab--active {
+  background: var(--navy);
+  color: #fff;
+}
+
 /* -----------------------------------------------------------------------
    Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
    Design Note Rev 3 §4.4 — same shape as .awaiting-so (screen 2b), same
