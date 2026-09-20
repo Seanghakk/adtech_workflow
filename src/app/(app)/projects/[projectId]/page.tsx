@@ -72,6 +72,7 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
     { data: dependencyLinks },
     { count: contractBoqLineCount },
     { count: floorCount },
+    { count: shopDrawingBoqLineCount },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -107,6 +108,10 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
       .eq('project_id', project.id),
     supabase
       .from('project_floors')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', project.id),
+    supabase
+      .from('shop_drawing_boq_lines')
       .select('id', { count: 'exact', head: true })
       .eq('project_id', project.id),
   ])
@@ -374,6 +379,20 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
           {!floorCount ? <p className="empty-state">{t('soRecordLinkedFloorsEmpty')}</p> : null}
           <Link href={`/projects/${project.id}/floors`} className="awaiting-so-card__link">
             {t('soRecordViewFloors')}
+          </Link>
+        </div>
+
+        {/* Brief 055 — same panel shape as the panels above. */}
+        <div className="so-record__panel">
+          <div className="so-record__panel-head">
+            <span className="so-record__panel-title">{t('soRecordLinkedShopDrawingBoqTitle')}</span>
+            <span className="so-record__panel-count">{shopDrawingBoqLineCount ?? 0}</span>
+          </div>
+          {!shopDrawingBoqLineCount ? (
+            <p className="empty-state">{t('soRecordLinkedShopDrawingBoqEmpty')}</p>
+          ) : null}
+          <Link href={`/projects/${project.id}/shop-drawing-boq`} className="awaiting-so-card__link">
+            {t('soRecordViewShopDrawingBoq')}
           </Link>
         </div>
       </div>

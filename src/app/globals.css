@@ -3750,6 +3750,46 @@ button {
 }
 
 /* -----------------------------------------------------------------------
+   Shop Drawing BOQ + its Excel import (Brief 055) — same shape as
+   Contract BOQ's own .contract-boq__note/.contract-boq__error and
+   .contract-boq-import* (Brief 048), each screen keeping its own
+   namespaced copy per this app's standing convention.
+   ----------------------------------------------------------------------- */
+.shop-drawing-boq__note {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-3) 0;
+}
+.shop-drawing-boq__error {
+  font: 600 11.5px/1.3 var(--font-body);
+  color: var(--warning-tint-deep);
+}
+.shop-drawing-boq-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  max-width: 480px;
+}
+.shop-drawing-boq-import__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.shop-drawing-boq-import__success {
+  font: 600 13px/1.4 var(--font-body);
+  color: var(--navy);
+}
+.shop-drawing-boq-import__row-errors ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+.shop-drawing-boq-import__row-errors li {
+  margin-bottom: var(--space-1);
+}
+
+/* -----------------------------------------------------------------------
    Screen 1c — Triage (Brief 021 §2). Small focused panel archetype,
    Design Note Rev 3 §4.4 — same shape as .awaiting-so (screen 2b), same
    .exception-card weight bands, but keyed off HOURS (src/lib/age.ts's own
