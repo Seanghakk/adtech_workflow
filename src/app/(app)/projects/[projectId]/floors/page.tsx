@@ -86,6 +86,15 @@ export default async function FloorConfigPage({ params }: PageProps<'/projects/[
         <Link href={`/projects/${project.id}`}>{t('floorConfigBackToSoRecord')}</Link>
       </p>
 
+      {/* Brief 058 §5 — the print-labels screen's own entry point. Shown
+          regardless of isPic: printing is read-only, same reasoning as
+          that screen's own "no write gate" note. */}
+      {!isEmpty && (
+        <p>
+          <Link href={`/projects/${project.id}/floors/labels`}>{t('floorConfigPrintLabels')}</Link>
+        </p>
+      )}
+
       {!isPic && <p className="floor-config__note">{t('floorConfigNotPicNote')}</p>}
 
       {isEmpty && <p className="empty-state">{t('floorConfigEmpty')}</p>}
