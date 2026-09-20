@@ -81,6 +81,17 @@ export default async function ProjectBoardPage({
 
   const teamIdByUserId = new Map((activeMembers ?? []).map((m) => [m.user_id, m.team_id]))
 
+  // Brief 056 §7 — one batched query for every open project's floor
+  // count, not one query per card: a project row here is either present
+  // (has at least one floor) or absent, so a Set of project_ids is enough
+  // to gate the "Matrix" link below.
+  const projectIds = (projects ?? []).map((p) => p.id)
+  const { data: floorProjectRows } =
+    projectIds.length > 0
+      ? await supabase.from('project_floors').select('project_id').in('project_id', projectIds)
+      : { data: [] }
+  const projectIdsWithFloors = new Set((floorProjectRows ?? []).map((f) => f.project_id))
+
   const boardProjects: BoardProject[] = (projects ?? []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -89,6 +100,7 @@ export default async function ProjectBoardPage({
     percentComplete: p.percent_complete,
     picId: p.pic_id,
     stallDays: daysSinceICT(p.last_meaningful_movement_at ?? p.opened_at),
+    hasFloors: projectIdsWithFloors.has(p.id),
   }))
 
   const scoped = filterByScope(boardProjects, scope, member, teamIdByUserId)
@@ -271,6 +283,7 @@ export default async function ProjectBoardPage({
                       picLabel={picLabel(project.picId)}
                       canAssignPic={canAssignPic}
                       picMemberOptions={picMemberOptions}
+                      matrixLinkLabel={t('boardMatrixLink')}
                     />
                   ))}
                 </div>
@@ -288,11 +301,13 @@ function ProjectBoardCard({
   picLabel,
   canAssignPic,
   picMemberOptions,
+  matrixLinkLabel,
 }: {
   project: BoardProject
   picLabel: string
   canAssignPic: boolean
   picMemberOptions: { userId: string; label: string }[]
+  matrixLinkLabel: string
 }) {
   const weight = getCardWeight(project.stallDays)
   const className = `exception-card exception-card--${weight}`
@@ -323,6 +338,15 @@ function ProjectBoardCard({
         >
           {picLabel}
         </span>
+        {/* Brief 056 §7 — entry point into the floor x sub-stage matrix.
+            Routes into screen 2a with ?view=matrix rather than a new 4a
+            selector (see FloorMatrix's own page for the full routing
+            rationale) — hidden for a project with no floor rows at all. */}
+        {project.hasFloors && (
+          <Link href={`/projects/${project.id}?view=matrix`} className="exception-card__matrix-link">
+            {matrixLinkLabel}
+          </Link>
+        )}
       </div>
       {/* Brief 012 §3.1/§3.2 — the assign action lives on the board card,
           not on User Management: a PIC is a fact about a project, fixed

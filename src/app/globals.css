@@ -1973,6 +1973,16 @@ button {
   color: var(--navy);
   border: 1px solid var(--navy-tint-border);
 }
+/* Brief 056 §7 — the board card's entry point into the floor x sub-stage
+   matrix (?view=matrix on screen 2a). */
+.exception-card__matrix-link {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--navy);
+  text-decoration: underline;
+  margin-left: auto;
+}
 .exception-card__age {
   font: 800 18px/1 var(--font-heading);
   letter-spacing: 0.2px;
@@ -3549,6 +3559,11 @@ button {
 .floor-breakdown__row:first-child {
   border-top: none;
 }
+/* Brief 056 §6 — the matrix's drill-through lands on this row's own id;
+   scroll-margin keeps it clear of the viewport edge once scrolled to. */
+.floor-breakdown__row--anchor {
+  scroll-margin-top: var(--space-6);
+}
 .floor-breakdown__row-label {
   flex: 1 1 auto;
   font: 600 12.5px/1.3 var(--font-body);
@@ -4841,4 +4856,129 @@ button {
   border: 1px solid var(--navy);
   color: var(--navy);
   padding: var(--space-2) var(--space-3);
+}
+
+/* -----------------------------------------------------------------------
+   Floor x sub-stage colour matrix (Brief 056) — screen 2a's ?view=matrix.
+   Flat and ruled throughout: radius 0, no shadows, --ground/--border
+   tokens only, nothing below 12px. Colour carries the cell's entire
+   state — see FloorMatrix.tsx's own header for why no text/count ever
+   renders inside a cell (brief §5).
+   ----------------------------------------------------------------------- */
+.floor-matrix__page-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 2px solid var(--rule-major);
+  margin-top: var(--space-4);
+}
+.floor-matrix__kicker {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.floor-matrix__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-4);
+}
+.floor-matrix__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 500 12px/1 var(--font-body);
+  color: var(--text-muted);
+}
+.floor-matrix__legend-swatch {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+/* Only the legend's own "not applicable" swatch gets a visible outline —
+   the grid's real cells for this state render nothing at all (§3: "empty
+   cell, no border, no fill"), so this dashed hint is legend-only, never
+   applied to a grid cell (the grid skips rendering .floor-matrix__cell
+   entirely for a not_applicable cell — see FloorMatrix.tsx). */
+.floor-matrix__legend-swatch.floor-matrix__cell--not_applicable {
+  border: 1px dashed var(--border);
+}
+
+.floor-matrix__scroll {
+  overflow-x: auto;
+}
+.floor-matrix__table {
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.floor-matrix__table th,
+.floor-matrix__table td {
+  border: 1px solid var(--border);
+  padding: 0;
+}
+.floor-matrix__corner,
+.floor-matrix__col-head {
+  background: var(--ground);
+  font: 700 11px/1.3 var(--font-body);
+  letter-spacing: 0.03em;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  white-space: nowrap;
+}
+.floor-matrix__corner {
+  /* Brief 056 §5 — freeze the floor-label column, scroll the stage
+     columns, on narrow screens. Sticky works against .floor-matrix__scroll
+     as its nearest scrolling ancestor. */
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.floor-matrix__row-head {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  font: 600 12.5px/1.3 var(--font-body);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  white-space: nowrap;
+}
+.floor-matrix__cell-wrap {
+  width: 44px;
+  height: 36px;
+  padding: 3px !important;
+}
+.floor-matrix__cell {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+a.floor-matrix__cell {
+  cursor: pointer;
+}
+.floor-matrix__cell--not_started {
+  background: #fff;
+  border: 1px solid var(--grey);
+}
+.floor-matrix__cell--in_progress {
+  /* "Partial-weight blue (tint or half-fill)" (§3) — half-fill, not a
+     third hue, so it stays distinct from both not_started and qc_passed
+     by WEIGHT/SHAPE, per §3's own "distinction is by weight and shape,
+     not by extra colours" constraint. */
+  background: linear-gradient(to right, var(--navy) 50%, #fff 50%);
+  border: 1px solid var(--grey);
+}
+.floor-matrix__cell--awaiting_qc {
+  background: var(--warning);
+}
+.floor-matrix__cell--qc_passed {
+  background: var(--navy);
+}
+.floor-matrix__cell--stalled {
+  background: var(--danger);
 }

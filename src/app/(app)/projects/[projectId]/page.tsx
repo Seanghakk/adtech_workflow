@@ -9,6 +9,9 @@ import { formatUsd0 } from '@/lib/format/money'
 import { getServerTranslator, getServerLang } from '@/lib/i18n/server'
 import { localizedLabel } from '@/lib/i18n/localized-label'
 import { computeDependencyChain } from '@/lib/reporting/dependency-chain'
+import { getAgeLabelBand } from '@/lib/age'
+import { buildMatrixRows } from './floor-matrix'
+import { FloorMatrix } from './FloorMatrix'
 
 export const metadata: Metadata = {
   title: 'SO record — ADTECH Workflow Tracker',
@@ -41,11 +44,21 @@ export const metadata: Metadata = {
  *     no longer includes the per-scope-type stage list, since Brief 017
  *     shipped the admin screen that fills it.
  */
-export default async function SoRecordPage({ params }: PageProps<'/projects/[projectId]'>) {
+export default async function SoRecordPage({
+  params,
+  searchParams,
+}: PageProps<'/projects/[projectId]'>) {
   const { projectId } = await params
+  const sp = await searchParams
   const supabase = await createClient()
   const t = await getServerTranslator()
   const lang = await getServerLang()
+
+  // Brief 056 §7 — same plain ?view= URL-param pattern as shop-drawing-
+  // boq's own grouped views (Brief 049), not client state. An unrecognized
+  // or missing value falls back to this page's normal, unchanged content.
+  const viewParam = Array.isArray(sp.view) ? sp.view[0] : sp.view
+  const isMatrixView = viewParam === 'matrix'
 
   const { data: project } = await supabase
     .from('projects')
@@ -61,6 +74,81 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
   // and neither this screen nor that one tries to.
   if (!project) {
     notFound()
+  }
+
+  // Brief 056 §7 — a focused, single-purpose "glance" screen: none of the
+  // SO record's own variation/request/procurement/dependency/BOQ queries
+  // below are needed here, so the matrix view returns early rather than
+  // running (and discarding) all of them first.
+  if (isMatrixView) {
+    const [{ data: towerRows }, { data: floorRows }] = await Promise.all([
+      supabase.from('project_towers').select('id, label, sort_order').eq('project_id', project.id).order('sort_order'),
+      supabase.from('project_floors').select('id, label, sort_order, tower_id').eq('project_id', project.id).order('sort_order'),
+    ])
+
+    const floorIds = (floorRows ?? []).map((f) => f.id)
+    const [{ data: subStageRows }, { data: inspectionRows }] = await Promise.all([
+      floorIds.length > 0
+        ? supabase
+            .from('floor_sub_stages')
+            .select('id, floor_id, stage, sub_stage, status, updated_at')
+            .in('floor_id', floorIds)
+        : Promise.resolve({ data: [] }),
+      floorIds.length > 0
+        ? supabase.from('qc_inspections').select('floor_sub_stage_id, status').eq('project_id', project.id)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    // Same "any PASSED inspection wins, a later fail/pending never erases
+    // an earlier pass" rule as update/page.tsx's own passedSubStageIds —
+    // one definition, not a second one invented here.
+    const passedSubStageIds = new Set(
+      (inspectionRows ?? [])
+        .filter((r): r is { floor_sub_stage_id: string; status: string } => r.status === 'pass' && r.floor_sub_stage_id !== null)
+        .map((r) => r.floor_sub_stage_id),
+    )
+
+    const matrixRows = buildMatrixRows({
+      towers: (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
+      floors: (floorRows ?? []).map((f) => ({ id: f.id, label: f.label, sortOrder: f.sort_order, towerId: f.tower_id })),
+      subStages: (subStageRows ?? []).map((s) => ({
+        id: s.id,
+        floorId: s.floor_id,
+        stage: s.stage,
+        subStage: s.sub_stage,
+        status: s.status,
+        updatedAt: s.updated_at,
+      })),
+      passedSubStageIds,
+      // Brief 056 §4: the SAME src/lib/age.ts thresholds every other
+      // staleness read in this app uses — not a second definition.
+      daysSinceUpdate: (updatedAt) => daysSinceICT(updatedAt),
+      isStale: (days) => getAgeLabelBand(days) === 'stalled',
+    })
+
+    return (
+      <div className="so-record">
+        <div className="so-record__header">
+          <div className="so-record__identity">
+            <div className="so-record__kicker-row">
+              {project.so_number ? (
+                <span className="so-record__so-badge">{project.so_number}</span>
+              ) : (
+                <span className="so-number so-number--pending">{t('soRecordNoSoYet')}</span>
+              )}
+            </div>
+            <h1 className="so-record__title">{project.name}</h1>
+          </div>
+        </div>
+
+        <div className="floor-matrix__page-head">
+          <span className="floor-matrix__kicker">{t('floorMatrixKicker')}</span>
+          <Link href={`/projects/${project.id}`}>{t('floorMatrixBackToSoRecord')}</Link>
+        </div>
+
+        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} />
+      </div>
+    )
   }
 
   const [
@@ -380,6 +468,15 @@ export default async function SoRecordPage({ params }: PageProps<'/projects/[pro
           <Link href={`/projects/${project.id}/floors`} className="awaiting-so-card__link">
             {t('soRecordViewFloors')}
           </Link>
+          {/* Brief 056 §7 — the matrix's second entry point (the first is
+              the board card, Brief 056 §7 too). Only shown once floors
+              actually exist — a matrix over zero floors is just the empty
+              state above, not a second reachable link to it. */}
+          {Boolean(floorCount) && (
+            <Link href={`/projects/${project.id}?view=matrix`} className="awaiting-so-card__link">
+              {t('soRecordViewMatrix')}
+            </Link>
+          )}
         </div>
 
         {/* Brief 055 — same panel shape as the panels above. */}

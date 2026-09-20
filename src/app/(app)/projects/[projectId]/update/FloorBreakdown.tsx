@@ -20,7 +20,7 @@
  * status control below are unchanged — only the add-a-floor path moved.
  */
 import Link from 'next/link'
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
@@ -120,6 +120,35 @@ export function FloorBreakdown({
 }) {
   const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
+
+  // Brief 056 §6 — the matrix's drill-through target. This panel is
+  // collapsed by default (above), so a bare #substage-<id> link from the
+  // matrix would otherwise land on nothing visible. Reading
+  // window.location.hash MUST start from `false` (matching SSR, which
+  // has no window at all) and update after mount, not from a lazy
+  // useState initializer that would read the hash during the CLIENT's
+  // first render — that would disagree with the server-rendered `false`
+  // and cause a real hydration mismatch, not just an eslint complaint.
+  // This is exactly react-hooks/set-state-in-effect's own carve-out
+  // ("subscribe for updates from an external system... calling setState
+  // when external state changes"): window.location.hash is that external
+  // system, unavailable at SSR time by definition, so there is no
+  // non-effect way to read it once after mount.
+  useEffect(() => {
+    if (!window.location.hash.startsWith('#substage-')) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above the effect
+    setExpanded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!expanded) return
+    const hash = window.location.hash
+    if (!hash.startsWith('#substage-')) return
+    const id = window.requestAnimationFrame(() => {
+      document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'center' })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [expanded])
 
   const exceptions = floors.flatMap((floor) =>
     floor.subStages
@@ -396,7 +425,11 @@ function SubStageRowView({
   }
 
   return (
-    <div className="floor-breakdown__row">
+    // Brief 056 §6 — the matrix's drill-through anchor: `id` here is what
+    // /projects/[projectId]/update#substage-<id> links land on, and
+    // scroll-margin-top keeps it from tucking under any sticky header
+    // this app later adds above the floor breakdown.
+    <div id={`substage-${subStage.id}`} className="floor-breakdown__row floor-breakdown__row--anchor">
       <span className="floor-breakdown__row-label">
         {t(SUB_STAGE_KEYS[subStage.subStage] ?? 'subStageFirstFix')}
         {showException && <span className="floor-breakdown__exception-flag">{t('floorBreakdownExceptionFlag')}</span>}
