@@ -489,6 +489,10 @@ const en = {
   soRecordLinkedFloorsTitle: 'Floors',
   soRecordLinkedFloorsEmpty: 'No floors configured yet.',
   soRecordViewFloors: 'Configure floors',
+  // Brief 055 — the sixth so-record panel.
+  soRecordLinkedShopDrawingBoqTitle: 'Shop Drawing BOQ',
+  soRecordLinkedShopDrawingBoqEmpty: 'No Shop Drawing BOQ lines recorded yet.',
+  soRecordViewShopDrawingBoq: 'View Shop Drawing BOQ',
 
   // Screen 2d (Brief 023) — the dependency chain, days taken against days
   // allowed per link. See
@@ -833,6 +837,36 @@ const en = {
   floorConfigAddFloorSubmit: 'Add floor',
   floorConfigDeleteFloor: 'Delete floor',
   floorConfigDeleteFloorConfirm: 'Delete this floor? This cannot be undone.',
+
+  // Shop Drawing BOQ (Brief 055) — list/view screen, team-gated (Shop
+  // Drawing or A&A team, migration 022 §3), not PIC-gated. Reused across
+  // both the list and import pages, same as contractBoqNotPicNote is.
+  shopDrawingBoqKicker: 'Shop Drawing BOQ',
+  shopDrawingBoqBackToSoRecord: 'Back to SO record',
+  shopDrawingBoqNotTeamNote: 'Only the Shop Drawing or A&A team can import lines here.',
+  shopDrawingBoqEmpty: 'No Shop Drawing BOQ lines yet.',
+  shopDrawingBoqGoToImport: 'Import from Excel',
+  shopDrawingBoqColSystemType: 'System Type',
+  shopDrawingBoqColDescription: 'Description',
+  shopDrawingBoqColBrand: 'Brand',
+  shopDrawingBoqColModelPartNumber: 'Model / Part Number',
+  shopDrawingBoqColUnit: 'Unit',
+  shopDrawingBoqColQuantity: 'Quantity',
+  shopDrawingBoqColRequested: 'Requested',
+
+  // Shop Drawing BOQ Excel import (Brief 055) — additive only, team-gated
+  // (same requireTeam() pattern as update/floor-actions.ts). Writes
+  // shop_drawing_boq_lines plus, for each non-empty floor/zone column,
+  // one shop_drawing_boq_line_locations row resolved to a real floor_id.
+  shopDrawingBoqImportKicker: 'Import Shop Drawing BOQ',
+  shopDrawingBoqImportBackToList: 'Back to Shop Drawing BOQ',
+  shopDrawingBoqImportDownloadTemplate: 'Download template',
+  shopDrawingBoqImportFileLabel: 'File (.xlsx)',
+  shopDrawingBoqImportSubmit: 'Import',
+  shopDrawingBoqImportSubmitting: 'Importing…',
+  shopDrawingBoqImportSuccessPrefix: 'Imported',
+  shopDrawingBoqImportSuccessSuffix: 'line(s).',
+  shopDrawingBoqImportRejected: 'Nothing was imported — fix these and try again:',
 } as const
  
 export type DictionaryKey = keyof typeof en
