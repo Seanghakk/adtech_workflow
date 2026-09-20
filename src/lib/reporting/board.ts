@@ -25,6 +25,9 @@ export interface BoardProject {
    *  — computed by the caller via daysSinceICT, same as every other
    *  screen that shows an age ladder. Never re-derived here. */
   stallDays: number
+  /** Brief 056 §7 — gates the board card's "Matrix" link: a project with
+   *  zero floor rows has nothing for the matrix to show. */
+  hasFloors: boolean
 }
 
 export type Scope = 'mine' | 'my-team' | 'everything'

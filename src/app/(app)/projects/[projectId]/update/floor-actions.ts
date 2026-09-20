@@ -101,10 +101,21 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
       : await requireTeam(['tnc'], 'TNC')
   if ('error' in gate) return gate
 
+  // Brief 056 §4 — FIX, found while building the matrix: this app has no
+  // generic updated_at trigger anywhere (migration 004's own header
+  // confirms this was checked, not assumed), so without setting it
+  // explicitly here, floor_sub_stages.updated_at would stay frozen at
+  // this row's original seed time forever, and the matrix's "16+ days
+  // since last update -> stalled" read (§4) would be computed against
+  // the wrong timestamp — not this status change, but whenever the floor
+  // was first created. Scoped to this table/action only: shop_drawing_
+  // items and project_handover_items below are untouched, since neither
+  // feeds the matrix and fixing them is not this brief's scope.
+  const nowIso = new Date().toISOString()
   const supabase = await createClient()
   const { error } = await supabase
     .from('floor_sub_stages')
-    .update({ status, updated_by: gate.userId })
+    .update({ status, updated_by: gate.userId, updated_at: nowIso })
     .eq('id', subStageId)
   if (error) {
     return { error: 'Could not save this status.' }

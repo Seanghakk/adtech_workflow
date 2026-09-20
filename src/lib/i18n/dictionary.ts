@@ -88,6 +88,9 @@ const en = {
   // page's own comment for why.
   boardJumpStripLabel: 'Jump to lane',
   boardJumpStripOverdue: 'has late or stalled projects',
+  // Brief 056 §7 — the matrix's entry point on a floor-tracked project's
+  // own board card.
+  boardMatrixLink: 'Matrix',
   // §4 — the visibility problem, required not optional: a sales-team
   // member's view is restricted by workflow.can_view_project() to
   // maintenance-flagged projects under a client they (or their
@@ -505,6 +508,19 @@ const en = {
   soRecordLinkedShopDrawingBoqTitle: 'Shop Drawing BOQ',
   soRecordLinkedShopDrawingBoqEmpty: 'No Shop Drawing BOQ lines recorded yet.',
   soRecordViewShopDrawingBoq: 'View Shop Drawing BOQ',
+  // Brief 056 — the floor x sub-stage colour matrix, ?view=matrix on 2a.
+  soRecordViewMatrix: 'View matrix',
+  floorMatrixKicker: 'Floor x sub-stage matrix',
+  floorMatrixBackToSoRecord: 'Back to SO record',
+  floorMatrixEmptyNoFloors: 'No floors configured yet.',
+  floorMatrixFloorColumnHeader: 'Floor',
+  floorMatrixLegendTitle: 'Legend',
+  floorMatrixLegendNotApplicable: 'Not applicable',
+  floorMatrixLegendNotStarted: 'Not started',
+  floorMatrixLegendInProgress: 'In progress',
+  floorMatrixLegendAwaitingQc: 'Complete, awaiting QC',
+  floorMatrixLegendQcPassed: 'QC passed / done',
+  floorMatrixLegendStalled: 'Stalled (16+ days)',
 
   // Screen 2d (Brief 023) — the dependency chain, days taken against days
   // allowed per link. See
