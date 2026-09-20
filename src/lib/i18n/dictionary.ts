@@ -128,6 +128,18 @@ const en = {
   updatePicLabel: 'PIC',
   updatePicYou: 'You',
   updateOwnerLabel: 'Owner',
+  // Brief 057 — photo evidence on 6a. Required only once newPercent
+  // reaches 100 (see UpdateProgressForm's needsPhoto); optional otherwise.
+  photoLabel: 'Photo evidence',
+  photoOptional: 'Optional',
+  photoAdd: 'Add photo',
+  photoRetake: 'Retake',
+  photoRemove: 'Remove',
+  photoUploading: 'Uploading…',
+  photoRetry: 'Retry',
+  photoRequiredTitle: 'A photo is required to mark this 100% complete.',
+  photoRequiredBody: 'That is the moment this claim carries weight — add a photo before saving.',
+  photoEvidenceAlt: 'Progress update photo evidence',
  
   navExceptions: 'Exceptions',
   navLoad: 'Load',

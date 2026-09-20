@@ -26,6 +26,7 @@ export async function submitProgressUpdate(
   const newPercentRaw = formData.get('newPercent')
   const reasonCode = String(formData.get('reasonCode') ?? '').trim()
   const reasonNote = String(formData.get('reasonNote') ?? '').trim()
+  const photoUrl = String(formData.get('photoUrl') ?? '').trim()
 
   if (!projectId) {
     return { error: 'Missing project.' }
@@ -42,6 +43,13 @@ export async function submitProgressUpdate(
   const newPercent = Number(newPercentRaw)
   if (!Number.isInteger(newPercent) || newPercent < 0 || newPercent > 100) {
     return { error: 'Enter a whole number between 0 and 100.' }
+  }
+
+  // Brief 057 §3: required when this update reaches 100%, optional
+  // otherwise. Genuinely blocked server-side too, not only by the
+  // disabled Save button — same reasoning as the reason-code check above.
+  if (newPercent === 100 && !photoUrl) {
+    return { error: 'A photo is required when marking this 100% complete.' }
   }
 
   const currentPercent = Number(currentPercentRaw)
@@ -97,6 +105,7 @@ export async function submitProgressUpdate(
     is_no_change: isNoChange,
     reason_code: reasonCode,
     reason_note: reasonNote || null,
+    photo_url: photoUrl || null,
   })
 
   if (insertError) {

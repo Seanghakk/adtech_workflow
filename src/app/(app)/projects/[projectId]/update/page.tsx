@@ -67,7 +67,7 @@ export default async function UpdateProgressPage({
       .order('sort_order'),
     supabase
       .from('progress_updates')
-      .select('author_id, recorded_at')
+      .select('author_id, recorded_at, photo_url')
       .eq('subject_type', 'project')
       .eq('subject_id', project.id)
       .order('recorded_at', { ascending: false })
@@ -192,6 +192,7 @@ export default async function UpdateProgressPage({
             ? {
                 dateLabel: formatDateICT(lastUpdate.recorded_at),
                 byLabel: lastAuthorLabel,
+                photoUrl: lastUpdate.photo_url,
               }
             : null
         }
@@ -234,6 +235,16 @@ export default async function UpdateProgressPage({
           picLabel: t('updatePicLabel'),
           picYou: t('updatePicYou'),
           ownerLabel: t('updateOwnerLabel'),
+          photoLabel: t('photoLabel'),
+          photoOptional: t('photoOptional'),
+          photoAdd: t('photoAdd'),
+          photoRetake: t('photoRetake'),
+          photoRemove: t('photoRemove'),
+          photoUploading: t('photoUploading'),
+          photoRetry: t('photoRetry'),
+          photoRequiredTitle: t('photoRequiredTitle'),
+          photoRequiredBody: t('photoRequiredBody'),
+          photoEvidenceAlt: t('photoEvidenceAlt'),
         }}
       />
   )
