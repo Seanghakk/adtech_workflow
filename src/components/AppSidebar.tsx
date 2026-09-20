@@ -1,119 +1,138 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  AlertTriangle,
-  BarChart3,
-  BookOpen,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  GitBranch,
-  LayoutGrid,
-  MessageSquare,
-  Send,
-  Settings,
-  Users,
-  type LucideIcon,
-} from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
-import { useSidebarCollapsed } from '@/lib/useSidebarCollapsed'
-import { NAV_ENTRIES, canSeeNavEntry, isNavEntryActive } from '@/lib/nav'
-
-const NAV_ICONS: Record<string, LucideIcon> = {
-  board: LayoutGrid,
-  requests: Send,
-  triage: GitBranch,
-  'awaiting-so': Clock,
-  catalogue: BookOpen,
-  sales: Building2,
-  exceptions: AlertTriangle,
-  load: BarChart3,
-  users: Users,
-  lookups: Settings,
-  notifications: MessageSquare,
-}
+import { useAdminGroupExpanded } from '@/lib/useSidebarCollapsed'
+import { ADMIN_ITEMS, JOURNEY_ITEMS, comingSoonHref, isAdminItemActive, isJourneyItemActive } from '@/lib/nav'
 
 /**
- * Brief 039 — collapsible side navigation, replacing AppHeader.tsx's old
- * three <nav> blocks. Mirrors the CMMS's HubNav.tsx STRUCTURE and
- * BEHAVIOR (icon-only collapsed rail vs. full labels expanded, a toggle
- * pinned at the sidebar's own bottom, per-device persistence via
- * useSidebarCollapsed) without its visual system — no radius, no shadow,
- * no soft hover lift, reading this app's own flat/ruled tokens exactly
- * like every other class in globals.css does.
+ * Brief 064 / v5 §2.1-§2.5 — the seven-item journey rail, replacing
+ * Brief 039's flat link-list sidebar entirely. Structure, measurements,
+ * and the deferred/active/Admin treatments all come from that handoff;
+ * see src/lib/nav.ts's own header for every place this brief had to
+ * make a judgment call the handoff didn't fully specify (item 4/5/6/7's
+ * destinations, Admin's two unmapped items, Board's own placement).
  *
- * DELIBERATE STRUCTURAL DEVIATIONS FROM THE CMMS's CURRENT SIDEBAR, both
- * flagged in this brief's Result doc rather than silently matched:
+ * KEPT UNCHANGED from Brief 039/043/044/045's own hard-won mechanism:
+ * the outer .app-sidebar box (class name and its CSS both kept as-is —
+ * see globals.css's own comment there) — its sticky/height/scroll fix
+ * closed three separate real bugs across those briefs and has nothing
+ * to do with this brief's own content change, so it is not touched.
  *
- * 1. No expandable nested group (the CMMS's "Admin" entry with children).
- *    Nothing in this app's current nav has that shape — every entry here
- *    was a flat link in AppHeader.tsx before this brief — so there is
- *    nothing to nest.
- *
- * 2. No `<900px` hide-and-replace-with-a-drawer behavior. The CMMS drops
- *    its sidebar entirely below 900px because HubNavMobile's hamburger
- *    drawer replaces it there. This app has never had an equivalent
- *    mobile drawer, and at least one real screen
- *    (variations/[id]/approve, Screen 3c) is phone-first and lives under
- *    this same layout — hiding the sidebar with nothing to replace it
- *    would make every screen unreachable on a phone, directly violating
- *    this brief's own "nothing reachable before becomes unreachable
- *    after" requirement. The sidebar instead stays visible and
- *    collapsible at every width; useSidebarCollapsed() defaults a
- *    visitor's first-ever load to collapsed below 640px specifically so
- *    it doesn't eat the screen before anyone's had a chance to fold it.
+ * DROPPED: the icon-only collapsed state (useSidebarCollapsed) that
+ * mechanism served. v5 §2.1 specifies a single FIXED 268px rail with no
+ * collapse toggle anywhere in its spec, and "Replace the current...
+ * sidebar" is this brief's own literal instruction — built exactly that
+ * way. FLAGGED, not silently dropped (see Brief 064's own Result doc):
+ * removing that toggle also removes the one thing that kept this app's
+ * nav usable on a narrow/phone viewport (AppSidebar.tsx's own prior
+ * header explained why — at least one real screen, Screen 3c, is
+ * phone-first). v5 gives no responsive treatment for the new rail at
+ * all. Not resolved here — this brief's own scope is the rail's
+ * structure, not a redesign v5 never specified — but real enough to
+ * need Seanghakk's own confirmation before this ships broadly. The old
+ * hook (useSidebarCollapsed) is kept, not deleted, specifically so a
+ * follow-up can reuse it rather than re-derive it.
  */
 export function AppSidebar({
-  isSales,
   isManager,
-  initialCollapsed,
+  initialAdminExpanded,
 }: {
-  isSales: boolean
   isManager: boolean
-  /** Brief 043 item 1 — the sidebar-collapsed cookie value the caller (a
-   *  Server Component) already read via `cookies()`. Undefined (no cookie
-   *  yet) falls through to useSidebarCollapsed()'s own client-side
-   *  default/localStorage handling — see that hook's own header. */
-  initialCollapsed?: boolean
+  /** Brief 064 §2.5 — the Admin-group-expanded cookie value the caller
+   *  (a Server Component) already read via `cookies()`. Undefined (no
+   *  cookie yet) falls through to useAdminGroupExpanded()'s own
+   *  client-side default (collapsed) / localStorage handling. */
+  initialAdminExpanded?: boolean
 }) {
   const { t } = useLanguage()
   const pathname = usePathname()
-  const [collapsed, toggleCollapsed] = useSidebarCollapsed(initialCollapsed)
-
-  const entries = NAV_ENTRIES.filter((entry) => canSeeNavEntry(entry, { isSales, isManager }))
+  const [adminExpanded, toggleAdminExpanded] = useAdminGroupExpanded(initialAdminExpanded)
 
   return (
-    <aside className={collapsed ? 'app-sidebar app-sidebar--collapsed' : 'app-sidebar'} aria-label="Main">
-      <nav className="app-sidebar-nav">
-        {entries.map((entry) => {
-          const Icon = NAV_ICONS[entry.key]
-          const label = t(entry.labelKey)
-          const isCurrent = isNavEntryActive(entry, pathname)
+    <aside className="app-sidebar" aria-label="Main">
+      <Link href="/" className="brand-mark brand-mark--rail nav-rail__brand">
+        <span className="brand-mark__blocks" aria-hidden="true">
+          <span className="brand-mark__block brand-mark__block--blue" />
+          <span className="brand-mark__block brand-mark__block--ink" />
+        </span>
+        <span className="brand-mark__text">
+          <span className="brand-mark__name">ADTECH</span>
+          <span className="brand-mark__app">Workflow</span>
+        </span>
+      </Link>
+
+      <nav className="nav-rail__nav">
+        <div className="nav-rail__section-label">{t('navJourneySectionLabel')}</div>
+
+        {JOURNEY_ITEMS.map((item) => {
+          const label = t(item.labelKey)
+
+          if (item.status === 'deferred') {
+            return (
+              <Link key={item.key} href={comingSoonHref(item.key)} className="nav-rail__item nav-rail__item--deferred">
+                <span className="nav-rail__numeral">{item.numeral}</span>
+                <span className="nav-rail__label">{label}</span>
+                <span className="nav-rail__later-tag">{t('navJourneyLaterTag')}</span>
+              </Link>
+            )
+          }
+
+          const href = item.href ?? comingSoonHref(item.key)
+          const isActive = isJourneyItemActive(item, pathname)
           return (
-            <a
-              key={entry.key}
-              href={entry.href}
-              className="app-sidebar-link"
-              aria-current={isCurrent ? 'page' : undefined}
-              title={collapsed ? label : undefined}
+            <Link
+              key={item.key}
+              href={href}
+              className={isActive ? 'nav-rail__item nav-rail__item--active' : 'nav-rail__item'}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <Icon size={17} strokeWidth={2} />
-              <span className="app-sidebar-link-label">{label}</span>
-            </a>
+              <span className="nav-rail__numeral">{item.numeral}</span>
+              <span className="nav-rail__label">{label}</span>
+            </Link>
           )
         })}
       </nav>
-      <button
-        type="button"
-        className="app-sidebar-toggle"
-        onClick={toggleCollapsed}
-        aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-      >
-        {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-        <span className="app-sidebar-toggle-label">Collapse</span>
-      </button>
+
+      {isManager && (
+        <div className="nav-rail__admin">
+          <button
+            type="button"
+            className="nav-rail__admin-toggle"
+            aria-expanded={adminExpanded}
+            onClick={toggleAdminExpanded}
+          >
+            <span>{t('navAdminRowLabel')}</span>
+            {/* v5 §2.5's own literal spec: "'+' glyph at margin-left
+                auto" — a plain character, not an icon. Flips to "−"
+                expanded so the affordance still reads correctly open;
+                v5 doesn't specify this half, a small, low-risk addition
+                for legibility, not a deviation from what it DOES say. */}
+            <span className="nav-rail__admin-glyph" aria-hidden="true">
+              {adminExpanded ? '−' : '+'}
+            </span>
+          </button>
+          {adminExpanded && (
+            <div className="nav-rail__admin-list">
+              {ADMIN_ITEMS.map((item) => {
+                const href = item.href ?? comingSoonHref(item.key)
+                const isActive = isAdminItemActive(item, pathname)
+                return (
+                  <Link
+                    key={item.key}
+                    href={href}
+                    className={isActive ? 'nav-rail__admin-item nav-rail__admin-item--active' : 'nav-rail__admin-item'}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {t(item.labelKey)}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   )
 }

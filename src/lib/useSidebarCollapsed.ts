@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SIDEBAR_COLLAPSED_COOKIE } from './sidebarCookieNames'
-
-const STORAGE_KEY = SIDEBAR_COLLAPSED_COOKIE
+import { ADMIN_GROUP_EXPANDED_COOKIE, SIDEBAR_COLLAPSED_COOKIE } from './sidebarCookieNames'
 
 /** Below this width, default to collapsed (icon rail) on a visitor's very
  *  first load — there is no separate mobile drawer in this app (see
@@ -14,29 +12,25 @@ const STORAGE_KEY = SIDEBAR_COLLAPSED_COOKIE
  *  after that. */
 const NARROW_DEFAULT_BREAKPOINT = '(max-width: 640px)'
 
-function readInitial(): boolean {
-  if (typeof window === 'undefined') return false
+function readPersisted(key: string, defaultValue: boolean): boolean {
+  if (typeof window === 'undefined') return defaultValue
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(key)
     if (stored !== null) return stored === '1'
   } catch {
-    // Private-browsing / storage-blocked — falls through to the width check.
+    // Private-browsing / storage-blocked — falls through to defaultValue.
   }
-  try {
-    return window.matchMedia(NARROW_DEFAULT_BREAKPOINT).matches
-  } catch {
-    return false
-  }
+  return defaultValue
 }
 
 /** Best-effort — some sandboxed/embedded contexts throw on `document.cookie`
  *  writes the same way private-browsing can throw on localStorage. Not
  *  `Secure`-only-locked: local `next dev` is plain http, and this cookie
  *  holds no sensitive data, only a UI layout preference. */
-function writeCookie(value: boolean) {
+function writeCookie(key: string, value: boolean) {
   try {
     const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : ''
-    document.cookie = `${SIDEBAR_COLLAPSED_COOKIE}=${value ? '1' : '0'}; path=/; max-age=31536000; SameSite=Lax${secure}`
+    document.cookie = `${key}=${value ? '1' : '0'}; path=/; max-age=31536000; SameSite=Lax${secure}`
   } catch {
     // Best-effort only, same as the localStorage write below.
   }
@@ -55,21 +49,20 @@ function writeCookie(value: boolean) {
  * caused by a client-only useState initializer differing from the SSR
  * output — "This won't be patched up," verbatim, in its own hydration
  * warning. Since SSR always rendered `collapsed=false` (no server-side
- * knowledge of the client's localStorage) and readInitial() could return
- * true, EVERY reload where the stored preference was "collapsed" hit
- * this mismatch, and the DOM stayed on the server's wrong value forever
- * — not just a visible flash, a genuinely broken toggle.
+ * knowledge of the client's localStorage) and readPersisted() could
+ * return true, EVERY reload where the stored preference was "collapsed"
+ * hit this mismatch, and the DOM stayed on the server's wrong value
+ * forever — not just a visible flash, a genuinely broken toggle.
  *
  * FIX: the same cookie mechanism the CMMS's own Brief 072 already
- * validated for exactly this problem. `serverValue` — read from
- * SIDEBAR_COLLAPSED_COOKIE by (app)/layout.tsx via `cookies()` and passed
- * down as AppSidebar's `initialCollapsed` prop — IS the initial state
- * when present, full stop, so the client's first render already matches
- * what SSR produced (the server read the same cookie). `toggle()` now
- * writes the SAME value to both localStorage (kept as the fallback/cache
- * a first-ever visitor's SSR-less initial client render still needs) and
- * this cookie (new), so the very next full navigation's SERVER render
- * already reflects it too.
+ * validated for exactly this problem. `serverValue` — read from the
+ * relevant cookie by a Server Component via `cookies()` and passed down
+ * as a prop — IS the initial state when present, full stop, so the
+ * client's first render already matches what SSR produced (the server
+ * read the same cookie). `toggle()` now writes the SAME value to both
+ * localStorage (kept as the fallback/cache a first-ever visitor's
+ * SSR-less initial client render still needs) and this cookie (new), so
+ * the very next full navigation's SERVER render already reflects it too.
  *
  * SECOND bug found while verifying the above fix, also real, also
  * confirmed (not guessed): the cookie name constant cannot live in THIS
@@ -81,43 +74,75 @@ function writeCookie(value: boolean) {
  * server-side, so `cookieStore.get(...)` never matched the real cookie
  * and `initialCollapsed` was silently always `undefined` — the actual
  * reason item 1 still failed even after the cookie mechanism above was
- * written. SIDEBAR_COLLAPSED_COOKIE now lives in sidebarCookieNames.ts, a
+ * written. The cookie name constants now live in sidebarCookieNames.ts, a
  * plain module with no client directive, importable safely from both
  * sides — same split the CMMS's own codebase already uses, for this
  * exact reason.
  *
- * Residual, smaller gap, noted rather than silently hidden: a visitor's
- * very FIRST-EVER load on a narrow (<640px) viewport, before any cookie
- * or localStorage exists at all, can still mismatch once — the server
- * has no cookie to read yet, so it renders the `false` default, while
- * the client's `readInitial()` may compute `true` from the width check
- * (`matchMedia`, server-unavailable). That one-time case hits the same
- * unpatched-mismatch behavior described above, self-resolving the moment
- * the visitor toggles once (which sets the cookie for every load after).
- * Not the bug items 1-4 reported (those were about an ALREADY-toggled
- * preference not holding), and not fixable without a second, separate
- * server-side width signal this app has no source for (a cookie can't
- * report screen width) — worth a future brief only if it turns out to
- * matter in practice.
+ * Brief 064 §2.5 — GENERALIZED into `usePersistedToggle(key, default,
+ * serverValue)`, mirroring the CMMS's own identical generalization (its
+ * Brief 064, a same-named but different-repo brief — coincidence, not a
+ * cross-reference) once a second persisted-boolean consumer
+ * (useAdminGroupExpanded, below) needed the exact same shape. Every
+ * hardening fix above (the hydration-mismatch fix, the client-module-
+ * export-opacity fix) is preserved verbatim in the shared function, so
+ * neither of those bugs can reappear independently in the two callers.
+ *
+ * NOT currently called anywhere: this app's brief 064 rail (v5 §2.1) is
+ * a single fixed-width rail with no icon-collapsed state — v5 gives no
+ * responsive/mobile treatment for it at all (flagged in that brief's own
+ * Result doc). Kept, not deleted: this is a real, previously hardened
+ * mechanism (three prior briefs' worth of real-device bug fixes), and a
+ * collapse toggle remains a plausible answer to that flagged gap later —
+ * removing working, tested code on the strength of "nothing calls it
+ * this round" would be destroying it on a guess, not a confirmed reason.
  */
-export function useSidebarCollapsed(serverValue?: boolean): [boolean, () => void] {
-  const [collapsed, setCollapsed] = useState(() =>
-    serverValue !== undefined ? serverValue : readInitial(),
-  )
+export function usePersistedToggle(key: string, defaultValue: boolean, serverValue?: boolean): [boolean, () => void] {
+  const [value, setValue] = useState(() => (serverValue !== undefined ? serverValue : readPersisted(key, defaultValue)))
 
   const toggle = () => {
-    setCollapsed((current) => {
+    setValue((current) => {
       const next = !current
       try {
-        localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
+        localStorage.setItem(key, next ? '1' : '0')
       } catch {
         // Best-effort persistence only — the toggle still works for this
         // page view even if it can't be remembered for the next one.
       }
-      writeCookie(next)
+      writeCookie(key, next)
       return next
     })
   }
 
-  return [collapsed, toggle]
+  return [value, toggle]
+}
+
+function narrowViewportDefault(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.matchMedia(NARROW_DEFAULT_BREAKPOINT).matches
+  } catch {
+    return false
+  }
+}
+
+/** Whole-sidebar collapse (icon rail). See this file's own header for
+ *  the full history and why it has no current caller. The narrow-
+ *  viewport default (see NARROW_DEFAULT_BREAKPOINT above) is passed as
+ *  usePersistedToggle's own `defaultValue` — reached only when NEITHER a
+ *  server cookie nor a stored localStorage preference exists yet,
+ *  exactly the fallback order the original readInitial() used. */
+export function useSidebarCollapsed(serverValue?: boolean): [boolean, () => void] {
+  return usePersistedToggle(SIDEBAR_COLLAPSED_COOKIE, narrowViewportDefault(), serverValue)
+}
+
+/** Brief 064 §2.5 — the Admin collapsible's own expand/fold state.
+ *  Independent of any whole-sidebar collapse; a different cookie key,
+ *  same mechanism. Defaults to COLLAPSED (false) — v5 §2.5's own words:
+ *  "a single collapsible row, collapsed by default." (The CMMS's own
+ *  equivalent defaults to expanded/true, for its own reason stated in
+ *  its own hook — deliberately NOT copied here since v5 states the
+ *  opposite default explicitly for this app.) */
+export function useAdminGroupExpanded(serverValue?: boolean): [boolean, () => void] {
+  return usePersistedToggle(ADMIN_GROUP_EXPANDED_COOKIE, false, serverValue)
 }

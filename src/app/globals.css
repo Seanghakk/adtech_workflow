@@ -149,6 +149,59 @@
   --wf-login-w: 400px;
   --wf-control-h-lg: 48px;
   --wf-row-inactive: #f7f6f6;
+
+  /* ---- Brief 064 / v5 §7 — genuinely new tokens, values copied
+     verbatim from the handoff. Additive only, consumed by nothing but
+     the nav rail/Admin collapsible this round (per §7's own "add the
+     rest in one pass, they are additive and harmless" — the chart-
+     related four are declared now but not yet read anywhere). ---- */
+  --wf-blue-mid: #2b7aa8; /* second chart series */
+  --wf-blue-soft: #6fa3c4; /* third chart series */
+  --wf-subtree-bg: #f8fafc; /* open nav subtree field */
+  --wf-hatch-red: repeating-linear-gradient(135deg, #f8e3e1 0 4px, #f2cfcc 4px 8px);
+  --wf-rail-w: 268px;
+  --wf-chart-axis: 2px; /* axis stroke */
+  --wf-chart-grid: 1px; /* gridline stroke */
+  --wf-chart-label: 12px; /* floor for every chart label */
+
+  /* ---- Brief 064 — v5's own handoff text refers to tokens by a
+     --wf-* prefix (--wf-blue, --wf-ink, --wf-text-muted, --wf-rule-
+     strong, --wf-rule-hair, --wf-surface, --wf-bg, --wf-blue-tint,
+     --wf-head, --wf-body) that does NOT literally exist in this file
+     under those names — checked directly (grepped this whole file)
+     before assuming otherwise. The underlying VALUES already exist,
+     just under this file's own established, un-prefixed names
+     (--navy, --ink, --rule-major, --border, --surface, --bg, --navy-
+     tint-bg, --font-heading, --font-body). Rather than rename any of
+     those (hundreds of existing call sites, well outside this brief's
+     "navigation chrome only" scope), this bridges v5's own vocabulary
+     onto the real tokens so THIS build step's CSS — and steps 3-8,
+     which read the same v5 document and will hit the identical
+     mismatch — can reference --wf-* names literally and get the
+     correct value. Aliases only; nothing renamed. */
+  --wf-blue: var(--navy);
+  --wf-red: var(--danger);
+  --wf-amber: var(--warning);
+  --wf-ink: var(--ink);
+  --wf-surface: var(--surface);
+  --wf-bg: var(--bg);
+  --wf-rule-strong: var(--rule-major);
+  --wf-rule-hair: var(--border);
+  --wf-head: var(--font-heading);
+  --wf-body: var(--font-body);
+  --wf-blue-tint: var(--navy-tint-bg);
+  /* NOT aliased to the existing --text-muted (rgba(32,30,29,.6)) —
+     measured, not assumed: that value composites to ~4.40:1 against
+     white, BELOW both v5's own stated "--wf-text-muted... 4.63:1"
+     claim for .62 and the general WCAG AA 4.5:1 floor for normal
+     text. rgba(32,30,29,.62) (v5's own literal value) measures ~4.69:1,
+     which clears it. Scoped to this brief's own new rail only — NOT
+     retrofitted onto the existing --text-muted, which is read in
+     hundreds of places across this file well beyond "navigation
+     chrome," so fixing it everywhere is out of this brief's scope.
+     Flagged in Brief 064's own result doc as a pre-existing, app-wide
+     contrast gap this brief found but did not fix. */
+  --wf-text-muted: rgba(32, 30, 29, 0.62);
 }
  
 * {
@@ -403,12 +456,20 @@ button {
   min-height: 0;
 }
 .app-sidebar {
-  --sidebar-w: 208px;
+  /* Brief 064 §2.1 — fixed rail width per v5 (--wf-rail-w, 268px),
+     replacing the old collapsible --sidebar-w/--sidebar-w-collapsed
+     pair. No icon-collapsed state exists in the new rail — see
+     AppSidebar.tsx's own header for what that trades away and why it's
+     flagged, not silently dropped. --sidebar-w-collapsed and every
+     .app-sidebar--collapsed/.app-sidebar-toggle rule below are UNUSED
+     as of this brief (kept, not deleted — see useSidebarCollapsed.ts's
+     own header for why: a real, previously hardened mechanism, not
+     dead weight to clean up on a guess). */
   --sidebar-w-collapsed: 60px;
   display: flex;
   flex-direction: column;
   flex: none;
-  width: var(--sidebar-w);
+  width: var(--wf-rail-w);
   background: var(--surface);
   /* Major-section boundary, same weight as the topbar's own bottom rule. */
   border-right: 2px solid var(--rule-major);
@@ -550,6 +611,137 @@ button {
 }
 .app-sidebar--collapsed .app-sidebar-toggle-label {
   display: none;
+}
+
+/* -----------------------------------------------------------------------
+   Journey rail content (Brief 064 / v5 §2.1-§2.5) — lives inside the
+   unchanged .app-sidebar box above (same sticky/height fix, three prior
+   briefs' worth of real-device hardening, untouched by this brief).
+   ----------------------------------------------------------------------- */
+.brand-mark--rail .brand-mark__block {
+  width: 10px;
+  height: 20px;
+}
+.brand-mark--rail .brand-mark__name,
+.brand-mark--rail .brand-mark__app {
+  font-size: 14px;
+}
+.nav-rail__brand {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 2px solid var(--wf-rule-strong);
+}
+.nav-rail__section-label {
+  font: 700 11.5px/1 var(--wf-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-text-muted);
+  padding: 14px var(--space-5) 8px;
+}
+.nav-rail__nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.nav-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--wf-rule-hair);
+  text-decoration: none;
+}
+.nav-rail__item:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+.nav-rail__numeral {
+  flex: none;
+  width: 14px;
+  font: 800 11.5px/1 var(--wf-head);
+  color: var(--wf-text-muted);
+}
+.nav-rail__label {
+  font: 400 15px/1.3 var(--wf-body);
+  color: var(--wf-ink);
+}
+/* v5 §2.2 — READ THIS, IT WAS A DEFECT ONCE: deferred items are NEVER
+   opacity-dimmed. Label and numeral both stay at the same solid
+   --wf-text-muted colour a live item's numeral already uses — legible
+   at 4.63:1, not faded. The tag, not colour weight, carries deferral. */
+.nav-rail__item--deferred .nav-rail__label {
+  color: var(--wf-text-muted);
+}
+.nav-rail__later-tag {
+  margin-left: auto;
+  flex: none;
+  font: 600 12px/1 var(--wf-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wf-text-muted);
+  border: 1px solid rgba(32, 30, 29, 0.35);
+  padding: 2px 6px;
+}
+.nav-rail__item--active {
+  background: var(--wf-blue-tint);
+  border-left: 5px solid var(--wf-blue);
+  /* 18px - 5px, so the row's own left edge doesn't shift when the spine
+     appears — every other row's own 18px left padding stays visually
+     aligned. */
+  padding-left: 13px;
+}
+.nav-rail__item--active .nav-rail__numeral {
+  color: var(--wf-blue);
+}
+.nav-rail__item--active .nav-rail__label {
+  font: 800 15px/1.3 var(--wf-head);
+  color: var(--wf-blue);
+}
+
+.nav-rail__admin {
+  border-top: 2px solid var(--wf-rule-strong);
+  flex: none;
+}
+.nav-rail__admin-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--wf-bg);
+  border: 0;
+  font: 800 11.5px/1 var(--wf-head);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-text-muted);
+  cursor: pointer;
+}
+.nav-rail__admin-toggle:hover {
+  background: var(--surface-hover);
+}
+.nav-rail__admin-glyph {
+  margin-left: auto;
+  font: 700 14px/1 var(--wf-body);
+}
+.nav-rail__admin-list {
+  background: var(--wf-bg);
+}
+/* v5 §2.5 — explicit: "no numerals, no journey styling, no spine.
+   These are not stages and must not be able to be mistaken for one." */
+.nav-rail__admin-item {
+  display: block;
+  padding: 10px 18px 10px 30px;
+  font: 400 13.5px/1.3 var(--wf-body);
+  color: var(--wf-ink);
+  text-decoration: none;
+}
+.nav-rail__admin-item:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+.nav-rail__admin-item--active {
+  color: var(--wf-blue);
+  font-weight: 600;
 }
 
 .app-shell__main {
@@ -988,6 +1180,47 @@ button {
 }
 .empty-state--caveat .empty-state__figure {
   color: var(--warning);
+}
+
+/* Brief 064 / v4's own empty-state vocabulary, part 5 — the shared
+   "the container is real, the content is not there yet" landing.
+   Distinct from the plain .empty-state above (a small "no rows in this
+   list" indicator, used in many places already) — this is the full-page
+   dashed-container pattern the v4 handoff specified but nothing had
+   actually built until this brief needed it for the rail's deferred/
+   stub items (checked directly: grepped this whole file for any
+   existing dashed-border empty state before writing a new one; none
+   existed). "This is the only place in either app where a rule is
+   softened" (v4 §2.5) — the dashed border below is deliberately the
+   one exception to this app's own flat/ruled 1px-solid convention. */
+.wf-empty-state-page {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+}
+.wf-empty-state {
+  background: var(--surface);
+  border: 1px dashed rgba(32, 30, 29, 0.35);
+  padding: var(--space-7) var(--space-6);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+.wf-empty-state__headline {
+  font: 800 16px/1.3 var(--font-heading);
+  color: var(--ink);
+  margin: 0 0 var(--space-3);
+}
+.wf-empty-state__body {
+  font: 400 13.5px/1.75 var(--font-body);
+  color: var(--wf-text-muted);
+  margin: 0 0 var(--space-5);
+}
+.wf-empty-state__actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
  
 /* -----------------------------------------------------------------------

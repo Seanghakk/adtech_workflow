@@ -14,3 +14,12 @@
  * exists for this exact reason.
  */
 export const SIDEBAR_COLLAPSED_COOKIE = 'wf_sidebar_collapsed'
+
+/** Brief 064 §2.5 — the Admin collapsible's own expand/fold state,
+ *  mirroring the CMMS's own ADMIN_GROUP_EXPANDED_COOKIE (src/lib/
+ *  sidebarCookieNames.ts there) — same name/shape, same reason for
+ *  living in this plain (non-`'use client'`) module: see this file's
+ *  own header comment on why a Server Component importing a constant
+ *  from a client-directive module gets an opaque reference instead of
+ *  the real string. */
+export const ADMIN_GROUP_EXPANDED_COOKIE = 'wf_admin_group_expanded'
