@@ -79,12 +79,21 @@ const SUB_STAGE_STAGES = ['installation', 'tnc'] as const
  *  has it from the row it's rendering) purely for this app-layer
  *  pre-check's own error message — RLS re-checks the REAL row's actual
  *  stage column independently and is the real enforcement regardless of
- *  what's claimed here, same as every other app-layer gate in this file. */
+ *  what's claimed here, same as every other app-layer gate in this file.
+ *
+ *  Migration 024 / Brief 059 §3 — a photo becomes REQUIRED, checked here
+ *  server-side (not only by the client's disabled confirm button, same
+ *  "a direct POST must be refused" reasoning as update/actions.ts's own
+ *  100%-photo check), when `status` is 'done'. photo_url is only ever
+ *  written alongside a 'done' status — an in_progress/not_started save
+ *  never touches the column, so an existing photo from a prior completion
+ *  is never silently cleared by an unrelated status change. */
 export async function updateSubStageStatus(formData: FormData): Promise<{ error: string | null }> {
   const projectId = String(formData.get('projectId') ?? '')
   const subStageId = String(formData.get('subStageId') ?? '')
   const status = String(formData.get('status') ?? '')
   const stage = String(formData.get('stage') ?? '')
+  const photoUrl = String(formData.get('photoUrl') ?? '').trim()
 
   if (
     !projectId ||
@@ -93,6 +102,10 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
     !SUB_STAGE_STAGES.includes(stage as (typeof SUB_STAGE_STAGES)[number])
   ) {
     return { error: 'Invalid status.' }
+  }
+
+  if (status === 'done' && !photoUrl) {
+    return { error: 'A photo is required to mark this sub-stage done.' }
   }
 
   const gate =
@@ -104,7 +117,7 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
   const supabase = await createClient()
   const { error } = await supabase
     .from('floor_sub_stages')
-    .update({ status, updated_by: gate.userId })
+    .update(status === 'done' ? { status, updated_by: gate.userId, photo_url: photoUrl } : { status, updated_by: gate.userId })
     .eq('id', subStageId)
   if (error) {
     return { error: 'Could not save this status.' }
