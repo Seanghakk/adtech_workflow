@@ -706,7 +706,11 @@ const en = {
   floorBreakdownMaterialInspectionFloors: 'Floors this shipment serves',
   floorBreakdownLastInspection: 'Last inspection',
   floorBreakdownNoInspectionYet: 'No inspection recorded yet',
- 
+
+  // Brief 059 — photo evidence required to mark a floor sub-stage done.
+  floorBreakdownSubStagePhotoConfirm: 'Confirm done',
+  floorBreakdownSubStagePhotoAlt: 'Sub-stage completion photo evidence',
+
   drawingTypeSchematic: 'System schematic',
   drawingTypeTypicalSection: 'Section / typical drawing',
   drawingTypeLayout: 'Layout drawing',

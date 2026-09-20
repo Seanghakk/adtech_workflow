@@ -121,7 +121,7 @@ export default async function UpdateProgressPage({
       floorIds.length > 0
         ? supabase
             .from('floor_sub_stages')
-            .select('id, floor_id, stage, sub_stage, sequence, status')
+            .select('id, floor_id, stage, sub_stage, sequence, status, photo_url')
             .in('floor_id', floorIds)
             .order('sequence')
         : Promise.resolve({ data: [] }),
@@ -165,6 +165,7 @@ export default async function UpdateProgressPage({
         status: s.status,
         hasPassedInspection: passedSubStageIds.has(s.id),
         lastInspectionStatus: lastInspectionBySubStage.get(s.id) ?? null,
+        photoUrl: s.photo_url,
       }))
 
     const shopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
