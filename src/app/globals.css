@@ -744,6 +744,98 @@ button {
   font-weight: 600;
 }
 
+/* -----------------------------------------------------------------------
+   Narrow-viewport drawer (Brief 065) — the responsive answer Brief 064
+   §5 flagged rather than invented on its own initiative. Breakpoint is
+   640px throughout, THIS APP'S OWN pre-existing convention (grepped
+   globals.css for every @media rule before picking one — the same
+   640px .app-header's own wrap rule and useSidebarCollapsed.ts's
+   NARROW_DEFAULT_BREAKPOINT already use), not the CMMS's own separate
+   900px convention. Mirrors the CMMS's own HubNavMobile.tsx mechanics
+   (hamburger trigger, fixed scrim + slide-in panel, Escape/backdrop/
+   link dismissal) adapted to this app's own flat/ruled tokens — see
+   NavDrawer.tsx's own header for the one deliberate departure (one
+   real AppSidebar mount, not a hand-duplicated second nav tree).
+   ----------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* The desktop-docked rail Brief 064 built — completely unchanged
+     above this breakpoint (brief §4's own explicit requirement). */
+  .app-sidebar {
+    display: none;
+  }
+  .nav-drawer__trigger {
+    display: inline-flex;
+  }
+}
+.nav-drawer__trigger {
+  display: none; /* shown only under the 640px rule above */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.nav-drawer__trigger:hover {
+  background: var(--surface-hover);
+}
+.nav-drawer__trigger-bar {
+  width: 18px;
+  height: 2px;
+  background: var(--ink);
+}
+.nav-drawer__scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 110;
+}
+.nav-drawer__panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 111;
+  width: min(var(--wf-rail-w), 85vw);
+  background: var(--surface);
+  border-right: 2px solid var(--rule-major);
+  overflow-y: auto;
+}
+/* The SAME .app-sidebar markup AppSidebar.tsx always renders — this
+   override only repositions it as static content inside the drawer's
+   own fixed panel (the panel itself carries the fixed/full-height
+   overlay positioning), rather than sticky/height-calc'd for the
+   normal docked layout. No component fork, no drawer-aware branch
+   inside AppSidebar.tsx itself — see NavDrawer.tsx's own header. */
+.nav-drawer__panel .app-sidebar {
+  display: flex;
+  position: static;
+  width: 100%;
+  height: auto;
+  border-right: 0;
+}
+.nav-drawer__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 20px/1 var(--font-body);
+  cursor: pointer;
+  z-index: 1;
+}
+.nav-drawer__close:hover {
+  background: var(--surface-hover);
+}
+
 .app-shell__main {
   flex: 1;
   min-width: 0;

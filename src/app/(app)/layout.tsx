@@ -37,11 +37,13 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const adminCookie = cookieStore.get(ADMIN_GROUP_EXPANDED_COOKIE)?.value
   const initialAdminExpanded = adminCookie === undefined ? undefined : adminCookie === '1'
 
+  const isManager = isManagerOrAdmin(member)
+
   return (
     <div className="app-shell">
-      <AppHeader member={member} />
+      <AppHeader member={member} isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
       <div className="app-shell__body">
-        <AppSidebar isManager={isManagerOrAdmin(member)} initialAdminExpanded={initialAdminExpanded} />
+        <AppSidebar isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
         <main className="app-shell__main">{children}</main>
       </div>
     </div>
