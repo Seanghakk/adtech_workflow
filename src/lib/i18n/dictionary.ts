@@ -869,6 +869,17 @@ const en = {
   floorConfigAddFloorSubmit: 'Add floor',
   floorConfigDeleteFloor: 'Delete floor',
   floorConfigDeleteFloorConfirm: 'Delete this floor? This cannot be undone.',
+  // Brief 058 — entry point into the print-labels screen below.
+  floorConfigPrintLabels: 'Print floor QR labels',
+
+  // Brief 058 — QR labels, one per floor, printed and stuck up on site.
+  floorLabelsKicker: 'Floor QR labels',
+  floorLabelsBackToFloorConfig: 'Back to floor & zone configuration',
+  floorLabelsEmpty: 'No floors configured yet — add floors first.',
+  floorLabelsIntro: 'Scanning a label lands on that floor’s sub-stage panel on the update screen.',
+  floorLabelsSizeLabel: 'Label size',
+  floorLabelsModuleSizeSuffix: '/module',
+  floorLabelsPrintButton: 'Print',
 
   // Shop Drawing BOQ (Brief 055) — list/view screen, team-gated (Shop
   // Drawing or A&A team, migration 022 §3), not PIC-gated. Reused across

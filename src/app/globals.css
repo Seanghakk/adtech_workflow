@@ -4999,3 +4999,111 @@ a.floor-matrix__cell {
 .floor-matrix__cell--stalled {
   background: var(--danger);
 }
+
+/* -----------------------------------------------------------------------
+   Floor QR labels (Brief 058) — mirrors the CMMS's own AssetLabelPrint
+   pattern (ADTECH_CMMS_Brief_029_QR_Generation), extended from one asset
+   to a whole project's floors printed in one run. See
+   FloorLabelsPrint.tsx's own header for why this reuses --surface/--ink
+   directly rather than the CMMS's separate print-safe token pair (this
+   app has no dark mode to guard against). FLAT AND RULED on screen;
+   plain/high-contrast on paper, same brief §5 instruction as everywhere
+   else in this app.
+   ----------------------------------------------------------------------- */
+.floor-labels__intro {
+  font: 400 13px/1.5 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-3) 0 var(--space-4);
+}
+.floor-labels__control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.floor-labels__control-label {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.floor-labels__size-tabs {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+/* Compound selector so this wins regardless of source order relative to
+   .btn--outline — the exact cascade bug Brief 062 found and fixed on
+   this same page's neighbour, not repeated here. */
+.btn--outline.floor-labels__size-tab--active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+.floor-labels__print-btn {
+  margin-top: var(--space-2);
+}
+
+.floor-labels__print-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4mm;
+  margin-top: var(--space-6);
+}
+.floor-label {
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 3mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+}
+/* A server-generated QR <svg> (lib/floorQr.ts) is injected via
+   dangerouslySetInnerHTML with no width/height attribute of its own —
+   only a viewBox — so without this it doesn't reliably fill its wrapper
+   across browsers. Same fix as the CMMS's own .qr-svg-wrap > svg. */
+.floor-label__qr {
+  width: 100%;
+}
+.floor-label__qr > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.floor-label__text {
+  text-align: center;
+  width: 100%;
+}
+.floor-label__project {
+  font-weight: 800;
+  font-size: 3mm;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.floor-label__floor {
+  font-size: 2.4mm;
+  line-height: 1.3;
+  margin-top: 0.5mm;
+}
+
+/* Print utility: hide on-screen-only controls when actually printing,
+   and reserve a fixed page margin so the browser's own header/footer
+   don't crowd a physical label out. Same shape as the CMMS's own
+   equivalent rule; general enough to reuse for any future printable
+   view in this app, not floor-label-specific despite living in this
+   section. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    margin: 8mm;
+  }
+  body {
+    background: var(--surface) !important;
+  }
+}
