@@ -854,6 +854,31 @@ const en = {
   shopDrawingBoqColQuantity: 'Quantity',
   shopDrawingBoqColRequested: 'Requested',
 
+  // Shop Drawing BOQ grouped views (Brief 049) — Contract BOQ does NOT get
+  // this treatment this round (confirmed with Seanghakk: no system_type
+  // column, no floor breakdown at all — see grouped-views.ts's own
+  // header). "By tower"/"by floor" are built from the real per-floor
+  // breakdown (shop_drawing_boq_line_locations), not from a line's own
+  // total_quantity.
+  shopDrawingBoqViewLabel: 'View',
+  shopDrawingBoqViewFlat: 'Flat list',
+  shopDrawingBoqViewSystem: 'By system',
+  shopDrawingBoqViewTower: 'By tower',
+  shopDrawingBoqViewFloor: 'By floor',
+  shopDrawingBoqGroupColSystem: 'System',
+  shopDrawingBoqGroupColLineCount: 'Lines',
+  shopDrawingBoqGroupColTower: 'Tower',
+  shopDrawingBoqGroupColFloor: 'Floor',
+  shopDrawingBoqGroupColEntries: 'Entries',
+  shopDrawingBoqFloorsNotConfigured: 'No floors or towers configured for this project yet.',
+  shopDrawingBoqGoToFloorConfig: 'Configure floors',
+  // A line can carry a total_quantity with ZERO floor breakdown recorded
+  // (Brief 049's own "never silently dropped" requirement) — shown as a
+  // plain sentence, not a table row, since it deliberately has no
+  // tower/floor to sit under.
+  shopDrawingBoqNoBreakdownPrefix: 'Also',
+  shopDrawingBoqNoBreakdownSuffix: 'line(s) with no floor breakdown recorded, totalling',
+
   // Shop Drawing BOQ Excel import (Brief 055) — additive only, team-gated
   // (same requireTeam() pattern as update/floor-actions.ts). Writes
   // shop_drawing_boq_lines plus, for each non-empty floor/zone column,
