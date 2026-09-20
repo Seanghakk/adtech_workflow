@@ -4894,7 +4894,24 @@ button {
   font: 500 12px/1 var(--font-body);
   color: var(--text-muted);
 }
-.floor-matrix__legend-swatch {
+/* Brief 062 — FIX: the swatch reuses .floor-matrix__cell (so its colour
+   always matches the real grid cells exactly), but that base rule's own
+   width:100%/height:100% (needed there to fill a sized <td>) is defined
+   LATER in this file and was winning the cascade here at equal
+   specificity, blowing every swatch up to an unconstrained size and
+   starving its label text down to near-zero width — confirmed with a
+   standalone repro of this exact markup, not guessed. Every one of the
+   six legend items uses identical markup/classes (checked directly in
+   FloorMatrix.tsx — "Stalled" is not special-cased); it rendered fine
+   only because it's the LAST item in the wrapping flex row, so it had
+   the rest of the row's width free to its right with no sibling to its
+   right competing for space, not because its swatch sits outside this
+   class the way Brief 062's own bug report guessed. The compound
+   selector below is a genuinely higher-specificity override (0,2,0 vs
+   .floor-matrix__cell's 0,1,0), so it wins regardless of source order —
+   not a fix that only works by accident of where this rule happens to
+   sit in the file. */
+.floor-matrix__cell.floor-matrix__legend-swatch {
   width: 18px;
   height: 18px;
   flex: none;
