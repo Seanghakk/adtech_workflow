@@ -3,9 +3,8 @@ import { getCurrentMember } from '@/lib/auth/current-member'
 import { AppHeader } from '@/components/AppHeader'
 import { AppSidebar } from '@/components/AppSidebar'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
-import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
-import { SIDEBAR_COLLAPSED_COOKIE } from '@/lib/sidebarCookieNames'
+import { ADMIN_GROUP_EXPANDED_COOKIE } from '@/lib/sidebarCookieNames'
 
 /**
  * The access gate lives here (Brief 002 §5.1) — every route under the
@@ -28,24 +27,23 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
     return <NoAccessScreen />
   }
 
-  // Brief 043 item 1 — read the same cookie useSidebarCollapsed.ts's
-  // toggle() writes, so this Server Component's own SSR output already
-  // matches the client's persisted preference. Undefined (no cookie yet)
-  // falls through to that hook's own client-side default/localStorage
-  // handling unchanged — see its header for the full mechanism.
+  // Brief 064 §2.5 — same mechanism Brief 043 item 1 built for the old
+  // sidebar-collapsed cookie (see useSidebarCollapsed.ts's own header),
+  // now also reading the Admin-group-expanded cookie so this Server
+  // Component's own SSR output already matches the client's persisted
+  // preference. Undefined (no cookie yet) falls through to
+  // useAdminGroupExpanded()'s own client-side default (collapsed).
   const cookieStore = await cookies()
-  const sidebarCookie = cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value
-  const initialSidebarCollapsed = sidebarCookie === undefined ? undefined : sidebarCookie === '1'
+  const adminCookie = cookieStore.get(ADMIN_GROUP_EXPANDED_COOKIE)?.value
+  const initialAdminExpanded = adminCookie === undefined ? undefined : adminCookie === '1'
+
+  const isManager = isManagerOrAdmin(member)
 
   return (
     <div className="app-shell">
-      <AppHeader member={member} />
+      <AppHeader member={member} isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
       <div className="app-shell__body">
-        <AppSidebar
-          isSales={isSalesTeamMember(member)}
-          isManager={isManagerOrAdmin(member)}
-          initialCollapsed={initialSidebarCollapsed}
-        />
+        <AppSidebar isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
         <main className="app-shell__main">{children}</main>
       </div>
     </div>

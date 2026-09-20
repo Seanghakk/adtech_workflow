@@ -26,9 +26,65 @@ const en = {
   navUpdateProgress: 'Update progress',
   // Brief 039 §1 — the sidebar's own entry for "/", the project board
   // (Screen 4a). Never had a nav label before this brief: the brand mark
-  // was the only link to it.
+  // was the only link to it. UNUSED as of Brief 064 (the new rail has no
+  // Board item — reachable via the brand mark only, same as before Brief
+  // 039 ever existed) — kept, not deleted: harmless, and every other nav
+  // key this app has ever had is kept the same way once superseded.
   navBoard: 'Board',
   langToggleLabel: 'Language',
+
+  // Brief 064 §2.1 — the seven-item journey rail's own section label and
+  // item labels, v5's exact wording. Short by design (v5's own table):
+  // not the old nav's fuller "Post a request" etc.
+  navJourneySectionLabel: 'Project journey',
+  navJourneyRequest: 'Request',
+  navJourneyTriage: 'Triage',
+  navJourneySo: 'SO',
+  navJourneyKickoff: 'Kickoff',
+  navJourneyExecution: 'Execution',
+  navJourneyHandover: 'Handover',
+  navJourneyInventory: 'Inventory',
+  // Brief 064 §2.2 — the deferred-item tag. Never opacity-dimmed (v5's
+  // own explicit warning) — this is the ONLY visual marker of deferral.
+  navJourneyLaterTag: 'Later',
+  // Brief 064 §2.5 — the Admin collapsible's own row label and contents,
+  // v5's exact wording for all five.
+  navAdminRowLabel: 'Admin',
+  navAdminFloors: 'Floors and zones',
+  navAdminSoRegisters: 'SO registers',
+
+  // Brief 064 — the shared "not built yet" landing (v4's own empty-state
+  // vocabulary, part 5) behind every deferred/stub rail item. One
+  // headline + one sentence + real actions per item, never a bare "soon."
+  // Items 1-3 (request/triage/so) link to their REAL, already-working
+  // screens as one of the actions — "deferred from this rail" is not the
+  // same claim as "does not exist," and this page never blurs the two.
+  comingSoonBackToBoard: 'Back to board',
+  comingSoonRequestHeadline: '"Request" isn’t part of the main journey rail yet',
+  comingSoonRequestBody:
+    'The request intake screen exists and works — it just isn’t linked from this rail yet.',
+  comingSoonRequestAction: 'Go to Post a request',
+  comingSoonTriageHeadline: '"Triage" isn’t part of the main journey rail yet',
+  comingSoonTriageBody: 'The triage screen exists and works — it just isn’t linked from this rail yet.',
+  comingSoonTriageAction: 'Go to Triage',
+  comingSoonSoHeadline: '"SO" isn’t part of the main journey rail yet',
+  comingSoonSoBody: 'The Awaiting SO screen exists and works — it just isn’t linked from this rail yet.',
+  comingSoonSoAction: 'Go to Awaiting SO',
+  comingSoonKickoffHeadline: '"Kickoff" doesn’t have a screen yet',
+  comingSoonKickoffBody: 'This step of the project journey hasn’t been built.',
+  comingSoonExecutionHeadline: '"Execution" doesn’t have an overview yet',
+  comingSoonExecutionBody: 'The Execution overview and its own subtree are coming in a later build step.',
+  comingSoonHandoverHeadline: '"Handover" doesn’t have a screen yet',
+  comingSoonHandoverBody: 'This step of the project journey hasn’t been built.',
+  comingSoonInventoryHeadline: '"Inventory" doesn’t have a screen yet',
+  comingSoonInventoryBody: 'This step of the project journey hasn’t been built.',
+  comingSoonFloorsHeadline: 'There’s no project-wide "Floors and zones" screen yet',
+  comingSoonFloorsBody:
+    'Floor and zone configuration exists per project today — open a project’s own SO record page, then Floors.',
+  comingSoonSoRegistersHeadline: 'SO register administration doesn’t exist yet',
+  comingSoonSoRegistersBody: 'There is no admin screen for SO registers in this app today.',
+  comingSoonFallbackHeadline: 'Nothing here yet',
+  comingSoonFallbackBody: 'This screen hasn’t been built.',
  
   loginTitle: 'Sign in',
   loginEmail: 'Email',
