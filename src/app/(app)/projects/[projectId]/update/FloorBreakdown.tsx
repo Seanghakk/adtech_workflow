@@ -20,9 +20,10 @@
  * status control below are unchanged — only the add-a-floor path moved.
  */
 import Link from 'next/link'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
+import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
 
@@ -71,6 +72,9 @@ export interface SubStageRow {
   status: string
   hasPassedInspection: boolean
   lastInspectionStatus: string | null
+  /** Migration 024 / Brief 059 §3 — Storage URL of the most recently
+   *  uploaded completion photo, if any. */
+  photoUrl: string | null
 }
 
 export interface DrawingRow {
@@ -350,6 +354,76 @@ function SubStageRowView({
   const [recording, setRecording] = useState(false)
   const showException = subStage.status === 'done' && !subStage.hasPassedInspection
 
+  // Migration 024 / Brief 059 §3 — the required-on-completion photo gate,
+  // mirroring UpdateProgressForm's own needsPhoto/hasPhoto/canSave shape
+  // at row scale. `status` is optimistic local state so the select can
+  // show 'done' the instant it's picked, without waiting on the photo;
+  // `awaitingConfirm` is what actually gates the server write — selecting
+  // any OTHER status still saves immediately, same as before this brief.
+  const [status, setStatus] = useState(subStage.status)
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pendingFileRef = useRef<File | null>(null)
+
+  const canConfirm = Boolean(photoUrl) && !isPending && uploadStatus !== 'uploading'
+
+  const submitStatus = (newStatus: string, photo: string | null) => {
+    const formData = new FormData()
+    formData.set('projectId', projectId)
+    formData.set('subStageId', subStage.id)
+    formData.set('status', newStatus)
+    formData.set('stage', subStage.stage)
+    formData.set('photoUrl', photo ?? '')
+    startTransition(async () => {
+      const result = await updateSubStageStatus(formData)
+      if (result.error) {
+        setSaveError(result.error)
+        setStatus(subStage.status)
+      } else {
+        setSaveError(null)
+      }
+    })
+  }
+
+  const runUpload = async (file: File) => {
+    pendingFileRef.current = file
+    setUploadStatus('uploading')
+    setUploadProgress(0)
+    setUploadError(null)
+    try {
+      const dataUrl = await compressImage(file)
+      setPhotoPreview(dataUrl)
+      const { url } = await uploadProgressPhoto({
+        projectId,
+        dataUrl,
+        stage: subStage.stage,
+        onProgress: setUploadProgress,
+      })
+      setPhotoUrl(url)
+      setUploadStatus('idle')
+      pendingFileRef.current = null
+    } catch (err) {
+      setUploadStatus('error')
+      setUploadError(err instanceof Error ? err.message : 'Upload failed.')
+    }
+  }
+
+  const cancelDone = () => {
+    setAwaitingConfirm(false)
+    setStatus(subStage.status)
+    setPhotoUrl(null)
+    setPhotoPreview(null)
+    setUploadStatus('idle')
+    setUploadError(null)
+  }
+
   return (
     // Brief 056 §6 — the matrix's drill-through anchor: `id` here is what
     // /projects/[projectId]/update#substage-<id> links land on, and
@@ -362,17 +436,22 @@ function SubStageRowView({
       </span>
       <select
         className="floor-breakdown__status-select"
-        defaultValue={subStage.status}
+        value={status}
         disabled={!canWrite || isPending}
         onChange={(e) => {
-          const formData = new FormData()
-          formData.set('projectId', projectId)
-          formData.set('subStageId', subStage.id)
-          formData.set('status', e.target.value)
-          formData.set('stage', subStage.stage)
-          startTransition(() => {
-            updateSubStageStatus(formData)
-          })
+          const newStatus = e.target.value
+          if (newStatus === 'done') {
+            setStatus('done')
+            setAwaitingConfirm(true)
+            setPhotoUrl(null)
+            setPhotoPreview(null)
+            setUploadStatus('idle')
+            setUploadError(null)
+          } else {
+            setStatus(newStatus)
+            setAwaitingConfirm(false)
+            submitStatus(newStatus, null)
+          }
         }}
       >
         {Object.entries(STATUS_KEYS).map(([value, key]) => (
@@ -381,6 +460,17 @@ function SubStageRowView({
           </option>
         ))}
       </select>
+
+      {!awaitingConfirm && subStage.photoUrl && (
+        <button
+          type="button"
+          className="photo-thumb photo-thumb--small"
+          onClick={() => setOverlayUrl(subStage.photoUrl)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- stored evidence photo, next/image is the wrong tool for an external Storage URL thumbnail */}
+          <img src={subStage.photoUrl} alt={t('floorBreakdownSubStagePhotoAlt')} />
+        </button>
+      )}
 
       <span className="floor-breakdown__last-inspection">
         {t('floorBreakdownLastInspection')}:{' '}
@@ -393,6 +483,85 @@ function SubStageRowView({
         </button>
       )}
 
+      {awaitingConfirm && (
+        <div className="floor-breakdown__photo-panel">
+          <div className="update-card__reason-head">
+            <span className="update-card__reason-label">{t('photoLabel')}</span>
+            <span className="required-badge">{t('updateRequired')}</span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="photo-input"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (file) void runUpload(file)
+            }}
+          />
+
+          <div className="photo-picker">
+            {photoPreview ? (
+              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoUrl ?? photoPreview)}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- local/compressed preview data URL, next/image doesn't take data: URLs */}
+                <img src={photoPreview} alt={t('floorBreakdownSubStagePhotoAlt')} />
+                {uploadStatus === 'uploading' ? (
+                  <span className="photo-thumb__progress">
+                    <span className="photo-thumb__progress-bar" style={{ width: `${uploadProgress}%` }} />
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
+
+            <div className="photo-picker__actions">
+              <button
+                type="button"
+                className="btn btn--outline"
+                disabled={uploadStatus === 'uploading'}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadStatus === 'uploading'
+                  ? `${t('photoUploading')} ${uploadProgress}%`
+                  : photoPreview
+                    ? t('photoRetake')
+                    : t('photoAdd')}
+              </button>
+            </div>
+          </div>
+
+          {uploadStatus === 'error' ? (
+            <div className="floor-breakdown__error" role="alert">
+              {uploadError}{' '}
+              <button
+                type="button"
+                className="photo-retry"
+                onClick={() => pendingFileRef.current && void runUpload(pendingFileRef.current)}
+              >
+                {t('photoRetry')}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="floor-breakdown__photo-actions">
+            <button type="button" className="btn btn--primary" disabled={!canConfirm} onClick={() => submitStatus('done', photoUrl)}>
+              {t('floorBreakdownSubStagePhotoConfirm')}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={cancelDone}>
+              {t('floorBreakdownRecordInspectionCancel')}
+            </button>
+          </div>
+
+          {saveError && (
+            <div className="floor-breakdown__error" role="alert">
+              {saveError}
+            </div>
+          )}
+        </div>
+      )}
+
       {recording && (
         <InspectionForm
           onSubmit={(formData) => {
@@ -403,6 +572,13 @@ function SubStageRowView({
           }}
           onDone={() => setRecording(false)}
         />
+      )}
+
+      {overlayUrl && (
+        <div className="photo-overlay" onClick={() => setOverlayUrl(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- full-size stored evidence photo */}
+          <img src={overlayUrl} alt={t('floorBreakdownSubStagePhotoAlt')} />
+        </div>
       )}
     </div>
   )

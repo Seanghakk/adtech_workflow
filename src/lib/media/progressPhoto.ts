@@ -43,10 +43,15 @@ export class ProgressPhotoUploadError extends Error {}
  * XMLHttpRequest (not fetch) specifically so `onProgress` reflects real
  * upload bytes sent, not a guess — Brief 057 §5: "a silent spinner on a
  * slow link is indistinguishable from a hang."
+ *
+ * `stage` (Brief 059 §4) is omitted for a Screen 6a progress-update photo
+ * (unchanged PIC-only route gate) and set to 'installation' | 'tnc' for a
+ * floor-sub-stage photo, so the route can apply the matching team gate.
  */
 export function uploadProgressPhoto(args: {
   projectId: string
   dataUrl: string
+  stage?: 'installation' | 'tnc'
   onProgress?: (percent: number) => void
 }): Promise<{ url: string; path: string }> {
   return new Promise((resolve, reject) => {
@@ -74,6 +79,6 @@ export function uploadProgressPhoto(args: {
     }
     xhr.onerror = () => reject(new ProgressPhotoUploadError('Upload failed — check your connection and try again.'))
 
-    xhr.send(JSON.stringify({ projectId: args.projectId, dataUrl: args.dataUrl }))
+    xhr.send(JSON.stringify({ projectId: args.projectId, dataUrl: args.dataUrl, stage: args.stage }))
   })
 }

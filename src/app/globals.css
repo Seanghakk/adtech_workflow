@@ -3654,6 +3654,25 @@ button {
   color: var(--warning-tint-deep);
 }
 
+/* Brief 059 — the required-on-completion photo gate for a floor
+   sub-stage, same shape as .floor-breakdown__inspection-form (a bordered
+   panel under the row it belongs to). Reuses .photo-input/.photo-picker/
+   .photo-thumb/.photo-overlay/.required-badge as-is from Brief 057. */
+.floor-breakdown__photo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+  background: var(--ground);
+  border: 1px solid var(--border);
+  flex-basis: 100%;
+}
+.floor-breakdown__photo-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
 /* -----------------------------------------------------------------------
    Contract BOQ entry (Brief 046 / Amendment A) — the line list reuses
    .wf-admin-table as-is; these classes cover the add/edit forms and the
