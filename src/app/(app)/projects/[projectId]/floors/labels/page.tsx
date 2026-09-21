@@ -88,9 +88,17 @@ export default async function FloorLabelsPage({ params }: PageProps<'/projects/[
     })),
   )
 
+  // Brief 072 §2 — the label's own printed identity line: the SO
+  // number when the project has one, else the project's full title
+  // (CSS-truncated to one line on the label itself — see
+  // FloorLabelsPrint.tsx's own header for why NOT the app's on-screen
+  // "No SO number yet" fallback text here).
+  const labelIdentity = project.so_number ?? project.name
+
   return (
     <FloorLabelsPrint
       projectName={project.name}
+      labelIdentity={labelIdentity}
       labels={labels}
       totalModules={floorQrTotalModules()}
       strings={{

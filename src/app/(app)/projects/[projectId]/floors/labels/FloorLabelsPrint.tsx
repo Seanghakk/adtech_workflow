@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 
 export interface PrintableLabel {
@@ -38,12 +38,23 @@ const PRESETS = [
 
 export function FloorLabelsPrint({
   projectName,
+  labelIdentity,
   labels,
   totalModules,
   strings: s,
   breadcrumbAncestors,
 }: {
   projectName: string
+  /** Brief 072 — the label's own top identity line: the project's
+   *  so_number when it has one, or the project's full title (truncated
+   *  to one line with an ellipsis, CSS-only, never JS-truncated) when
+   *  it does not — computed server-side in page.tsx (`project.so_number
+   *  ?? project.name`), never the app's on-screen "No SO number yet"
+   *  fallback (see this component's own render for why: that string
+   *  identifies nothing about which project a label belongs to on a
+   *  wall). `projectName` above is now used ONLY for this screen's own
+   *  on-screen heading (<h1>), never printed on a label. */
+  labelIdentity: string
   labels: PrintableLabel[]
   /** lib/floorQr.ts's floorQrTotalModules() — computed server-side from
    *  the real encoded URL, see that function's own comment. */
@@ -112,14 +123,23 @@ export function FloorLabelsPrint({
       {labels.length > 0 && (
         <div className="floor-labels__print-grid">
           {labels.map((label) => (
-            <div key={label.floorId} className="floor-label" style={{ width: `${sizeMm}mm` }}>
+            <div
+              key={label.floorId}
+              className="floor-label"
+              style={{ width: `${sizeMm}mm`, '--label-size': `${sizeMm}mm` } as CSSProperties}
+            >
+              {/* Brief 072 §2 — top to bottom, decided: SO number (or
+                  the one-line-truncated project title when there is no
+                  SO number yet) first, small; the QR unchanged; the
+                  floor last, largest, bold. The full project title is
+                  otherwise dropped — every label on this page is
+                  already the same project, so it told a reader nothing
+                  that distinguished one label from another. */}
+              <div className="floor-label__so">{labelIdentity}</div>
               {/* Server-generated from this floor's own UUID — not user input. */}
               <div className="floor-label__qr" dangerouslySetInnerHTML={{ __html: label.qrSvg }} />
-              <div className="floor-label__text">
-                <div className="floor-label__project">{projectName}</div>
-                <div className="floor-label__floor">
-                  {label.towerLabel ? `${label.towerLabel} — ${label.floorLabel}` : label.floorLabel}
-                </div>
+              <div className="floor-label__floor">
+                {label.towerLabel ? `${label.towerLabel} — ${label.floorLabel}` : label.floorLabel}
               </div>
             </div>
           ))}

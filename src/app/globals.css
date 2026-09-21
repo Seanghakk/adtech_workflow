@@ -5503,7 +5503,13 @@ a.floor-matrix__cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2mm;
+  gap: 1.5mm;
+  /* Brief 072 §3 — every size-dependent value on this label reads this
+     one custom property (set inline alongside `width`, same element,
+     same source of truth) rather than a second, independent size
+     switch — so the SO/floor text can never drift out of sync with
+     the label's own selected size. */
+  --label-size: 25mm;
 }
 /* A server-generated QR <svg> (lib/floorQr.ts) is injected via
    dangerouslySetInnerHTML with no width/height attribute of its own —
@@ -5517,20 +5523,48 @@ a.floor-matrix__cell {
   width: 100%;
   height: 100%;
 }
-.floor-label__text {
-  text-align: center;
+/* Brief 072 §2/§3 — the label's own top identity line (SO number, or
+   the project title when there is no SO number yet). Deliberately
+   SMALLER than .floor-label__floor below at every size (a fixed 0.075x
+   vs. that rule's own 0.13x of --label-size, so this can never
+   overtake it even as both scale) and ALWAYS one line: unlike the
+   floor text, this is genuinely fine to truncate — it exists only to
+   say "these labels are for a project called X," not to be read
+   precisely at arm's length the way a floor name must be. */
+.floor-label__so {
   width: 100%;
-}
-.floor-label__project {
-  font-weight: 800;
-  font-size: 3mm;
+  text-align: center;
+  font-weight: 600;
+  font-size: calc(var(--label-size) * 0.075);
   line-height: 1.2;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+/* Brief 072 §2/§3 — now the LARGEST, boldest text on the label (was
+   the smallest, under the full project title, before this brief).
+   Scales with --label-size so it stays the largest element at 25mm,
+   30mm AND 40mm alike, per the brief's own explicit requirement.
+   word-break/normal wrapping, NOT white-space: nowrap — a floor name
+   long enough to overflow one line at 25mm WRAPS to a second line
+   rather than clipping or shrinking below this rule's own computed
+   size (see Brief 072's own Result doc for the tested practical
+   one-line limit at 25mm). */
 .floor-label__floor {
-  font-size: 2.4mm;
-  line-height: 1.3;
-  margin-top: 0.5mm;
+  width: 100%;
+  text-align: center;
+  font-weight: 800;
+  font-size: calc(var(--label-size) * 0.115);
+  line-height: 1.2;
+  /* overflow-wrap, NOT word-break: break-word — a floor name that
+     doesn't fit one line should wrap at its own word/dash boundaries
+     first (e.g. "Administration Block — B2" -> "Administration Block"
+     / "— B2"), only breaking mid-word as a last resort if a single
+     word alone is too long for the label — checked directly, an
+     earlier word-break: break-word draft broke "Administration" itself
+     mid-word ("Administrati" / "on Block") even though the string had
+     perfectly good space/dash breakpoints available. */
+  overflow-wrap: break-word;
 }
 
 /* Print utility: hide on-screen-only controls when actually printing,
