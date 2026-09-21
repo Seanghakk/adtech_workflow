@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { AddContractBoqLineForm } from './AddContractBoqLineForm'
 import { ContractBoqLineRow, type ContractBoqLineData } from './ContractBoqLineRow'
 
@@ -34,7 +36,7 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, pic_id')
+    .select('id, name, pic_id, so_number')
     .eq('id', projectId)
     .maybeSingle()
 
@@ -73,15 +75,23 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
   }))
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('contractBoqKicker')}
+      />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('contractBoqKicker')}</div>
         <h1 className="wf-admin__title">{project.name}</h1>
       </div>
 
-      <p>
-        <Link href={`/projects/${project.id}`}>{t('contractBoqBackToSoRecord')}</Link>
-      </p>
+      {/* Brief 070 §3 — contractBoqBackToSoRecord ('Back to SO record')
+          removed: the breadcrumb's own "<SO#>" ancestor above links to
+          the exact same /projects/{id} destination. */}
 
       {isPic && (
         <p>
@@ -116,5 +126,6 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
 
       {isPic && <AddContractBoqLineForm projectId={project.id} />}
     </div>
+    </>
   )
 }

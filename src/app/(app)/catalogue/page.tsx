@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { lifecycleStepLabel } from '@/lib/reporting/catalogue'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Catalogue — ADTECH Workflow Tracker',
@@ -30,7 +32,9 @@ export default async function CatalogueIndexPage() {
   const rows = items ?? []
 
   return (
-    <div className="catalogue-index">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href }]} current={t('navAdminCatalogue')} />
+      <div className="catalogue-index">
       <div className="catalogue-index__header">
         <div className="catalogue-index__kicker">{t('catalogueIndexKicker')}</div>
         <h1 className="catalogue-index__title">{t('catalogueIndexTitle')}</h1>
@@ -63,5 +67,6 @@ export default async function CatalogueIndexPage() {
         </table>
       )}
     </div>
+    </>
   )
 }

@@ -8,6 +8,8 @@ import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { AgeLadder } from '@/components/AgeLadder'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { requestStatusAncestors } from '@/lib/breadcrumbs'
 import { CloseRequestControl } from '../CloseRequestControl'
 
 export const metadata: Metadata = {
@@ -94,7 +96,15 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
     !request.closed_at && user != null && (user.id === request.requester_id || user.id === request.current_owner_id)
 
   return (
-    <div className="phone-status">
+    <>
+      {/* Brief 071 — no breadcrumb on this route, decided: see
+          requestStatusAncestors's own header in src/lib/breadcrumbs.ts
+          for why (this is a requester-facing Telegram deep-link screen;
+          a "Triage" ancestor doesn't serve its own audience). Brief 070
+          had added one here and flagged it as an open judgment call —
+          that call is now made. */}
+      <Breadcrumbs ancestors={requestStatusAncestors()} current={t('phoneStatusKicker')} />
+      <div className="phone-status">
       <div className="phone-status__kicker">{t('phoneStatusKicker')}</div>
 
       {request.closed_at && <div className="phone-status__closed-badge">{t('requestDetailClosedBadge')}</div>}
@@ -149,5 +159,6 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
         {t('phoneStatusOpenFullDetail')}
       </Link>
     </div>
+    </>
   )
 }

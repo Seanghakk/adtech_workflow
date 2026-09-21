@@ -10,6 +10,8 @@ import { getServerTranslator, getServerLang } from '@/lib/i18n/server'
 import { localizedLabel } from '@/lib/i18n/localized-label'
 import { computeDependencyChain } from '@/lib/reporting/dependency-chain'
 import { getAgeLabelBand } from '@/lib/age'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { buildMatrixRows } from './floor-matrix'
 import { FloorMatrix } from './FloorMatrix'
 
@@ -127,7 +129,20 @@ export default async function SoRecordPage({
     })
 
     return (
-      <div className="so-record">
+      <>
+        {/* Brief 070 §2.3/§3 — same "Board / <SO#>" breadcrumb as the
+            plain (non-matrix) view below: this is the SAME route/page,
+            just a different view of it (?view=matrix), not a distinct
+            hierarchy node — so its breadcrumb does not reach a "Floor
+            progress" crumb, and does NOT cover floorMatrixBackToSoRecord's
+            own destination (switching back to the non-matrix view of
+            this exact page). That back link is kept, not removed — see
+            Brief 070's own Result doc §3. */}
+        <Breadcrumbs
+          ancestors={[{ label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href }]}
+          current={project.so_number ?? t('soRecordNoSoYet')}
+        />
+        <div className="so-record">
         <div className="so-record__header">
           <div className="so-record__identity">
             <div className="so-record__kicker-row">
@@ -147,7 +162,8 @@ export default async function SoRecordPage({
         </div>
 
         <FloorMatrix projectId={project.id} rows={matrixRows} t={t} />
-      </div>
+        </div>
+      </>
     )
   }
 
@@ -260,7 +276,12 @@ export default async function SoRecordPage({
   const { rows: dependencyRows, totalSlip: dependencySlip } = computeDependencyChain(dependencyLinks ?? [])
 
   return (
-    <div className="so-record">
+    <>
+      <Breadcrumbs
+        ancestors={[{ label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href }]}
+        current={project.so_number ?? t('soRecordNoSoYet')}
+      />
+      <div className="so-record">
       <div className="so-record__header">
         <div className="so-record__identity">
           <div className="so-record__kicker-row">
@@ -494,6 +515,7 @@ export default async function SoRecordPage({
         </div>
       </div>
     </div>
+    </>
   )
 }
 

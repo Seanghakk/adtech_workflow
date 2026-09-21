@@ -3,6 +3,8 @@ import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import {
   buildApprovalNeeded,
   buildEscalation,
@@ -136,7 +138,9 @@ export default async function NotificationsPage() {
   ]
 
   return (
-    <div className="wf-admin notifications">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href }]} current={t('navNotifications')} />
+      <div className="wf-admin notifications">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('notificationsKicker')}</div>
         <h1 className="wf-admin__title">{t('notificationsTitle')}</h1>
@@ -186,5 +190,6 @@ export default async function NotificationsPage() {
         ))}
       </div>
     </div>
+    </>
   )
 }

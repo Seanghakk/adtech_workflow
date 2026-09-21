@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -7,6 +6,8 @@ import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { AgeLadder } from '@/components/AgeLadder'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Procurement — ADTECH Workflow Tracker',
@@ -117,7 +118,15 @@ export default async function ProcurementLinePage({
   const tracksFloors = (floorCount ?? 0) > 0
 
   return (
-    <div className="procurement-line">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('procurementLineKicker')}
+      />
+      <div className="procurement-line">
       <div className="procurement-line__header">
         <div className="procurement-line__identity">
           <div className="procurement-line__kicker-row">
@@ -132,9 +141,9 @@ export default async function ProcurementLinePage({
           <div className="procurement-line__subline">
             {[client?.name, site?.name].filter(Boolean).join(' · ')}
           </div>
-          <Link href={`/projects/${project.id}`} className="procurement-line__back-link">
-            {t('procurementLineBackLink')}
-          </Link>
+          {/* Brief 070 §3 — procurementLineBackLink ('Back to SO record')
+              removed: the breadcrumb's own "<SO#>" ancestor above links
+              to the exact same /projects/{id} destination. */}
         </div>
         <div className="procurement-line__owner-block">
           <span className="so-record__owner-label">{t('soRecordPicLabel')}</span>
@@ -166,6 +175,7 @@ export default async function ProcurementLinePage({
 
       <p className="procurement-line__write-note">{t('procurementLineWriteNote')}</p>
     </div>
+    </>
   )
 }
 

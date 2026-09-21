@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -7,6 +6,8 @@ import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
 import { formatDateICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { AgeLadder } from '@/components/AgeLadder'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { computeDependencyChain, type ComputedDependencyLink } from '@/lib/reporting/dependency-chain'
 
 export const metadata: Metadata = {
@@ -118,7 +119,15 @@ export default async function DependencyChainPage({
   const lastRow = rows.length > 0 ? rows[rows.length - 1] : null
 
   return (
-    <div className="dependency-chain">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('dependencyChainKicker')}
+      />
+      <div className="dependency-chain">
       <div className="dependency-chain__header">
         <div className="dependency-chain__identity">
           <div className="dependency-chain__kicker-row">
@@ -133,9 +142,9 @@ export default async function DependencyChainPage({
           <div className="dependency-chain__subline">
             {[client?.name, site?.name].filter(Boolean).join(' · ')}
           </div>
-          <Link href={`/projects/${project.id}`} className="dependency-chain__back-link">
-            {t('dependencyChainBackLink')}
-          </Link>
+          {/* Brief 070 §3 — dependencyChainBackLink ('Back to SO record')
+              removed: the breadcrumb's own "<SO#>" ancestor above links
+              to the exact same /projects/{id} destination. */}
         </div>
         <div className="dependency-chain__owner-block">
           <span className="so-record__owner-label">{t('soRecordPicLabel')}</span>
@@ -191,6 +200,7 @@ export default async function DependencyChainPage({
 
       <p className="dependency-chain__write-note">{t('dependencyChainWriteNote')}</p>
     </div>
+    </>
   )
 }
 

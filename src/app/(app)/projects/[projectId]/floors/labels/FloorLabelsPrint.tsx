@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
 
 export interface PrintableLabel {
   floorId: string
@@ -37,13 +37,12 @@ const PRESETS = [
 ] as const
 
 export function FloorLabelsPrint({
-  projectId,
   projectName,
   labels,
   totalModules,
   strings: s,
+  breadcrumbAncestors,
 }: {
-  projectId: string
   projectName: string
   labels: PrintableLabel[]
   /** lib/floorQr.ts's floorQrTotalModules() — computed server-side from
@@ -51,13 +50,21 @@ export function FloorLabelsPrint({
   totalModules: number
   strings: {
     kicker: string
-    backToFloorConfig: string
     empty: string
     intro: string
     sizeLabel: string
     moduleSizeSuffix: string
     printButton: string
   }
+  /** Brief 070 §2/§3 — Board / <SO#> / Floor & zone configuration, built
+   *  server-side (page.tsx already has the translator + project data)
+   *  and passed down since this is a Client Component. Rendered inside
+   *  the SAME .no-print wrapper as the rest of this screen's own on-
+   *  screen-only chrome — never part of the printed labels. Its own
+   *  "Floor & zone configuration" ancestor now covers exactly what
+   *  floorLabelsBackToFloorConfig ('Back to floor & zone configuration')
+   *  used to, so that back link is removed, not just hidden. */
+  breadcrumbAncestors: { label: string; href: string }[]
 }) {
   const [sizeMm, setSizeMm] = useState<number>(30)
   const moduleMm = (mm: number) => (mm / totalModules).toFixed(2)
@@ -65,15 +72,12 @@ export function FloorLabelsPrint({
   return (
     <div className="floor-labels">
       <div className="no-print">
+        <Breadcrumbs ancestors={breadcrumbAncestors} current={s.kicker} />
         <div className="wf-admin">
           <div className="wf-admin__header">
             <div className="wf-admin__kicker">{s.kicker}</div>
             <h1 className="wf-admin__title">{projectName}</h1>
           </div>
-
-          <p>
-            <Link href={`/projects/${projectId}/floors`}>{s.backToFloorConfig}</Link>
-          </p>
 
           {labels.length === 0 ? (
             <p className="empty-state">{s.empty}</p>

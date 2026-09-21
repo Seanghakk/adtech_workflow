@@ -26,10 +26,12 @@ const en = {
   navUpdateProgress: 'Update progress',
   // Brief 039 §1 — the sidebar's own entry for "/", the project board
   // (Screen 4a). Never had a nav label before this brief: the brand mark
-  // was the only link to it. UNUSED as of Brief 064 (the new rail has no
-  // Board item — reachable via the brand mark only, same as before Brief
-  // 039 ever existed) — kept, not deleted: harmless, and every other nav
-  // key this app has ever had is kept the same way once superseded.
+  // was the only link to it. Went UNUSED from Brief 064 (the new rail
+  // has no Board item — reachable via the brand mark only) through
+  // Brief 069 — kept regardless, per this app's own "every nav key is
+  // kept once superseded" convention. Brief 070 §2.2 finally consumes
+  // it again: the breadcrumb bar's own top-level "Board" ancestor on
+  // every project page (src/lib/breadcrumbs.ts's own CRUMB_BOARD).
   navBoard: 'Board',
   langToggleLabel: 'Language',
 
@@ -124,6 +126,13 @@ const en = {
   comingSoonQcInspectionsHeadline: '"QC inspections" doesn’t have its own screen',
   comingSoonQcInspectionsBody:
     'QC inspection recording lives inside a project’s own floor breakdown too — see the sub-stage rows on the update screen.',
+  // Brief 070 §2.2 — "Admin" is a genuine category (8 items), same as
+  // Execution, so it needs to be a real, honest breadcrumb ancestor
+  // link for its own children rather than falling back to the generic
+  // comingSoonFallback copy below. Same bespoke-stub-copy pattern every
+  // other rail group already has.
+  comingSoonAdminHeadline: '"Admin" doesn’t have its own overview screen',
+  comingSoonAdminBody: 'Its items are listed in the Admin section below the rail — pick one from there.',
   comingSoonFallbackHeadline: 'Nothing here yet',
   comingSoonFallbackBody: 'This screen hasn’t been built.',
  

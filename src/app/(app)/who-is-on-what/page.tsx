@@ -4,6 +4,8 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 import { getServerTranslator } from '@/lib/i18n/server'
 import { DAILY_PROJECT_LIMIT } from '@/lib/reporting/exceptions'
 import { buildPerPersonLoad, buildPerStreamLoad, type PerPersonLoad, type PerStreamLoad } from '@/lib/reporting/load'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_EXECUTION } from '@/lib/breadcrumbs'
 
 // Brief 067 §2 — renamed from /load per v5 §3 ("Load" is capacity-
 // planning vocabulary no site engineer or procurement officer uses).
@@ -58,7 +60,9 @@ export default async function WhoIsOnWhatPage() {
   )
 
   return (
-    <div className="load-board">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_EXECUTION.label), href: CRUMB_EXECUTION.href }]} current={t('navLoad')} />
+      <div className="load-board">
       <div className="load-board__header">
         <span className="load-board__kicker">{t('loadKicker')}</span>
         <h1 className="load-board__title">{t('loadTitle')}</h1>
@@ -109,6 +113,7 @@ export default async function WhoIsOnWhatPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

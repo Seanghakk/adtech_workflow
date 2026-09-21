@@ -6,6 +6,8 @@ import { formatMemberName, getUserProfilesByIds, type MemberProfile } from '@/li
 import { getServerTranslator } from '@/lib/i18n/server'
 import { formatDateICT } from '@/lib/format/datetime'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { UnlinkedAccountRow } from './UnlinkedAccountRow'
 import { DeactivateMemberControl } from './DeactivateMemberControl'
 import { ReactivateMemberControl } from './ReactivateMemberControl'
@@ -84,7 +86,9 @@ export default async function UsersPage() {
   }
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href }]} current={t('navUsers')} />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('usersKicker')}</div>
         <h1 className="wf-admin__title">{t('usersTitle')}</h1>
@@ -168,5 +172,6 @@ export default async function UsersPage() {
         </tbody>
       </table>
     </div>
+    </>
   )
 }
