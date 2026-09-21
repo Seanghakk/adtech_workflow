@@ -11,10 +11,10 @@
  * in this app.
  */
 import { createBrowserClient } from '@supabase/ssr'
-import { getSupabaseAnonKey, getSupabaseUrl } from './env'
+import { getSupabasePublishableKey, getSupabaseUrl } from './env'
 
 export function createClient() {
-  return createBrowserClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  return createBrowserClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     db: { schema: 'workflow' },
   })
 }

@@ -17,14 +17,14 @@
  */
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getSupabaseAnonKey, getSupabaseUrl } from './env'
+import { getSupabasePublishableKey, getSupabaseUrl } from './env'
 
 const PUBLIC_PATHS = ['/login']
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  const supabase = createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {
       getAll() {
         return request.cookies.getAll()
