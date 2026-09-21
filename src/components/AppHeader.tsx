@@ -31,14 +31,28 @@ export function AppHeader({
   member,
   isManager,
   initialAdminExpanded,
+  initialExecutionExpanded,
+  delaysAndBlockersCount,
 }: {
   member: CurrentMember
   isManager: boolean
   initialAdminExpanded?: boolean
+  /** Brief 067 §3 — same cookie-read pattern as initialAdminExpanded,
+   *  for the Execution subtree's own expand state. */
+  initialExecutionExpanded?: boolean
+  /** Brief 067 §3 — the "Delays & blockers" subtree item's own count
+   *  badge, computed once by (app)/layout.tsx and threaded down to
+   *  both AppSidebar mounts (desktop + this drawer's own). */
+  delaysAndBlockersCount: number
 }) {
   return (
     <header className="app-header">
-      <NavDrawer isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
+      <NavDrawer
+        isManager={isManager}
+        initialAdminExpanded={initialAdminExpanded}
+        initialExecutionExpanded={initialExecutionExpanded}
+        delaysAndBlockersCount={delaysAndBlockersCount}
+      />
       <div className="app-header__identity">
         <span className="app-header__owner-box">
           {(member.fullName ?? member.username ?? member.email ?? '—').toUpperCase()}

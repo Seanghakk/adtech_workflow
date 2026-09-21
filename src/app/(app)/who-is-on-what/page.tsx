@@ -5,8 +5,12 @@ import { getServerTranslator } from '@/lib/i18n/server'
 import { DAILY_PROJECT_LIMIT } from '@/lib/reporting/exceptions'
 import { buildPerPersonLoad, buildPerStreamLoad, type PerPersonLoad, type PerStreamLoad } from '@/lib/reporting/load'
 
+// Brief 067 §2 — renamed from /load per v5 §3 ("Load" is capacity-
+// planning vocabulary no site engineer or procurement officer uses).
+// /load redirects here permanently (next.config.ts) so no existing
+// bookmark/Telegram link dead-ends.
 export const metadata: Metadata = {
-  title: 'Who is carrying what — ADTECH Workflow Tracker',
+  title: 'Who is on what — ADTECH Workflow Tracker',
 }
 
 /**
@@ -28,7 +32,7 @@ export const metadata: Metadata = {
  * maintenance-flagged projects under a client they (or their supervisor)
  * own, via RLS, not any extra filtering in this query.
  */
-export default async function LoadPage() {
+export default async function WhoIsOnWhatPage() {
   const supabase = await createClient()
   const t = await getServerTranslator()
 

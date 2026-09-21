@@ -23,3 +23,8 @@ export const SIDEBAR_COLLAPSED_COOKIE = 'wf_sidebar_collapsed'
  *  from a client-directive module gets an opaque reference instead of
  *  the real string. */
 export const ADMIN_GROUP_EXPANDED_COOKIE = 'wf_admin_group_expanded'
+
+/** Brief 067 §3 — the Execution subtree's own expand/fold state (v5
+ *  §2.3), same persisted-boolean shape as ADMIN_GROUP_EXPANDED_COOKIE
+ *  above, its own cookie key. */
+export const EXECUTION_SUBTREE_EXPANDED_COOKIE = 'wf_execution_subtree_expanded'

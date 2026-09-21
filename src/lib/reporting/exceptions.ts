@@ -82,6 +82,23 @@ export function buildExceptionGroups(projects: ExceptionProject[]): ExceptionGro
   }
 }
 
+/** Brief 067 §3 — the SAME union-of-all-four-groups count /delays-and-
+ *  blockers/page.tsx (formerly /exceptions) has always computed inline,
+ *  pulled out here so the nav rail's own count badge (v5 §2.3) reads
+ *  from this one shared definition rather than a second, independently-
+ *  maintained count that could quietly drift from what the page itself
+ *  shows. A project can be in more than one group at once (e.g. no
+ *  reason given AND stalled) — counted once, matching the page's own
+ *  existing behaviour exactly. */
+export function countInExceptionGroups(groups: ExceptionGroups): number {
+  return new Set([
+    ...groups.noPicAssigned.map((p) => p.id),
+    ...groups.noReasonGiven.map((p) => p.id),
+    ...groups.stalled.map((p) => p.id),
+    ...groups.ninetyNineBand.map((p) => p.id),
+  ]).size
+}
+
 /** README, "PIC concurrency": "the constraint is physical presence, not
  *  list length... measure distinct projects per day, never total item
  *  count." Detection only (Brief §4.5) — no constraint enforces this. */

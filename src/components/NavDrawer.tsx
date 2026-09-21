@@ -57,9 +57,15 @@ import { AppSidebar } from './AppSidebar'
 export function NavDrawer({
   isManager,
   initialAdminExpanded,
+  initialExecutionExpanded,
+  delaysAndBlockersCount,
 }: {
   isManager: boolean
   initialAdminExpanded?: boolean
+  /** Brief 067 §3 — threaded straight through to this drawer's own
+   *  AppSidebar mount, same values the desktop mount gets. */
+  initialExecutionExpanded?: boolean
+  delaysAndBlockersCount: number
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -129,7 +135,12 @@ export function NavDrawer({
             >
               ×
             </button>
-            <AppSidebar isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
+            <AppSidebar
+              isManager={isManager}
+              initialAdminExpanded={initialAdminExpanded}
+              initialExecutionExpanded={initialExecutionExpanded}
+              delaysAndBlockersCount={delaysAndBlockersCount}
+            />
           </div>
         </>
       )}

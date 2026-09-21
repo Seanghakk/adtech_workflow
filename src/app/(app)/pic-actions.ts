@@ -49,7 +49,8 @@ export async function assignProjectPic(
   }
 
   revalidatePath('/')
-  revalidatePath('/exceptions')
-  revalidatePath('/load')
+  // Brief 067 §2 — renamed from /exceptions and /load.
+  revalidatePath('/delays-and-blockers')
+  revalidatePath('/who-is-on-what')
   return { error: null }
 }

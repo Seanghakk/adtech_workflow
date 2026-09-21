@@ -53,6 +53,68 @@ import type { DictionaryKey } from '@/lib/i18n/dictionary'
  * hidden, not given an invented home, per brief §4): /sales (isSales-
  * gated monitoring screen) and /catalogue (+ /catalogue/[itemId]). Listed
  * here and in the Result doc; still reachable by direct URL.
+ *
+ * ---------------------------------------------------------------------
+ * BRIEF 067 — the Execution subtree, the two renames, and three Admin
+ * additions (Brief 066's own findings). Superseding the "no home"
+ * paragraph above for /catalogue and /sales/assign specifically — both
+ * now have one, in Admin. /sales itself gets a placeholder Admin home
+ * too (see ADMIN_ITEMS's own comment).
+ *
+ * RENAMES (v5 §3): /exceptions -> /delays-and-blockers, /load ->
+ * /who-is-on-what. Old paths permanently redirect (next.config.ts).
+ *
+ * EXECUTION SUBTREE (v5 §2.3) — a GENUINE DESIGN GAP, reported not
+ * papered over: the rail is global (no project in context), but most
+ * subtree items name PER-PROJECT screens. v5's own §2.3 correction
+ * (made the same day this rail shipped) gave "Floor progress" a
+ * per-project route as if the global rail could link to it directly —
+ * right that the matrix is live, wrong to imply a global link can reach
+ * it. Classified all nine items below against the actual codebase, not
+ * v5's own assumption, and reported the classification rather than
+ * improvising a project-picker or a cross-project list view neither
+ * this brief nor v5 asked for:
+ *
+ *   (A) HAS A REAL GLOBAL DESTINATION — linked directly:
+ *       Delays & blockers (/delays-and-blockers), Who is on what
+ *       (/who-is-on-what). Both confirmed cross-project by nature, not
+ *       assumed from their names.
+ *
+ *   (B) PER-PROJECT ONLY — the screen is real, but only inside a
+ *       project; stubbed (/soon/[key]), NOT linked to an arbitrary
+ *       project, NOT given an invented project picker:
+ *       Shop drawing (/projects/[projectId]/shop-drawing-boq),
+ *       Procurement (/projects/[projectId]/procurement),
+ *       Floor progress (/projects/[projectId]?view=matrix — kept below
+ *       its own 1px dashed rule per v5 §2.3, styled as a normal live
+ *       row, NOT muted/italic — v5 §10 already corrected that part;
+ *       this brief only changes where the link goes, not how the row
+ *       looks).
+ *
+ *   (C) NO SCREEN AT ALL — same stub treatment as (B):
+ *       Overview (build step 7, blocked on v5 §9 open item 1 — case
+ *       (C) by definition, per this brief's own §3),
+ *       Installation, Testing & commissioning, QC inspections (all
+ *       three: checked directly, no dedicated route exists anywhere,
+ *       global or per-project — Installation/TNC sub-stage tracking
+ *       and QC recording, Brief 063, all live only as SECTIONS inside
+ *       /projects/[projectId]/update's own floor breakdown panel, never
+ *       promoted to a route of their own).
+ *
+ * How a global rail should reach a per-project screen is explicitly a
+ * design question for Claude Design (this brief's own §3), not decided
+ * here — the (B)/(C) list above is the input that question needs.
+ *
+ * ADMIN ADDITIONS (Brief 066 §(a)/(b), decided by Seanghakk 20 Sep
+ * 2026): "Parts catalogue" (/catalogue) — reference data, same kind of
+ * thing as Lookup tables, confirmed NOT "Inventory" (rail item 7,
+ * Brief 066 §(c) — no quantity/location/project-tie exists anywhere on
+ * catalogue_items). "Client owners" (/sales/assign) — a real manager/
+ * admin configuration action, exactly what Admin already holds. "Sales"
+ * (/sales) — an imperfect fit (Brief 066 §(a): a maintenance-contract
+ * monitoring view, not an admin/config screen), placed here anyway as
+ * a placeholder home so it isn't permanently unreachable, explicitly
+ * flagged for revisiting once the sales front end is built.
  */
 
 export type JourneyStatus = 'deferred' | 'live'
@@ -90,7 +152,56 @@ export const ADMIN_ITEMS: AdminItem[] = [
   { key: 'users', labelKey: 'navUsers', href: '/users' },
   { key: 'floors', labelKey: 'navAdminFloors', href: null },
   { key: 'so-registers', labelKey: 'navAdminSoRegisters', href: null },
+  // Brief 067 §4 — three additions from Brief 066's own findings, see
+  // this file's own "ADMIN ADDITIONS" header paragraph above for why
+  // each one landed here. No access gating added or changed (brief's
+  // own explicit instruction): all three inherit the SAME isManager
+  // visibility gate the rest of this list already renders under
+  // (AppSidebar.tsx only renders the whole Admin section for a
+  // manager/admin) — /catalogue and /sales have no page-level access
+  // check of their own regardless (confirmed, Brief 066), and /sales/
+  // assign's own canAssignClientOwners gate (manager/admin) already
+  // matches this list's own existing visibility rule exactly, so no
+  // new mismatch is introduced either way.
+  { key: 'catalogue', labelKey: 'navAdminCatalogue', href: '/catalogue' },
+  { key: 'sales', labelKey: 'navAdminSales', href: '/sales' },
+  { key: 'client-owners', labelKey: 'navAdminClientOwners', href: '/sales/assign' },
 ]
+
+export type SubtreeCase = 'A' | 'B' | 'C'
+
+export interface SubtreeItem {
+  key: string
+  labelKey: DictionaryKey
+  /** null for case B/C — see this file's own header for the full A/B/C
+   *  classification and why. */
+  href: string | null
+  case: SubtreeCase
+  /** "Delays & blockers" only, v5 §2.3. */
+  showBadge?: boolean
+  /** "Floor progress" only — v5 §2.3's own 1px dashed rule sits above
+   *  just this one item. */
+  belowDashedRule?: boolean
+}
+
+/** v5 §2.3's own nine items, in its own order. See this file's header
+ *  for the full (A)/(B)/(C) reasoning behind each href. */
+export const EXECUTION_SUBTREE_ITEMS: SubtreeItem[] = [
+  { key: 'overview', labelKey: 'navExecOverview', href: null, case: 'C' },
+  { key: 'shop-drawing', labelKey: 'navExecShopDrawing', href: null, case: 'B' },
+  { key: 'procurement', labelKey: 'navExecProcurement', href: null, case: 'B' },
+  { key: 'installation', labelKey: 'navExecInstallation', href: null, case: 'C' },
+  { key: 'testing-commissioning', labelKey: 'navExecTestingCommissioning', href: null, case: 'C' },
+  { key: 'qc-inspections', labelKey: 'navExecQcInspections', href: null, case: 'C' },
+  { key: 'delays-and-blockers', labelKey: 'navExceptions', href: '/delays-and-blockers', case: 'A', showBadge: true },
+  { key: 'who-is-on-what', labelKey: 'navLoad', href: '/who-is-on-what', case: 'A' },
+  { key: 'floor-progress', labelKey: 'navExecFloorProgress', href: null, case: 'B', belowDashedRule: true },
+]
+
+export function isSubtreeItemActive(item: SubtreeItem, pathname: string): boolean {
+  if (!item.href) return false
+  return isActiveHref(item.href, pathname)
+}
 
 /** Where a stubbed item (journey or Admin) lands — one shared route, one
  *  shared empty-state component, per-item copy looked up by key. */
