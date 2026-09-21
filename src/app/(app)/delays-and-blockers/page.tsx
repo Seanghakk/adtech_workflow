@@ -9,13 +9,19 @@ import { AgeLadder } from '@/components/AgeLadder'
 import {
   buildExceptionGroups,
   buildPicBreaches,
+  countInExceptionGroups,
   DAILY_PROJECT_LIMIT,
   type ExceptionProject,
   type PicBreach,
 } from '@/lib/reporting/exceptions'
 
+// Brief 067 §2 — renamed from /exceptions per v5 §3 ("Delays & blockers"
+// names the two things it actually lists, in the app's own colour
+// vocabulary — red is delay, amber is waiting). /exceptions redirects
+// here permanently (next.config.ts) so no existing bookmark/Telegram
+// link dead-ends.
 export const metadata: Metadata = {
-  title: 'Where the work is stuck — ADTECH Workflow Tracker',
+  title: 'Delays & blockers — ADTECH Workflow Tracker',
 }
 
 /**
@@ -47,7 +53,7 @@ export const metadata: Metadata = {
  * see this route's own Result 003 entry for why bolting a scope selector
  * onto 6b alone, ahead of 4a, was not done.
  */
-export default async function ExceptionsPage() {
+export default async function DelaysAndBlockersPage() {
   const supabase = await createClient()
   const t = await getServerTranslator()
   const lang = await getServerLang()
@@ -139,12 +145,10 @@ export default async function ExceptionsPage() {
     })),
   )
 
-  const inExceptionCount = new Set([
-    ...groups.noPicAssigned.map((p) => p.id),
-    ...groups.noReasonGiven.map((p) => p.id),
-    ...groups.stalled.map((p) => p.id),
-    ...groups.ninetyNineBand.map((p) => p.id),
-  ]).size
+  // Brief 067 §3 — same shared helper the nav rail's own count badge now
+  // reads (lib/reporting/exceptions.ts), so this page and that badge can
+  // never quietly disagree about the number.
+  const inExceptionCount = countInExceptionGroups(groups)
 
   const profiles = await getUserProfilesByIds(supabase, [
     ...exceptionProjects.map((p) => p.picId),

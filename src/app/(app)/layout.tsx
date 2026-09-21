@@ -1,10 +1,14 @@
 import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { AppHeader } from '@/components/AppHeader'
 import { AppSidebar } from '@/components/AppSidebar'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
-import { ADMIN_GROUP_EXPANDED_COOKIE } from '@/lib/sidebarCookieNames'
+import { isSalesTeamMember } from '@/lib/auth/sales-roles'
+import { ADMIN_GROUP_EXPANDED_COOKIE, EXECUTION_SUBTREE_EXPANDED_COOKIE } from '@/lib/sidebarCookieNames'
+import { daysSinceICT } from '@/lib/format/datetime'
+import { buildExceptionGroups, countInExceptionGroups, type ExceptionProject } from '@/lib/reporting/exceptions'
 
 /**
  * The access gate lives here (Brief 002 §5.1) — every route under the
@@ -36,14 +40,66 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const cookieStore = await cookies()
   const adminCookie = cookieStore.get(ADMIN_GROUP_EXPANDED_COOKIE)?.value
   const initialAdminExpanded = adminCookie === undefined ? undefined : adminCookie === '1'
+  // Brief 067 §3 — same mechanism, the Execution subtree's own cookie.
+  const executionCookie = cookieStore.get(EXECUTION_SUBTREE_EXPANDED_COOKIE)?.value
+  const initialExecutionExpanded = executionCookie === undefined ? undefined : executionCookie === '1'
 
   const isManager = isManagerOrAdmin(member)
+  // Brief 068 §2 — restores the Admin collapsible's "Sales" entry for
+  // Sales Engineers (role 'member', not manager) who lost it when Brief
+  // 067 §4 gated all three new Admin entries behind isManager alone.
+  const memberIsSalesTeamMember = isSalesTeamMember(member)
+
+  // Brief 067 §3 — the "Delays & blockers" subtree item's own count
+  // badge (v5 §2.3), computed on EVERY page load since the rail renders
+  // everywhere, not just on that page. Deliberately the SAME
+  // buildExceptionGroups/countInExceptionGroups the renamed page itself
+  // now calls (lib/reporting/exceptions.ts) — one shared definition, so
+  // this number can never quietly disagree with what that page shows.
+  // Minimal column selection (only what classification needs, not the
+  // display-only name/soNumber/stream fields that page also selects).
+  const supabase = await createClient()
+  const [{ data: badgeProjectRows }, { data: badgeProgressRows }] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('id, pic_id, percent_complete, last_meaningful_movement_at, opened_at')
+      .eq('status', 'open'),
+    supabase
+      .from('progress_updates')
+      .select('subject_id')
+      .eq('subject_type', 'project'),
+  ])
+  const reportedProjectIds = new Set((badgeProgressRows ?? []).map((r) => r.subject_id))
+  const badgeExceptionProjects: ExceptionProject[] = (badgeProjectRows ?? []).map((p) => ({
+    id: p.id,
+    name: '',
+    stream: '',
+    soNumber: null,
+    percentComplete: p.percent_complete,
+    picId: p.pic_id,
+    stallDays: daysSinceICT(p.last_meaningful_movement_at ?? p.opened_at),
+    hasReasonOnFile: reportedProjectIds.has(p.id),
+  }))
+  const delaysAndBlockersCount = countInExceptionGroups(buildExceptionGroups(badgeExceptionProjects))
 
   return (
     <div className="app-shell">
-      <AppHeader member={member} isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
+      <AppHeader
+        member={member}
+        isManager={isManager}
+        isSalesTeamMember={memberIsSalesTeamMember}
+        initialAdminExpanded={initialAdminExpanded}
+        initialExecutionExpanded={initialExecutionExpanded}
+        delaysAndBlockersCount={delaysAndBlockersCount}
+      />
       <div className="app-shell__body">
-        <AppSidebar isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
+        <AppSidebar
+          isManager={isManager}
+          isSalesTeamMember={memberIsSalesTeamMember}
+          initialAdminExpanded={initialAdminExpanded}
+          initialExecutionExpanded={initialExecutionExpanded}
+          delaysAndBlockersCount={delaysAndBlockersCount}
+        />
         <main className="app-shell__main">{children}</main>
       </div>
     </div>

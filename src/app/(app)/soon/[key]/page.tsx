@@ -38,6 +38,21 @@ const ENTRIES: Record<string, ComingSoonEntry> = {
   inventory: { headlineKey: 'comingSoonInventoryHeadline', bodyKey: 'comingSoonInventoryBody' },
   floors: { headlineKey: 'comingSoonFloorsHeadline', bodyKey: 'comingSoonFloorsBody' },
   'so-registers': { headlineKey: 'comingSoonSoRegistersHeadline', bodyKey: 'comingSoonSoRegistersBody' },
+  // Brief 067 §3 — the Execution subtree's own case (B)/(C) items (see
+  // nav.ts's own header for the full A/B/C classification). "execution"
+  // itself (above) is UNREACHABLE from the rail as of this brief — item
+  // 5's own row is now a subtree toggle, not a link (see AppSidebar.tsx)
+  // — kept here regardless, harmless and still directly navigable.
+  'shop-drawing': { headlineKey: 'comingSoonShopDrawingHeadline', bodyKey: 'comingSoonShopDrawingBody' },
+  procurement: { headlineKey: 'comingSoonProcurementHeadline', bodyKey: 'comingSoonProcurementBody' },
+  'floor-progress': { headlineKey: 'comingSoonFloorProgressHeadline', bodyKey: 'comingSoonFloorProgressBody' },
+  overview: { headlineKey: 'comingSoonOverviewHeadline', bodyKey: 'comingSoonOverviewBody' },
+  installation: { headlineKey: 'comingSoonInstallationHeadline', bodyKey: 'comingSoonInstallationBody' },
+  'testing-commissioning': {
+    headlineKey: 'comingSoonTestingCommissioningHeadline',
+    bodyKey: 'comingSoonTestingCommissioningBody',
+  },
+  'qc-inspections': { headlineKey: 'comingSoonQcInspectionsHeadline', bodyKey: 'comingSoonQcInspectionsBody' },
 }
 
 /**

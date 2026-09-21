@@ -698,6 +698,58 @@ button {
   font: 800 15px/1.3 var(--wf-head);
   color: var(--wf-blue);
 }
+/* Brief 067 §3 — the Execution row's own toggle button reuses every
+   .nav-rail__item rule above (same padding/border/active treatment as
+   a real link row) but IS a <button>, not an <a> — this resets the
+   browser's own button chrome so nothing but the reused rules above
+   are visible, matching .nav-rail__admin-toggle's own precedent for
+   an identical problem. */
+.nav-rail__item--toggle {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--wf-rule-hair);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-rail__item--active.nav-rail__item--toggle {
+  border-bottom: 0;
+}
+
+/* Brief 067 §3 — the Execution subtree, v5 §2.3's own exact
+   measurements. --wf-subtree-bg is the v5 §7 token Brief 064 already
+   declared but never consumed until this brief needed it. */
+.nav-rail__subtree {
+  background: var(--wf-subtree-bg);
+}
+.nav-rail__subtree-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  padding-left: 42px;
+  font: 400 14px/1.3 var(--wf-body);
+  color: var(--wf-ink);
+  text-decoration: none;
+}
+.nav-rail__subtree-item:hover {
+  text-decoration: underline;
+}
+.nav-rail__subtree-item--active {
+  color: var(--wf-blue);
+  font-weight: 600;
+}
+.nav-rail__subtree-badge {
+  margin-left: auto;
+  font: 800 11.5px/1 var(--wf-head);
+  background: var(--wf-red);
+  color: #fff;
+  padding: 1px 6px;
+}
+.nav-rail__subtree-dashed-rule {
+  margin: 6px 18px 0;
+  border-top: 1px dashed rgba(32, 30, 29, 0.35);
+}
 
 .nav-rail__admin {
   border-top: 2px solid var(--wf-rule-strong);

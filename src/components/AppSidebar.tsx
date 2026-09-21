@@ -3,8 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
-import { useAdminGroupExpanded } from '@/lib/useSidebarCollapsed'
-import { ADMIN_ITEMS, JOURNEY_ITEMS, comingSoonHref, isAdminItemActive, isJourneyItemActive } from '@/lib/nav'
+import { useAdminGroupExpanded, useExecutionSubtreeExpanded } from '@/lib/useSidebarCollapsed'
+import {
+  ADMIN_ITEMS,
+  EXECUTION_SUBTREE_ITEMS,
+  JOURNEY_ITEMS,
+  canSeeAdminItem,
+  comingSoonHref,
+  isAdminItemActive,
+  isJourneyItemActive,
+  isSubtreeItemActive,
+} from '@/lib/nav'
 
 /**
  * Brief 064 / v5 §2.1-§2.5 — the seven-item journey rail, replacing
@@ -37,18 +46,42 @@ import { ADMIN_ITEMS, JOURNEY_ITEMS, comingSoonHref, isAdminItemActive, isJourne
  */
 export function AppSidebar({
   isManager,
+  isSalesTeamMember,
   initialAdminExpanded,
+  initialExecutionExpanded,
+  delaysAndBlockersCount,
 }: {
   isManager: boolean
+  /** Brief 068 §2 — Sales Engineers (role 'member', team 'sales') need
+   *  this to see the "Sales" Admin entry, which the plain isManager
+   *  gate above would otherwise hide from them (see nav.ts's own
+   *  ADMIN_ITEMS comments for the pre-064 evidence this restores). */
+  isSalesTeamMember: boolean
   /** Brief 064 §2.5 — the Admin-group-expanded cookie value the caller
    *  (a Server Component) already read via `cookies()`. Undefined (no
    *  cookie yet) falls through to useAdminGroupExpanded()'s own
    *  client-side default (collapsed) / localStorage handling. */
   initialAdminExpanded?: boolean
+  /** Brief 067 §3 — same cookie-read pattern, for the Execution
+   *  subtree's own expand state (default EXPANDED — see
+   *  useExecutionSubtreeExpanded's own header for why that default
+   *  differs from Admin's). */
+  initialExecutionExpanded?: boolean
+  /** Brief 067 §3 — the "Delays & blockers" subtree item's own count
+   *  badge (v5 §2.3), computed once by (app)/layout.tsx from the same
+   *  shared helper that page itself uses. */
+  delaysAndBlockersCount: number
 }) {
   const { t } = useLanguage()
   const pathname = usePathname()
   const [adminExpanded, toggleAdminExpanded] = useAdminGroupExpanded(initialAdminExpanded)
+  const [executionExpanded, toggleExecutionExpanded] = useExecutionSubtreeExpanded(initialExecutionExpanded)
+  const isExecutionActive = EXECUTION_SUBTREE_ITEMS.some((item) => isSubtreeItemActive(item, pathname))
+  // Brief 068 §2c — the Admin SECTION renders whenever the member can
+  // see at least one entry, not only for a manager; each entry keeps
+  // its own rule (canSeeAdminItem), so a non-manager never sees an
+  // entry meant for managers only as a side effect of this.
+  const visibleAdminItems = ADMIN_ITEMS.filter((item) => canSeeAdminItem(item, { isManager, isSalesTeamMember }))
 
   return (
     <aside className="app-sidebar" aria-label="Main">
@@ -79,6 +112,65 @@ export function AppSidebar({
             )
           }
 
+          // Brief 067 §3 — item 5 (Execution) now has a real subtree, so
+          // its own row becomes an expand/collapse TOGGLE (a <button>,
+          // matching the Admin group's own already-established pattern
+          // below) rather than a link — it has no destination of its own
+          // (case C, see nav.ts's own header), so a link never made
+          // sense for it once a subtree existed to expand instead.
+          // /soon/execution (Brief 064's own stub for this row) is now
+          // unreachable from the rail — kept, not deleted, still
+          // directly navigable.
+          if (item.key === 'execution') {
+            return (
+              <div key={item.key}>
+                <button
+                  type="button"
+                  className={
+                    isExecutionActive ? 'nav-rail__item nav-rail__item--active nav-rail__item--toggle' : 'nav-rail__item nav-rail__item--toggle'
+                  }
+                  aria-expanded={executionExpanded}
+                  aria-current={isExecutionActive ? 'page' : undefined}
+                  onClick={toggleExecutionExpanded}
+                >
+                  <span className="nav-rail__numeral">{item.numeral}</span>
+                  <span className="nav-rail__label">{label}</span>
+                </button>
+                {executionExpanded && (
+                  <div className="nav-rail__subtree">
+                    {EXECUTION_SUBTREE_ITEMS.map((subItem, i) => {
+                      const subHref = subItem.href ?? comingSoonHref(subItem.key)
+                      const subActive = isSubtreeItemActive(subItem, pathname)
+                      // v5 §2.3 — "Floor progress" sits below its own
+                      // 1px dashed rule, 6px above. Placement only —
+                      // Brief 067 keeps its row styled exactly like
+                      // every other live subtree item (not muted, not
+                      // italic; v5 §10 already corrected that part).
+                      const needsDashedRuleAbove = subItem.belowDashedRule && i > 0
+                      return (
+                        <div key={subItem.key}>
+                          {needsDashedRuleAbove && <div className="nav-rail__subtree-dashed-rule" />}
+                          <Link
+                            href={subHref}
+                            className={
+                              subActive ? 'nav-rail__subtree-item nav-rail__subtree-item--active' : 'nav-rail__subtree-item'
+                            }
+                            aria-current={subActive ? 'page' : undefined}
+                          >
+                            <span>{t(subItem.labelKey)}</span>
+                            {subItem.showBadge && delaysAndBlockersCount > 0 && (
+                              <span className="nav-rail__subtree-badge">{delaysAndBlockersCount}</span>
+                            )}
+                          </Link>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           const href = item.href ?? comingSoonHref(item.key)
           const isActive = isJourneyItemActive(item, pathname)
           return (
@@ -95,7 +187,7 @@ export function AppSidebar({
         })}
       </nav>
 
-      {isManager && (
+      {visibleAdminItems.length > 0 && (
         <div className="nav-rail__admin">
           <button
             type="button"
@@ -115,7 +207,7 @@ export function AppSidebar({
           </button>
           {adminExpanded && (
             <div className="nav-rail__admin-list">
-              {ADMIN_ITEMS.map((item) => {
+              {visibleAdminItems.map((item) => {
                 const href = item.href ?? comingSoonHref(item.key)
                 const isActive = isAdminItemActive(item, pathname)
                 return (

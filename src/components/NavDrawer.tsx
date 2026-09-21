@@ -56,10 +56,20 @@ import { AppSidebar } from './AppSidebar'
  */
 export function NavDrawer({
   isManager,
+  isSalesTeamMember,
   initialAdminExpanded,
+  initialExecutionExpanded,
+  delaysAndBlockersCount,
 }: {
   isManager: boolean
+  /** Brief 068 §2 — threaded straight through to this drawer's own
+   *  AppSidebar mount, same value the desktop mount gets. */
+  isSalesTeamMember: boolean
   initialAdminExpanded?: boolean
+  /** Brief 067 §3 — threaded straight through to this drawer's own
+   *  AppSidebar mount, same values the desktop mount gets. */
+  initialExecutionExpanded?: boolean
+  delaysAndBlockersCount: number
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -129,7 +139,13 @@ export function NavDrawer({
             >
               ×
             </button>
-            <AppSidebar isManager={isManager} initialAdminExpanded={initialAdminExpanded} />
+            <AppSidebar
+              isManager={isManager}
+              isSalesTeamMember={isSalesTeamMember}
+              initialAdminExpanded={initialAdminExpanded}
+              initialExecutionExpanded={initialExecutionExpanded}
+              delaysAndBlockersCount={delaysAndBlockersCount}
+            />
           </div>
         </>
       )}

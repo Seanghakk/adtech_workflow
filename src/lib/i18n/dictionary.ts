@@ -52,6 +52,22 @@ const en = {
   navAdminRowLabel: 'Admin',
   navAdminFloors: 'Floors and zones',
   navAdminSoRegisters: 'SO registers',
+  // Brief 067 §4 — three Admin additions, Brief 066's own findings.
+  navAdminCatalogue: 'Parts catalogue',
+  navAdminSales: 'Sales',
+  navAdminClientOwners: 'Client owners',
+
+  // Brief 067 §3 — the Execution subtree's own nine item labels, v5
+  // §2.3's exact wording. "Delays & blockers" and "Who is on what"
+  // reuse navExceptions/navLoad directly (same screen, same label, one
+  // definition) rather than duplicating the string under a new key.
+  navExecOverview: 'Overview',
+  navExecShopDrawing: 'Shop drawing',
+  navExecProcurement: 'Procurement',
+  navExecInstallation: 'Installation',
+  navExecTestingCommissioning: 'Testing & commissioning',
+  navExecQcInspections: 'QC inspections',
+  navExecFloorProgress: 'Floor progress',
 
   // Brief 064 — the shared "not built yet" landing (v4's own empty-state
   // vocabulary, part 5) behind every deferred/stub rail item. One
@@ -83,6 +99,31 @@ const en = {
     'Floor and zone configuration exists per project today — open a project’s own SO record page, then Floors.',
   comingSoonSoRegistersHeadline: 'SO register administration doesn’t exist yet',
   comingSoonSoRegistersBody: 'There is no admin screen for SO registers in this app today.',
+  // Brief 067 §3 — the Execution subtree's own case (B)/(C) items. Case
+  // B (a real per-project screen, no cross-project view) says so
+  // honestly rather than reading identically to case C (no screen
+  // anywhere) — see nav.ts's own header for which is which.
+  comingSoonShopDrawingHeadline: '"Shop drawing" is a per-project screen',
+  comingSoonShopDrawingBody:
+    'Open a project from the board, then its own Shop Drawing BOQ page — there is no cross-project view of this yet.',
+  comingSoonProcurementHeadline: '"Procurement" is a per-project screen',
+  comingSoonProcurementBody:
+    'Open a project from the board, then its own Procurement page — there is no cross-project view of this yet.',
+  comingSoonFloorProgressHeadline: '"Floor progress" is a per-project screen',
+  comingSoonFloorProgressBody:
+    'Open a project from the board, then its own floor x sub-stage matrix — there is no cross-project view of this yet.',
+  comingSoonOverviewHeadline: 'The Execution overview doesn’t exist yet',
+  comingSoonOverviewBody:
+    'The chart-driven overview is a later build step, blocked on a still-open question about where its target-curve data would come from.',
+  comingSoonInstallationHeadline: '"Installation" doesn’t have its own screen',
+  comingSoonInstallationBody:
+    'Installation sub-stage tracking lives inside a project’s own floor breakdown (the update screen), not a standalone page.',
+  comingSoonTestingCommissioningHeadline: '"Testing & commissioning" doesn’t have its own screen',
+  comingSoonTestingCommissioningBody:
+    'TNC sub-stage tracking lives inside a project’s own floor breakdown (the update screen), not a standalone page.',
+  comingSoonQcInspectionsHeadline: '"QC inspections" doesn’t have its own screen',
+  comingSoonQcInspectionsBody:
+    'QC inspection recording lives inside a project’s own floor breakdown too — see the sub-stage rows on the update screen.',
   comingSoonFallbackHeadline: 'Nothing here yet',
   comingSoonFallbackBody: 'This screen hasn’t been built.',
  
@@ -200,11 +241,22 @@ const en = {
   photoRequiredBody: 'That is the moment this claim carries weight — add a photo before saving.',
   photoEvidenceAlt: 'Progress update photo evidence',
  
-  navExceptions: 'Exceptions',
-  navLoad: 'Load',
- 
+  // Brief 067 §2 — renamed per v5 §3. UNUSED by nav.ts since Brief 064's
+  // rewrite (kept, not deleted — same reasoning as every other retired
+  // nav key in this file), updated anyway so nothing stale sits next to
+  // the labels actually in use.
+  navExceptions: 'Delays & blockers',
+  navLoad: 'Who is on what',
+
+  // Brief 067 §2 — kicker is the literal renamed label ("Delays &
+  // blockers"), matching how loadKicker below already equalled the old
+  // nav label 1:1 before this brief. exceptionsTitle itself is
+  // deliberately UNCHANGED: "Where the work is stuck" was never a
+  // paraphrase of the word "Exceptions" — original headline copy, not
+  // the old name — so v5's rename doesn't require rewriting it, only
+  // the label that actually says the screen's name.
   exceptionsTitle: 'Where the work is stuck',
-  exceptionsKicker: 'Reporting review',
+  exceptionsKicker: 'Delays & blockers',
   exceptionsOpenProjects: 'open projects',
   exceptionsInException: 'in an exception group',
   exceptionsGroupNoPic: 'No PIC assigned',
@@ -237,8 +289,12 @@ const en = {
   // "abandoned" without touching the stall rule itself.
   exceptionsLastReportedPrefix: 'Last reported',
  
-  loadTitle: 'Who is carrying what',
-  loadKicker: 'Load',
+  // Brief 067 §2 — loadTitle was already nearly v5's exact wording
+  // ("Who is carrying what" vs "Who is on what"); updated to match it
+  // precisely, unlike exceptionsTitle above (see that key's own
+  // comment for the distinction this brief drew).
+  loadTitle: 'Who is on what',
+  loadKicker: 'Who is on what',
   loadSubhead: 'Distinct projects per day — never total item count',
   loadPerPerson: 'Per person',
   loadPerPersonCaption: 'Bars are total distinct open projects held right now, across all dates.',

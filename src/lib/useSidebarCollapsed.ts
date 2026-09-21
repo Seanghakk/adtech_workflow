@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ADMIN_GROUP_EXPANDED_COOKIE, SIDEBAR_COLLAPSED_COOKIE } from './sidebarCookieNames'
+import { ADMIN_GROUP_EXPANDED_COOKIE, EXECUTION_SUBTREE_EXPANDED_COOKIE, SIDEBAR_COLLAPSED_COOKIE } from './sidebarCookieNames'
 
 /** Below this width, default to collapsed (icon rail) on a visitor's very
  *  first load — there is no separate mobile drawer in this app (see
@@ -145,4 +145,17 @@ export function useSidebarCollapsed(serverValue?: boolean): [boolean, () => void
  *  opposite default explicitly for this app.) */
 export function useAdminGroupExpanded(serverValue?: boolean): [boolean, () => void] {
   return usePersistedToggle(ADMIN_GROUP_EXPANDED_COOKIE, false, serverValue)
+}
+
+/** Brief 067 §3 — the Execution subtree's own expand/fold state.
+ *  DEFAULTS TO EXPANDED (true) — a JUDGMENT CALL, flagged rather than
+ *  silently picked: v5 §2.5 says "collapsed by default" explicitly for
+ *  Admin, but §2.3 never says either way for the Execution subtree.
+ *  That asymmetry is read as meaningful, not an oversight to fill in
+ *  the same way: Execution is this app's own main working area (v5
+ *  §2.1 marks it "live, expandable" alongside the other live items,
+ *  none of which start hidden), unlike Admin, which v5 is explicit
+ *  about de-emphasising. Reconsider if that reading turns out wrong. */
+export function useExecutionSubtreeExpanded(serverValue?: boolean): [boolean, () => void] {
+  return usePersistedToggle(EXECUTION_SUBTREE_EXPANDED_COOKIE, true, serverValue)
 }
