@@ -48,3 +48,34 @@ export const CRUMB_BOARD: AncestorCrumb = { label: 'navBoard', href: '/' }
 export const CRUMB_EXECUTION: AncestorCrumb = { label: 'navJourneyExecution', href: '/soon/execution' }
 export const CRUMB_ADMIN: AncestorCrumb = { label: 'navAdminRowLabel', href: '/soon/admin' }
 export const CRUMB_TRIAGE: AncestorCrumb = { label: 'navJourneyTriage', href: '/triage' }
+
+/**
+ * Brief 071 — DECIDED (Seanghakk, 21 Sep 2026): /requests/[requestId]/
+ * status renders NO breadcrumb, even though "Triage / Request" is
+ * derivable for it the exact same way it is for /requests/[requestId]
+ * itself (CRUMB_TRIAGE + the request's own detail-page href — see that
+ * page's own use site). Brief 070 added it there under this file's own
+ * uniform rule and flagged it in-code as a judgment call; this is that
+ * call, made.
+ *
+ * WHY: that screen is a deliberately minimal phone archetype a
+ * REQUESTER opens from a Telegram deep link — its own header comment
+ * says "two jobs only, no data entry, no lists to browse." A requester
+ * is typically a salesperson or PIC, not someone who works in Triage.
+ * A "Triage" ancestor link points at a place its own typical audience
+ * doesn't use and may not be able to open — it works against the
+ * page's own design intent rather than serving it.
+ *
+ * /requests/[requestId] (the request DETAIL page, not this one) is
+ * UNCHANGED and keeps its own "Triage / Request" breadcrumb — that
+ * page genuinely IS reached from /triage by people who work there;
+ * only the status page is requester-facing. Do not conflate the two.
+ *
+ * An explicit exclusion, not an omitted <Breadcrumbs> call left to be
+ * silently rediscovered later — see requestStatusAncestors's own call
+ * site in that page for why this shape (a named, empty derivation)
+ * rather than just not calling <Breadcrumbs> there at all.
+ */
+export function requestStatusAncestors(): { label: string; href: string }[] {
+  return []
+}
