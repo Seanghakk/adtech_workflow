@@ -15,8 +15,8 @@
  * doesn't go through PostgREST schema selection at all.
  */
 import { createClient } from '@supabase/supabase-js'
-import { getSupabaseServiceRoleKey, getSupabaseUrl } from './env'
+import { getSupabaseSecretKey, getSupabaseUrl } from './env'
 
 export function createServiceClient() {
-  return createClient(getSupabaseUrl(), getSupabaseServiceRoleKey())
+  return createClient(getSupabaseUrl(), getSupabaseSecretKey())
 }

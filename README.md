@@ -16,6 +16,16 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Environment variables
+
+Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+`SUPABASE_SECRET_KEY` (server only) in `.env.local`, **quoted** (e.g.
+`SUPABASE_SECRET_KEY="sb_secret_..."`). Never `source` `.env.local` or any
+other env file in a shell — an unquoted value with a special character will
+be misparsed and can get printed straight into your terminal output/session
+log. If a script genuinely needs one variable's value, read that single name,
+never the whole file.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

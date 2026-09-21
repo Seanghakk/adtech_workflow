@@ -47,9 +47,23 @@ export function getSupabaseUrl(): string {
   return assertBareProjectUrl(url, 'NEXT_PUBLIC_SUPABASE_URL')
 }
 
-export function getSupabaseAnonKey(): string {
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!key) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.')
+/**
+ * ADTECH_PLATFORM_Brief_002_Move_Both_Apps_To_New_Supabase_Keys: reads the
+ * new publishable key, falling back to the legacy anon key ONLY during the
+ * transition (both apps share one Supabase project; see the brief for why
+ * the legacy keys can't just be regenerated). Remove the fallback in Step
+ * E, once this app is confirmed running on the new keys and the legacy var
+ * is gone from every environment.
+ */
+export function getSupabasePublishableKey(): string {
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!key) {
+    throw new Error(
+      'Neither NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set.',
+    )
+  }
   return key
 }
 
@@ -57,11 +71,20 @@ export function getSupabaseAnonKey(): string {
  * Server-only. Brief 057 — this app's first use of Supabase Storage,
  * mirroring the CMMS's service-role upload pattern (its src/lib/supabase/
  * service.ts) so the client never depends on storage.objects RLS. Never
- * import getSupabaseServiceRoleKey from a Client Component and never send
- * this value to the browser.
+ * import getSupabaseSecretKey from a Client Component and never send this
+ * value to the browser.
+ *
+ * Brief 002: reads the new secret key, falling back to the legacy
+ * service_role key ONLY during the transition — see getSupabasePublishableKey
+ * above. Remove the fallback in Step E.
  */
-export function getSupabaseServiceRoleKey(): string {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set.')
+export function getSupabaseSecretKey(): string {
+  const key =
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) {
+    throw new Error(
+      'Neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set.',
+    )
+  }
   return key
 }
