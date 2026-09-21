@@ -1,9 +1,10 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { buildFloorColumns, type FloorData, type TowerData } from '../floor-columns'
 import { ShopDrawingBoqImportForm } from './ShopDrawingBoqImportForm'
 
@@ -28,7 +29,11 @@ export default async function ShopDrawingBoqImportPage({
   const t = await getServerTranslator()
   const { member } = await getCurrentMember()
 
-  const { data: project } = await supabase.from('projects').select('id, name').eq('id', projectId).maybeSingle()
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name, so_number')
+    .eq('id', projectId)
+    .maybeSingle()
 
   if (!project) {
     notFound()
@@ -55,15 +60,24 @@ export default async function ShopDrawingBoqImportPage({
   const floorColumnHeaders = buildFloorColumns(towers, floors).map((c) => c.header)
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+          { label: t('shopDrawingBoqKicker'), href: `/projects/${project.id}/shop-drawing-boq` },
+        ]}
+        current={t('shopDrawingBoqImportKicker')}
+      />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('shopDrawingBoqImportKicker')}</div>
         <h1 className="wf-admin__title">{project.name}</h1>
       </div>
 
-      <p>
-        <Link href={`/projects/${project.id}/shop-drawing-boq`}>{t('shopDrawingBoqImportBackToList')}</Link>
-      </p>
+      {/* Brief 070 §3 — shopDrawingBoqImportBackToList ('Back to Shop
+          Drawing BOQ') removed: the breadcrumb's own "Shop Drawing BOQ"
+          ancestor above links to the exact same destination. */}
 
       {canWrite ? (
         <ShopDrawingBoqImportForm projectId={project.id} floorColumnHeaders={floorColumnHeaders} />
@@ -71,5 +85,6 @@ export default async function ShopDrawingBoqImportPage({
         <p className="shop-drawing-boq__note">{t('shopDrawingBoqNotTeamNote')}</p>
       )}
     </div>
+    </>
   )
 }

@@ -6,6 +6,8 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 import { daysSinceICT } from '@/lib/format/datetime'
 import { AgeLadder } from '@/components/AgeLadder'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Maintenance clients — ADTECH Workflow Tracker',
@@ -50,7 +52,9 @@ export default async function SalesMonitoringPage() {
   )
 
   return (
-    <div className="dashboard">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href }]} current={t('navAdminSales')} />
+      <div className="dashboard">
       <h1 className="dashboard__title">{t('salesMonitoringTitle')}</h1>
       <p className="empty-state" style={{ marginBottom: 'var(--space-4)' }}>
         {member ? t('salesMonitoringReadOnlyNote') : null}
@@ -118,5 +122,6 @@ export default async function SalesMonitoringPage() {
         </p>
       )}
     </div>
+    </>
   )
 }

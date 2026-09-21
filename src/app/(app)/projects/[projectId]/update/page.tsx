@@ -5,6 +5,8 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { UpdateProgressForm } from './UpdateProgressForm'
 import { FloorTrackedProgress } from './FloorTrackedProgress'
 import { FloorBreakdown, type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
@@ -251,7 +253,15 @@ export default async function UpdateProgressPage({
   )
 
   return (
-    <div className="update-screen">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('navUpdateProgress')}
+      />
+      <div className="update-screen">
       {tracksFloors ? (
         <FloorTrackedProgress percentCalculated={project.percent_calculated} overrideActive={Boolean(project.percent_override_at)}>
           {updateForm}
@@ -279,5 +289,6 @@ export default async function UpdateProgressPage({
         handoverItems={handoverItems}
       />
     </div>
+    </>
   )
 }

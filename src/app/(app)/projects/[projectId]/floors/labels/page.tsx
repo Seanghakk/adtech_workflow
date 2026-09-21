@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { generateFloorQrSvg, floorQrTotalModules } from '@/lib/floorQr'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { FloorLabelsPrint, type PrintableLabel } from './FloorLabelsPrint'
 
 export const metadata: Metadata = {
@@ -49,7 +50,11 @@ export default async function FloorLabelsPage({ params }: PageProps<'/projects/[
   const supabase = await createClient()
   const t = await getServerTranslator()
 
-  const { data: project } = await supabase.from('projects').select('id, name').eq('id', projectId).maybeSingle()
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name, so_number')
+    .eq('id', projectId)
+    .maybeSingle()
 
   if (!project) {
     notFound()
@@ -85,19 +90,22 @@ export default async function FloorLabelsPage({ params }: PageProps<'/projects/[
 
   return (
     <FloorLabelsPrint
-      projectId={project.id}
       projectName={project.name}
       labels={labels}
       totalModules={floorQrTotalModules()}
       strings={{
         kicker: t('floorLabelsKicker'),
-        backToFloorConfig: t('floorLabelsBackToFloorConfig'),
         empty: t('floorLabelsEmpty'),
         intro: t('floorLabelsIntro'),
         sizeLabel: t('floorLabelsSizeLabel'),
         moduleSizeSuffix: t('floorLabelsModuleSizeSuffix'),
         printButton: t('floorLabelsPrintButton'),
       }}
+      breadcrumbAncestors={[
+        { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+        { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        { label: t('floorConfigKicker'), href: `/projects/${project.id}/floors` },
+      ]}
     />
   )
 }

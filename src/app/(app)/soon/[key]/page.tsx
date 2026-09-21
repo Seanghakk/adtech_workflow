@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN, CRUMB_EXECUTION } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Not built yet — ADTECH Workflow Tracker',
@@ -14,6 +16,14 @@ interface ComingSoonEntry {
    *  get one, since their real screen actually exists (see nav.ts's own
    *  header for the full reasoning). */
   action?: { labelKey: DictionaryKey; href: string }
+  /** Brief 070 §2.2/§2.3 — set ONLY for a page with a real ancestor
+   *  (an Execution subtree item or an Admin item); `crumbLabel` is the
+   *  short rail-style label (distinct from `headlineKey`'s longer
+   *  sentence) used as the breadcrumb's own current-page text. Request/
+   *  Triage/SO/Kickoff/Execution/Handover/Inventory/Admin themselves
+   *  are each top-level (0 ancestors) and intentionally have neither —
+   *  see src/lib/breadcrumbs.ts's own header for why. */
+  breadcrumb?: { ancestor: typeof CRUMB_EXECUTION | typeof CRUMB_ADMIN; crumbLabel: DictionaryKey }
 }
 
 const ENTRIES: Record<string, ComingSoonEntry> = {
@@ -36,23 +46,63 @@ const ENTRIES: Record<string, ComingSoonEntry> = {
   execution: { headlineKey: 'comingSoonExecutionHeadline', bodyKey: 'comingSoonExecutionBody' },
   handover: { headlineKey: 'comingSoonHandoverHeadline', bodyKey: 'comingSoonHandoverBody' },
   inventory: { headlineKey: 'comingSoonInventoryHeadline', bodyKey: 'comingSoonInventoryBody' },
-  floors: { headlineKey: 'comingSoonFloorsHeadline', bodyKey: 'comingSoonFloorsBody' },
-  'so-registers': { headlineKey: 'comingSoonSoRegistersHeadline', bodyKey: 'comingSoonSoRegistersBody' },
+  floors: {
+    headlineKey: 'comingSoonFloorsHeadline',
+    bodyKey: 'comingSoonFloorsBody',
+    breadcrumb: { ancestor: CRUMB_ADMIN, crumbLabel: 'navAdminFloors' },
+  },
+  'so-registers': {
+    headlineKey: 'comingSoonSoRegistersHeadline',
+    bodyKey: 'comingSoonSoRegistersBody',
+    breadcrumb: { ancestor: CRUMB_ADMIN, crumbLabel: 'navAdminSoRegisters' },
+  },
   // Brief 067 §3 — the Execution subtree's own case (B)/(C) items (see
   // nav.ts's own header for the full A/B/C classification). "execution"
   // itself (above) is UNREACHABLE from the rail as of this brief — item
   // 5's own row is now a subtree toggle, not a link (see AppSidebar.tsx)
   // — kept here regardless, harmless and still directly navigable.
-  'shop-drawing': { headlineKey: 'comingSoonShopDrawingHeadline', bodyKey: 'comingSoonShopDrawingBody' },
-  procurement: { headlineKey: 'comingSoonProcurementHeadline', bodyKey: 'comingSoonProcurementBody' },
-  'floor-progress': { headlineKey: 'comingSoonFloorProgressHeadline', bodyKey: 'comingSoonFloorProgressBody' },
-  overview: { headlineKey: 'comingSoonOverviewHeadline', bodyKey: 'comingSoonOverviewBody' },
-  installation: { headlineKey: 'comingSoonInstallationHeadline', bodyKey: 'comingSoonInstallationBody' },
+  'shop-drawing': {
+    headlineKey: 'comingSoonShopDrawingHeadline',
+    bodyKey: 'comingSoonShopDrawingBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecShopDrawing' },
+  },
+  procurement: {
+    headlineKey: 'comingSoonProcurementHeadline',
+    bodyKey: 'comingSoonProcurementBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecProcurement' },
+  },
+  'floor-progress': {
+    headlineKey: 'comingSoonFloorProgressHeadline',
+    bodyKey: 'comingSoonFloorProgressBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecFloorProgress' },
+  },
+  overview: {
+    headlineKey: 'comingSoonOverviewHeadline',
+    bodyKey: 'comingSoonOverviewBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecOverview' },
+  },
+  installation: {
+    headlineKey: 'comingSoonInstallationHeadline',
+    bodyKey: 'comingSoonInstallationBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecInstallation' },
+  },
   'testing-commissioning': {
     headlineKey: 'comingSoonTestingCommissioningHeadline',
     bodyKey: 'comingSoonTestingCommissioningBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecTestingCommissioning' },
   },
-  'qc-inspections': { headlineKey: 'comingSoonQcInspectionsHeadline', bodyKey: 'comingSoonQcInspectionsBody' },
+  'qc-inspections': {
+    headlineKey: 'comingSoonQcInspectionsHeadline',
+    bodyKey: 'comingSoonQcInspectionsBody',
+    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecQcInspections' },
+  },
+  // Brief 070 §2.2 — "Admin" needed a real, honest destination to be a
+  // valid breadcrumb ancestor link for its own 8 children (same
+  // reasoning that already justifies every other key above); not
+  // reachable from the rail itself (Admin is a collapsible, not a
+  // link) but directly navigable, same as 'execution' above. No
+  // `breadcrumb` of its own — it IS the top of that branch (0 ancestors).
+  admin: { headlineKey: 'comingSoonAdminHeadline', bodyKey: 'comingSoonAdminBody' },
 }
 
 /**
@@ -76,21 +126,34 @@ export default async function ComingSoonPage({ params }: PageProps<'/soon/[key]'
   const body = entry ? t(entry.bodyKey) : t('comingSoonFallbackBody')
 
   return (
-    <div className="wf-empty-state-page">
-      <div className="wf-empty-state">
-        <h1 className="wf-empty-state__headline">{headline}</h1>
-        <p className="wf-empty-state__body">{body}</p>
-        <div className="wf-empty-state__actions">
-          {entry?.action && (
-            <Link href={entry.action.href} className="btn btn--primary">
-              {t(entry.action.labelKey)}
+    <>
+      {entry?.breadcrumb && (
+        <Breadcrumbs
+          ancestors={[{ label: t(entry.breadcrumb.ancestor.label), href: entry.breadcrumb.ancestor.href }]}
+          current={t(entry.breadcrumb.crumbLabel)}
+        />
+      )}
+      <div className="wf-empty-state-page">
+        <div className="wf-empty-state">
+          <h1 className="wf-empty-state__headline">{headline}</h1>
+          <p className="wf-empty-state__body">{body}</p>
+          <div className="wf-empty-state__actions">
+            {entry?.action && (
+              <Link href={entry.action.href} className="btn btn--primary">
+                {t(entry.action.labelKey)}
+              </Link>
+            )}
+            {/* Brief 070 §3 — "Back to board" is KEPT, not removed: for
+                every key here, the breadcrumb (when there is one) only
+                reaches as far as Execution or Admin, never Board itself —
+                not an equivalent path, so this stays per the brief's own
+                rule (c). See Brief 070's own Result doc. */}
+            <Link href="/" className="btn btn--outline">
+              {t('comingSoonBackToBoard')}
             </Link>
-          )}
-          <Link href="/" className="btn btn--outline">
-            {t('comingSoonBackToBoard')}
-          </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { TowerRow, type TowerData } from './TowerRow'
 import { FloorRow, type FloorData } from './FloorRow'
 import { AddTowerForm } from './AddTowerForm'
@@ -37,7 +39,7 @@ export default async function FloorConfigPage({ params }: PageProps<'/projects/[
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, pic_id')
+    .select('id, name, pic_id, so_number')
     .eq('id', projectId)
     .maybeSingle()
 
@@ -76,15 +78,23 @@ export default async function FloorConfigPage({ params }: PageProps<'/projects/[
   const isEmpty = towers.length === 0 && floors.length === 0
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('floorConfigKicker')}
+      />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('floorConfigKicker')}</div>
         <h1 className="wf-admin__title">{project.name}</h1>
       </div>
 
-      <p>
-        <Link href={`/projects/${project.id}`}>{t('floorConfigBackToSoRecord')}</Link>
-      </p>
+      {/* Brief 070 §3 — floorConfigBackToSoRecord ('Back to SO record')
+          removed: the breadcrumb's own "<SO#>" ancestor above links to
+          the exact same /projects/{id} destination. */}
 
       {/* Brief 058 §5 — the print-labels screen's own entry point. Shown
           regardless of isPic: printing is read-only, same reasoning as
@@ -136,5 +146,6 @@ export default async function FloorConfigPage({ params }: PageProps<'/projects/[
         </section>
       )}
     </div>
+    </>
   )
 }

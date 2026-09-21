@@ -10,6 +10,8 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 const NO_PROFILE_TEXT = 'No profile on file'
 import { canAssignClientOwners } from '@/lib/auth/sales-roles'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { AssignClientOwnerForm } from './AssignClientOwnerForm'
 
 export const metadata: Metadata = {
@@ -59,7 +61,15 @@ export default async function AssignClientOwnersPage() {
   }))
 
   return (
-    <div className="dashboard">
+    <>
+      {/* Brief 070 — this file has no translator (see its own header
+          comment on NO_PROFILE_TEXT above); "Admin" / "Client owners"
+          are hardcoded here for the same reason, matching navAdminRowLabel
+          / navAdminClientOwners's own EN values exactly rather than
+          introducing a translator dependency into an otherwise-untranslated
+          screen. */}
+      <Breadcrumbs ancestors={[{ label: 'Admin', href: CRUMB_ADMIN.href }]} current="Client owners" />
+      <div className="dashboard">
       <h1 className="dashboard__title">Assign client owners</h1>
       <p className="empty-state" style={{ marginBottom: 'var(--space-4)' }}>
         Which Sales Engineer owns each client — drives who sees that
@@ -94,5 +104,6 @@ export default async function AssignClientOwnersPage() {
         </div>
       )}
     </div>
+    </>
   )
 }

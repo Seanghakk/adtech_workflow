@@ -6,6 +6,8 @@ import { getServerTranslator, getServerLang } from '@/lib/i18n/server'
 import { localizedLabel } from '@/lib/i18n/localized-label'
 import { getCardWeight, type CardWeight } from '@/lib/age'
 import { AgeLadder } from '@/components/AgeLadder'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_EXECUTION } from '@/lib/breadcrumbs'
 import {
   buildExceptionGroups,
   buildPicBreaches,
@@ -167,7 +169,9 @@ export default async function DelaysAndBlockersPage() {
   const unassigned = t('dashboardUnassigned')
 
   return (
-    <div className="exception-board">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_EXECUTION.label), href: CRUMB_EXECUTION.href }]} current={t('navExceptions')} />
+      <div className="exception-board">
       <div className="exception-board__header">
         <div>
           <div className="exception-board__kicker">{t('exceptionsKicker')}</div>
@@ -320,6 +324,7 @@ export default async function DelaysAndBlockersPage() {
         </>
       )}
     </div>
+    </>
   )
 }
 

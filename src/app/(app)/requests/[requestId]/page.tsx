@@ -10,6 +10,8 @@ import { localizedLabel } from '@/lib/i18n/localized-label'
 import { AgeLadder } from '@/components/AgeLadder'
 import { HandOffForm } from './HandOffForm'
 import { CloseRequestControl } from './CloseRequestControl'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_TRIAGE } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Request — ADTECH Workflow Tracker',
@@ -127,7 +129,9 @@ export default async function RequestDetailPage({ params }: PageProps<'/requests
     !request.closed_at && user != null && (user.id === request.requester_id || user.id === request.current_owner_id)
 
   return (
-    <div className="request-detail">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_TRIAGE.label), href: CRUMB_TRIAGE.href }]} current={t('requestDetailKicker')} />
+      <div className="request-detail">
       <div className="request-detail__header">
         <div className="request-detail__identity">
           <div className="request-detail__kicker-row">
@@ -208,5 +212,6 @@ export default async function RequestDetailPage({ params }: PageProps<'/requests
         </div>
       )}
     </div>
+    </>
   )
 }

@@ -8,6 +8,8 @@ import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { AgeLadder } from '@/components/AgeLadder'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_TRIAGE } from '@/lib/breadcrumbs'
 import { CloseRequestControl } from '../CloseRequestControl'
 
 export const metadata: Metadata = {
@@ -94,7 +96,22 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
     !request.closed_at && user != null && (user.id === request.requester_id || user.id === request.current_owner_id)
 
   return (
-    <div className="phone-status">
+    <>
+      {/* Brief 070 §2.3/§5 — added per this brief's own uniform rule
+          (any page with >=1 derived ancestor gets a bar), but this is a
+          phone archetype screen deliberately built "two jobs only, no
+          data entry, no lists to browse" (this page's own header
+          comment) — worth Seanghakk's own reconsideration; flagged, not
+          silently decided. Verified it wraps cleanly at 390px rather
+          than overflowing — see Brief 070's own Result doc §5. */}
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_TRIAGE.label), href: CRUMB_TRIAGE.href },
+          { label: t('requestDetailKicker'), href: `/requests/${request.id}` },
+        ]}
+        current={t('phoneStatusKicker')}
+      />
+      <div className="phone-status">
       <div className="phone-status__kicker">{t('phoneStatusKicker')}</div>
 
       {request.closed_at && <div className="phone-status__closed-badge">{t('requestDetailClosedBadge')}</div>}
@@ -149,5 +166,6 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
         {t('phoneStatusOpenFullDetail')}
       </Link>
     </div>
+    </>
   )
 }

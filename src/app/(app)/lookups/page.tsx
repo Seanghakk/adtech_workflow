@@ -4,6 +4,8 @@ import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { LookupRow } from './LookupRow'
 import { AddLookupRowForm } from './AddLookupRowForm'
 import { StageRow } from './StageRow'
@@ -55,7 +57,9 @@ export default async function LookupsPage() {
     .map((st) => ({ code: st.code, labelEn: st.label_en }))
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs ancestors={[{ label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href }]} current={t('navLookups')} />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('lookupsKicker')}</div>
         <h1 className="wf-admin__title">{t('lookupsTitle')}</h1>
@@ -172,5 +176,6 @@ export default async function LookupsPage() {
         <AddStageForm scopeTypes={activeScopeTypeOptions} teams={teamOptions} />
       </section>
     </div>
+    </>
   )
 }

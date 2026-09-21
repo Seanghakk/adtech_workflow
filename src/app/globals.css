@@ -1366,7 +1366,73 @@ button {
   gap: var(--space-3);
   flex-wrap: wrap;
 }
- 
+
+/* -----------------------------------------------------------------------
+   Breadcrumb bar (Brief 070, v5 §4.5 / §8 step 3) — measurements exact:
+   12px/20px padding, 1px bottom rule, 12.5px text. Ancestors --wf-blue
+   and clickable; current page --wf-ink, never a link; separator "/" at
+   rgba(32,30,29,.4) (decorative, exempt from text contrast rules — see
+   Brief 070's own Result doc for the computed ratios on the two colours
+   that DO need to pass: --wf-ink and --wf-blue both clear 4.5:1 on white
+   by a wide margin, unlike the app's own --text-muted, which Brief 064
+   already found fails it — not reused here for anything readable).
+
+   Brief 070 §5 (mobile, no narrow-viewport rule in v5 itself) — wraps
+   onto a second line at narrow widths rather than overflowing or
+   truncating; verified at 390px with a real 3-ancestor page. */
+.wf-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 4px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--wf-rule-hair);
+  font-size: 12.5px;
+  margin-bottom: var(--space-4);
+  background: var(--wf-surface);
+}
+.wf-breadcrumbs__crumb {
+  display: inline-flex;
+  align-items: center;
+}
+.wf-breadcrumbs__link {
+  color: var(--wf-blue);
+  text-decoration: none;
+}
+.wf-breadcrumbs__link:hover {
+  text-decoration: underline;
+}
+.wf-breadcrumbs__separator {
+  color: rgba(32, 30, 29, 0.4);
+  margin: 0 6px;
+}
+.wf-breadcrumbs__current {
+  color: var(--wf-ink);
+}
+
+/* Cross-navigation link chip (Brief 070, v5 §5 / §8 step 3). --wf-blue-
+   edge (v5's own border token) does not exist anywhere in this file,
+   the same class of gap Brief 068 found for --wf-lh-mixed — checked
+   directly before using it, not assumed present. Uses --navy-tint-
+   border instead: the nearest EXISTING token, already the established
+   pairing for a --wf-blue-tint/--navy-tint-bg field everywhere else in
+   this file (.stream-tag, above, is the identical shape) — not an
+   invented value. */
+.wf-cross-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  font: 600 12.5px/1 var(--wf-body);
+  color: var(--wf-blue);
+  background: var(--wf-blue-tint);
+  border: 1px solid var(--navy-tint-border);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+.wf-cross-nav-chip:hover {
+  text-decoration: underline;
+}
+
 /* -----------------------------------------------------------------------
    Dashboard / project list — the interim landing route this class pair
    was built for is gone as of Fable Brief 009 (screen 4a now owns "/",

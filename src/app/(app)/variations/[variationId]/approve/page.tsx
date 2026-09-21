@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -6,6 +5,9 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { formatUsd0 } from '@/lib/format/money'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CrossNavChip } from '@/components/CrossNavChip'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Approval — ADTECH Workflow Tracker',
@@ -110,7 +112,15 @@ export default async function VariationApprovePage({
   const waitingDays = !variation.is_approved ? daysSinceICT(variation.raised_at) : null
 
   return (
-    <div className="phone-approve">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project?.so_number ?? t('soRecordNoSoYet'), href: `/projects/${variation.project_id}` },
+        ]}
+        current={t('phoneApproveKicker')}
+      />
+      <div className="phone-approve">
       <div className="phone-approve__kicker">{t('phoneApproveKicker')}</div>
 
       <p className="phone-approve__title">
@@ -171,9 +181,11 @@ export default async function VariationApprovePage({
         </>
       )}
 
-      <Link href={`/projects/${variation.project_id}`} className="phone-approve__full-detail-link">
-        {t('phoneApproveOpenFullDetail')}
-      </Link>
+      {/* Brief 070 §4 — v5's own cross-navigation link chip: a variation
+          (this page) referencing its project, converted from a plain
+          Link (this page's only outbound link — checked directly). */}
+      <CrossNavChip href={`/projects/${variation.project_id}`} label={t('phoneApproveOpenFullDetail')} />
     </div>
+    </>
   )
 }

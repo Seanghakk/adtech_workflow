@@ -4,6 +4,8 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import type { FloorData, TowerData } from './floor-columns'
 import { groupBySystem, groupByFloorAndTower, type FloorAndTowerGroups, type ShopDrawingBoqView } from './grouped-views'
 
@@ -51,7 +53,11 @@ export default async function ShopDrawingBoqPage({
   const t = await getServerTranslator()
   const { member } = await getCurrentMember()
 
-  const { data: project } = await supabase.from('projects').select('id, name').eq('id', projectId).maybeSingle()
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name, so_number')
+    .eq('id', projectId)
+    .maybeSingle()
 
   if (!project) {
     notFound()
@@ -119,15 +125,23 @@ export default async function ShopDrawingBoqPage({
   const viewHref = (v: ShopDrawingBoqView) => `/projects/${project.id}/shop-drawing-boq?view=${v}`
 
   return (
-    <div className="wf-admin">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
+          { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
+        ]}
+        current={t('shopDrawingBoqKicker')}
+      />
+      <div className="wf-admin">
       <div className="wf-admin__header">
         <div className="wf-admin__kicker">{t('shopDrawingBoqKicker')}</div>
         <h1 className="wf-admin__title">{project.name}</h1>
       </div>
 
-      <p>
-        <Link href={`/projects/${project.id}`}>{t('shopDrawingBoqBackToSoRecord')}</Link>
-      </p>
+      {/* Brief 070 §3 — shopDrawingBoqBackToSoRecord ('Back to SO
+          record') removed: the breadcrumb's own "<SO#>" ancestor above
+          links to the exact same /projects/{id} destination. */}
 
       {canWrite && (
         <p>
@@ -260,5 +274,6 @@ export default async function ShopDrawingBoqPage({
         </>
       )}
     </div>
+    </>
   )
 }

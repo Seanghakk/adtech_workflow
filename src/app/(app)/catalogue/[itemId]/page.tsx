@@ -8,6 +8,8 @@ import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { LIFECYCLE_STEPS, lifecycleStepLabel } from '@/lib/reporting/catalogue'
 import { WarningAtPointOfUse } from '@/components/WarningAtPointOfUse'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Catalogue item — ADTECH Workflow Tracker',
@@ -126,7 +128,15 @@ export default async function CatalogueItemPage({ params }: PageProps<'/catalogu
   const stalenessDays = item.last_verified_at ? daysSinceICT(item.last_verified_at) : null
 
   return (
-    <div className="catalogue-item">
+    <>
+      <Breadcrumbs
+        ancestors={[
+          { label: t(CRUMB_ADMIN.label), href: CRUMB_ADMIN.href },
+          { label: t('navAdminCatalogue'), href: '/catalogue' },
+        ]}
+        current={item.part_number}
+      />
+      <div className="catalogue-item">
       <div className="catalogue-item__header">
         <div className="catalogue-item__kicker">{t('catalogueItemKicker')}</div>
         <h1 className="catalogue-item__title">{item.part_number}</h1>
@@ -135,9 +145,9 @@ export default async function CatalogueItemPage({ params }: PageProps<'/catalogu
           <span className="catalogue-item__manufacturer-label">{t('catalogueItemManufacturerLabel')}</span>{' '}
           {item.manufacturer}
         </div>
-        <Link href="/catalogue" className="catalogue-item__back-link">
-          {t('catalogueItemBackLink')}
-        </Link>
+        {/* Brief 070 §3 — catalogueItemBackLink ('Back to catalogue')
+            removed: the breadcrumb's own "Parts catalogue" ancestor
+            above links to the exact same /catalogue destination. */}
       </div>
 
       <div className="catalogue-item__lifecycle-strip">
@@ -252,5 +262,6 @@ export default async function CatalogueItemPage({ params }: PageProps<'/catalogu
       <p className="catalogue-item__gap-note">{t('catalogueItemGapNote')}</p>
       <p className="catalogue-item__write-note">{t('catalogueItemWriteNote')}</p>
     </div>
+    </>
   )
 }
