@@ -55,6 +55,13 @@ export function getSupabaseUrl(): string {
  * E, once this app is confirmed running on the new keys and the legacy var
  * is gone from every environment.
  */
+// ADTECH_PLATFORM_Brief_003 — the fallback above means an app can pass every
+// check while silently still running on a legacy variable. Log which
+// variable NAME (never the value) each getter actually used, once per
+// server process, so that's never ambiguous again.
+let loggedPublishableSource = false
+let loggedSecretSource = false
+
 export function getSupabasePublishableKey(): string {
   const key =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
@@ -62,6 +69,13 @@ export function getSupabasePublishableKey(): string {
   if (!key) {
     throw new Error(
       'Neither NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set.',
+    )
+  }
+  if (typeof window === 'undefined' && !loggedPublishableSource) {
+    loggedPublishableSource = true
+    const usingNew = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY != null
+    console.log(
+      `[supabase/env] publishable key source: ${usingNew ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY (legacy fallback)'}`,
     )
   }
   return key
@@ -84,6 +98,13 @@ export function getSupabaseSecretKey(): string {
   if (!key) {
     throw new Error(
       'Neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set.',
+    )
+  }
+  if (!loggedSecretSource) {
+    loggedSecretSource = true
+    const usingNew = process.env.SUPABASE_SECRET_KEY != null
+    console.log(
+      `[supabase/env] secret key source: ${usingNew ? 'SUPABASE_SECRET_KEY' : 'SUPABASE_SERVICE_ROLE_KEY (legacy fallback)'}`,
     )
   }
   return key
