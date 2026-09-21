@@ -115,6 +115,17 @@ import type { DictionaryKey } from '@/lib/i18n/dictionary'
  * monitoring view, not an admin/config screen), placed here anyway as
  * a placeholder home so it isn't permanently unreachable, explicitly
  * flagged for revisiting once the sales front end is built.
+ *
+ * Brief 067 §4 originally gated all three of the above behind this
+ * list's OWN blanket 'manager' visibility rule ("follow whatever Admin
+ * already does for its other entries") — correct instruction-following,
+ * wrong outcome: it silently hid /sales from Sales Engineers (role
+ * 'member', not manager) and /catalogue from every non-manager, both of
+ * which were visible to those exact users in the pre-064 flat nav. Brief
+ * 068 §2 fixed this: each ADMIN_ITEMS entry now carries its own `access`
+ * restored from git history (see ADMIN_ITEMS's own comments below), and
+ * the Admin section itself (AppSidebar.tsx) now renders whenever the
+ * current member can see at least one entry, not only for a manager.
  */
 
 export type JourneyStatus = 'deferred' | 'live'
@@ -140,33 +151,70 @@ export const JOURNEY_ITEMS: JourneyItem[] = [
   { key: 'inventory', numeral: 7, labelKey: 'navJourneyInventory', status: 'live', href: null },
 ]
 
+/** Brief 068 §2 — Admin is a HOME for these links, not an access policy:
+ *  each entry's own visibility must match what it was BEFORE Brief 064
+ *  removed the old flat nav, not a blanket rule inherited from whichever
+ *  section it now sits in. 'manager' is the pre-existing rule every
+ *  original Admin entry (lookups/notifications/users/floors/so-registers)
+ *  already had and keeps unchanged. 'all' and 'sales-or-manager' exist
+ *  ONLY because Brief 067 §4 wrongly gave catalogue/sales the SAME
+ *  'manager' rule as everything else in the list they were dropped into
+ *  — see ADMIN_ITEMS's own comments below for the evidence each rule
+ *  is restored from. */
+export type AdminAccess = 'all' | 'manager' | 'sales-or-manager'
+
 export interface AdminItem {
   key: string
   labelKey: DictionaryKey
   href: string | null
+  access: AdminAccess
 }
 
 export const ADMIN_ITEMS: AdminItem[] = [
-  { key: 'lookups', labelKey: 'navLookups', href: '/lookups' },
-  { key: 'notifications', labelKey: 'navNotifications', href: '/notifications' },
-  { key: 'users', labelKey: 'navUsers', href: '/users' },
-  { key: 'floors', labelKey: 'navAdminFloors', href: null },
-  { key: 'so-registers', labelKey: 'navAdminSoRegisters', href: null },
-  // Brief 067 §4 — three additions from Brief 066's own findings, see
-  // this file's own "ADMIN ADDITIONS" header paragraph above for why
-  // each one landed here. No access gating added or changed (brief's
-  // own explicit instruction): all three inherit the SAME isManager
-  // visibility gate the rest of this list already renders under
-  // (AppSidebar.tsx only renders the whole Admin section for a
-  // manager/admin) — /catalogue and /sales have no page-level access
-  // check of their own regardless (confirmed, Brief 066), and /sales/
-  // assign's own canAssignClientOwners gate (manager/admin) already
-  // matches this list's own existing visibility rule exactly, so no
-  // new mismatch is introduced either way.
-  { key: 'catalogue', labelKey: 'navAdminCatalogue', href: '/catalogue' },
-  { key: 'sales', labelKey: 'navAdminSales', href: '/sales' },
-  { key: 'client-owners', labelKey: 'navAdminClientOwners', href: '/sales/assign' },
+  { key: 'lookups', labelKey: 'navLookups', href: '/lookups', access: 'manager' },
+  { key: 'notifications', labelKey: 'navNotifications', href: '/notifications', access: 'manager' },
+  { key: 'users', labelKey: 'navUsers', href: '/users', access: 'manager' },
+  { key: 'floors', labelKey: 'navAdminFloors', href: null, access: 'manager' },
+  { key: 'so-registers', labelKey: 'navAdminSoRegisters', href: null, access: 'manager' },
+  // Brief 068 §2 — restored, not invented: git show <pre-064 commit>:
+  // src/lib/nav.ts had `{ key: 'catalogue', ..., access: 'all' }` and
+  // `{ key: 'sales', ..., access: 'sales' }` in the old flat NAV_ENTRIES
+  // list (canSeeNavEntry there: 'all' -> true unconditionally, 'sales'
+  // -> isSalesTeamMember). Brief 067 §4 put both behind this list's own
+  // blanket 'manager' rule instead — a real regression it caused, not a
+  // deliberate access change (route-level access to /catalogue and
+  // /sales was never touched either brief, only whether the LINK shows).
+  // 'sales-or-manager' extends the old 'sales' rule rather than
+  // reproducing it exactly: a manager/admin who is not sales-team-tagged
+  // could see this link before ONLY because the old nav had no
+  // manager-only items at all above it forcing a choice — the pre-064
+  // nav simply never hid ANY entry from a manager (see canSeeNavEntry:
+  // 'sales' checked ONLY access.isSales, but every manager was ALSO
+  // isManager-true and none of the other pre-064 entries required
+  // isSales specifically) — so a manager who is not on the sales team
+  // never actually lost this link before either. Extending 'sales' to
+  // 'sales-or-manager' here preserves that same "managers keep every
+  // link" outcome under the new per-item model instead of narrowing it.
+  { key: 'catalogue', labelKey: 'navAdminCatalogue', href: '/catalogue', access: 'all' },
+  { key: 'sales', labelKey: 'navAdminSales', href: '/sales', access: 'sales-or-manager' },
+  // Client owners (/sales/assign) has NO pre-064 nav entry at all — it's
+  // a genuinely new link (Brief 066's own finding), not a restoration.
+  // canAssignClientOwners is role==='manager'||'admin' — identical in
+  // substance to isManagerOrAdmin (src/lib/auth/roles.ts), confirmed by
+  // reading both; 'manager' here matches that exactly, so this one was
+  // already correct as built and needed no change.
+  { key: 'client-owners', labelKey: 'navAdminClientOwners', href: '/sales/assign', access: 'manager' },
 ]
+
+/** Brief 068 §2c — which per-item rule an AdminItem needs. `isManager`
+ *  covers every 'manager'-gated entry (and, per the comment above, is
+ *  ALSO the manager half of 'sales-or-manager'); `isSalesTeamMember`
+ *  covers the sales half. */
+export function canSeeAdminItem(item: AdminItem, access: { isManager: boolean; isSalesTeamMember: boolean }): boolean {
+  if (item.access === 'all') return true
+  if (item.access === 'sales-or-manager') return access.isSalesTeamMember || access.isManager
+  return access.isManager
+}
 
 export type SubtreeCase = 'A' | 'B' | 'C'
 

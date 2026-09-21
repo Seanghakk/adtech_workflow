@@ -30,12 +30,17 @@ import type { CurrentMember } from '@/lib/auth/current-member'
 export function AppHeader({
   member,
   isManager,
+  isSalesTeamMember,
   initialAdminExpanded,
   initialExecutionExpanded,
   delaysAndBlockersCount,
 }: {
   member: CurrentMember
   isManager: boolean
+  /** Brief 068 §2 — same value (app)/layout.tsx already computes for the
+   *  desktop rail, threaded through to this drawer trigger's own
+   *  AppSidebar mount. */
+  isSalesTeamMember: boolean
   initialAdminExpanded?: boolean
   /** Brief 067 §3 — same cookie-read pattern as initialAdminExpanded,
    *  for the Execution subtree's own expand state. */
@@ -49,6 +54,7 @@ export function AppHeader({
     <header className="app-header">
       <NavDrawer
         isManager={isManager}
+        isSalesTeamMember={isSalesTeamMember}
         initialAdminExpanded={initialAdminExpanded}
         initialExecutionExpanded={initialExecutionExpanded}
         delaysAndBlockersCount={delaysAndBlockersCount}

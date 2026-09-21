@@ -8,6 +8,7 @@ import {
   ADMIN_ITEMS,
   EXECUTION_SUBTREE_ITEMS,
   JOURNEY_ITEMS,
+  canSeeAdminItem,
   comingSoonHref,
   isAdminItemActive,
   isJourneyItemActive,
@@ -45,11 +46,17 @@ import {
  */
 export function AppSidebar({
   isManager,
+  isSalesTeamMember,
   initialAdminExpanded,
   initialExecutionExpanded,
   delaysAndBlockersCount,
 }: {
   isManager: boolean
+  /** Brief 068 §2 — Sales Engineers (role 'member', team 'sales') need
+   *  this to see the "Sales" Admin entry, which the plain isManager
+   *  gate above would otherwise hide from them (see nav.ts's own
+   *  ADMIN_ITEMS comments for the pre-064 evidence this restores). */
+  isSalesTeamMember: boolean
   /** Brief 064 §2.5 — the Admin-group-expanded cookie value the caller
    *  (a Server Component) already read via `cookies()`. Undefined (no
    *  cookie yet) falls through to useAdminGroupExpanded()'s own
@@ -70,6 +77,11 @@ export function AppSidebar({
   const [adminExpanded, toggleAdminExpanded] = useAdminGroupExpanded(initialAdminExpanded)
   const [executionExpanded, toggleExecutionExpanded] = useExecutionSubtreeExpanded(initialExecutionExpanded)
   const isExecutionActive = EXECUTION_SUBTREE_ITEMS.some((item) => isSubtreeItemActive(item, pathname))
+  // Brief 068 §2c — the Admin SECTION renders whenever the member can
+  // see at least one entry, not only for a manager; each entry keeps
+  // its own rule (canSeeAdminItem), so a non-manager never sees an
+  // entry meant for managers only as a side effect of this.
+  const visibleAdminItems = ADMIN_ITEMS.filter((item) => canSeeAdminItem(item, { isManager, isSalesTeamMember }))
 
   return (
     <aside className="app-sidebar" aria-label="Main">
@@ -175,7 +187,7 @@ export function AppSidebar({
         })}
       </nav>
 
-      {isManager && (
+      {visibleAdminItems.length > 0 && (
         <div className="nav-rail__admin">
           <button
             type="button"
@@ -195,7 +207,7 @@ export function AppSidebar({
           </button>
           {adminExpanded && (
             <div className="nav-rail__admin-list">
-              {ADMIN_ITEMS.map((item) => {
+              {visibleAdminItems.map((item) => {
                 const href = item.href ?? comingSoonHref(item.key)
                 const isActive = isAdminItemActive(item, pathname)
                 return (

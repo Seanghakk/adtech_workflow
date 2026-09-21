@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { AppSidebar } from '@/components/AppSidebar'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
+import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 import { ADMIN_GROUP_EXPANDED_COOKIE, EXECUTION_SUBTREE_EXPANDED_COOKIE } from '@/lib/sidebarCookieNames'
 import { daysSinceICT } from '@/lib/format/datetime'
 import { buildExceptionGroups, countInExceptionGroups, type ExceptionProject } from '@/lib/reporting/exceptions'
@@ -44,6 +45,10 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const initialExecutionExpanded = executionCookie === undefined ? undefined : executionCookie === '1'
 
   const isManager = isManagerOrAdmin(member)
+  // Brief 068 §2 — restores the Admin collapsible's "Sales" entry for
+  // Sales Engineers (role 'member', not manager) who lost it when Brief
+  // 067 §4 gated all three new Admin entries behind isManager alone.
+  const memberIsSalesTeamMember = isSalesTeamMember(member)
 
   // Brief 067 §3 — the "Delays & blockers" subtree item's own count
   // badge (v5 §2.3), computed on EVERY page load since the rail renders
@@ -82,6 +87,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
       <AppHeader
         member={member}
         isManager={isManager}
+        isSalesTeamMember={memberIsSalesTeamMember}
         initialAdminExpanded={initialAdminExpanded}
         initialExecutionExpanded={initialExecutionExpanded}
         delaysAndBlockersCount={delaysAndBlockersCount}
@@ -89,6 +95,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
       <div className="app-shell__body">
         <AppSidebar
           isManager={isManager}
+          isSalesTeamMember={memberIsSalesTeamMember}
           initialAdminExpanded={initialAdminExpanded}
           initialExecutionExpanded={initialExecutionExpanded}
           delaysAndBlockersCount={delaysAndBlockersCount}
