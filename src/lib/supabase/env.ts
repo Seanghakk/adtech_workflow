@@ -49,33 +49,25 @@ export function getSupabaseUrl(): string {
 
 /**
  * ADTECH_PLATFORM_Brief_002_Move_Both_Apps_To_New_Supabase_Keys: reads the
- * new publishable key, falling back to the legacy anon key ONLY during the
- * transition (both apps share one Supabase project; see the brief for why
- * the legacy keys can't just be regenerated). Remove the fallback in Step
- * E, once this app is confirmed running on the new keys and the legacy var
- * is gone from every environment.
+ * publishable/secret keys. Step E: the legacy anon/service_role fallback is
+ * retired now that both apps are confirmed running on the new keys and the
+ * legacy keys/JWT secret have been disabled and revoked.
  */
-// ADTECH_PLATFORM_Brief_003 — the fallback above means an app can pass every
-// check while silently still running on a legacy variable. Log which
-// variable NAME (never the value) each getter actually used, once per
-// server process, so that's never ambiguous again.
+// ADTECH_PLATFORM_Brief_003 — kept per Step E, even without a fallback to
+// disambiguate: still useful confirmation, once per server process, that
+// each getter is actually reading the variable it expects.
 let loggedPublishableSource = false
 let loggedSecretSource = false
 
 export function getSupabasePublishableKey(): string {
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   if (!key) {
-    throw new Error(
-      'Neither NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set.',
-    )
+    throw new Error('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is not set.')
   }
   if (typeof window === 'undefined' && !loggedPublishableSource) {
     loggedPublishableSource = true
-    const usingNew = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY != null
     console.log(
-      `[supabase/env] publishable key source: ${usingNew ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY (legacy fallback)'}`,
+      '[supabase/env] publishable key source: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
     )
   }
   return key
@@ -87,25 +79,15 @@ export function getSupabasePublishableKey(): string {
  * service.ts) so the client never depends on storage.objects RLS. Never
  * import getSupabaseSecretKey from a Client Component and never send this
  * value to the browser.
- *
- * Brief 002: reads the new secret key, falling back to the legacy
- * service_role key ONLY during the transition — see getSupabasePublishableKey
- * above. Remove the fallback in Step E.
  */
 export function getSupabaseSecretKey(): string {
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  const key = process.env.SUPABASE_SECRET_KEY
   if (!key) {
-    throw new Error(
-      'Neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set.',
-    )
+    throw new Error('SUPABASE_SECRET_KEY is not set.')
   }
   if (!loggedSecretSource) {
     loggedSecretSource = true
-    const usingNew = process.env.SUPABASE_SECRET_KEY != null
-    console.log(
-      `[supabase/env] secret key source: ${usingNew ? 'SUPABASE_SECRET_KEY' : 'SUPABASE_SERVICE_ROLE_KEY (legacy fallback)'}`,
-    )
+    console.log('[supabase/env] secret key source: SUPABASE_SECRET_KEY')
   }
   return key
 }

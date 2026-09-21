@@ -1,6 +1,6 @@
 /**
  * Service-role Supabase client — bypasses RLS. Server-only: never import
- * this from a Client Component or expose SUPABASE_SERVICE_ROLE_KEY to the
+ * this from a Client Component or expose SUPABASE_SECRET_KEY to the
  * browser.
  *
  * Brief 057 — this app's first use of Supabase Storage. Mirrors the CMMS's
