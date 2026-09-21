@@ -15,22 +15,6 @@
  * reason). The language TOGGLE is real and switching works; the KM
  * strings behind it are English placeholders until that pass happens.
  * Do not fill these in without a native speaker reviewing them.
- *
- * Brief 068 §3 — ONE exception to the paragraph above, made under that
- * brief's own explicit instruction (not a change of this file's general
- * policy): the `km` object below now overrides ~29 keys Brief 067 added
- * or renamed with Claude's own DRAFT Khmer translations, each one
- * UNVERIFIED and marked PROPOSED in a comment at its own override.
- * Checked first whether any REAL Khmer term already existed anywhere in
- * this app to reuse for these (v5's own instruction, if so) — it does
- * not: every workflow.*_km column is either NULL throughout, or (reason_
- * codes.label_km, scope_types.label_km specifically) holds a literal
- * "[provisional — km TBD: ...]" placeholder STRING, not real Khmer; this
- * dictionary's own km object had never had a manual override before this
- * brief either. Nothing existed anywhere to borrow a term from — these
- * are first-draft translations, not a stale value left over from
- * somewhere else. See Brief 068's own Result doc for the full EN/KM
- * side-by-side list Seanghakk should review in one pass.
  */
  
 export type Lang = 'en' | 'km'
@@ -1067,50 +1051,7 @@ const en = {
  
 export type DictionaryKey = keyof typeof en
  
-const km: Record<DictionaryKey, string> = {
-  ...en,
-  // Brief 068 §3 — PROPOSED Khmer translations, Claude's own first draft,
-  // NOT reviewed by a native speaker. See this file's own header comment
-  // above for why these 29 keys (and only these) override the plain
-  // English-copy default every other key still uses. Do not treat any
-  // value below as correct until Seanghakk has reviewed it.
-  navExceptions: 'ការពន្យារពេល និងឧបសគ្គ', // PROPOSED — "Delays & blockers"
-  navLoad: 'នរណាកំពុងធ្វើអ្វី', // PROPOSED — "Who is on what"
-  exceptionsKicker: 'ការពន្យារពេល និងឧបសគ្គ', // PROPOSED — "Delays & blockers"
-  loadTitle: 'នរណាកំពុងធ្វើអ្វី', // PROPOSED — "Who is on what"
-  loadKicker: 'នរណាកំពុងធ្វើអ្វី', // PROPOSED — "Who is on what"
-  navAdminCatalogue: 'បញ្ជីគ្រឿងបន្លាស់', // PROPOSED — "Parts catalogue"
-  navAdminSales: 'ផ្នែកលក់', // PROPOSED — "Sales"
-  navAdminClientOwners: 'អ្នកទទួលបន្ទុកអតិថិជន', // PROPOSED — "Client owners"
-  navExecOverview: 'ទិដ្ឋភាពទូទៅ', // PROPOSED — "Overview"
-  navExecShopDrawing: 'ប្លង់ប្រតិបត្តិ', // PROPOSED — "Shop drawing"
-  navExecProcurement: 'ការទិញ-ផ្គត់ផ្គង់', // PROPOSED — "Procurement"
-  navExecInstallation: 'ការដំឡើង', // PROPOSED — "Installation"
-  navExecTestingCommissioning: 'ការសាកល្បង និងបញ្ជូនប្រើប្រាស់', // PROPOSED — "Testing & commissioning"
-  navExecQcInspections: 'ការត្រួតពិនិត្យគុណភាព', // PROPOSED — "QC inspections"
-  navExecFloorProgress: 'វឌ្ឍនភាពជាន់', // PROPOSED — "Floor progress"
-  comingSoonShopDrawingHeadline: '"ប្លង់ប្រតិបត្តិ" គឺជាអេក្រង់សម្រាប់គម្រោងនីមួយៗ', // PROPOSED — '"Shop drawing" is a per-project screen'
-  comingSoonShopDrawingBody:
-    'បើកគម្រោងមួយពីក្តារ រួចចូលទៅកាន់ទំព័រ Shop Drawing BOQ ផ្ទាល់របស់វា — មិនទាន់មានទិដ្ឋភាពរួមឆ្លងគម្រោងនៅឡើយទេ។', // PROPOSED — "Open a project from the board, then its own Shop Drawing BOQ page — there is no cross-project view of this yet."
-  comingSoonProcurementHeadline: '"ការទិញ-ផ្គត់ផ្គង់" គឺជាអេក្រង់សម្រាប់គម្រោងនីមួយៗ', // PROPOSED — '"Procurement" is a per-project screen'
-  comingSoonProcurementBody:
-    'បើកគម្រោងមួយពីក្តារ រួចចូលទៅកាន់ទំព័រការទិញ-ផ្គត់ផ្គង់ផ្ទាល់របស់វា — មិនទាន់មានទិដ្ឋភាពរួមឆ្លងគម្រោងនៅឡើយទេ។', // PROPOSED — "Open a project from the board, then its own Procurement page — there is no cross-project view of this yet."
-  comingSoonFloorProgressHeadline: '"វឌ្ឍនភាពជាន់" គឺជាអេក្រង់សម្រាប់គម្រោងនីមួយៗ', // PROPOSED — '"Floor progress" is a per-project screen'
-  comingSoonFloorProgressBody:
-    'បើកគម្រោងមួយពីក្តារ រួចចូលទៅកាន់តារាងជាន់ x ដំណាក់កាលរងផ្ទាល់របស់វា — មិនទាន់មានទិដ្ឋភាពរួមឆ្លងគម្រោងនៅឡើយទេ។', // PROPOSED — "Open a project from the board, then its own floor x sub-stage matrix — there is no cross-project view of this yet."
-  comingSoonOverviewHeadline: 'ទិដ្ឋភាពទូទៅនៃការអនុវត្តមិនទាន់មាននៅឡើយទេ', // PROPOSED — "The Execution overview doesn't exist yet"
-  comingSoonOverviewBody:
-    'ទិដ្ឋភាពទូទៅដែលបង្ហាញជាក្រាហ្វ គឺជាជំហានស្ថាបនានាពេលអនាគត ដែលកំពុងរង់ចាំចម្លើយចំពោះសំណួរមួយអំពីប្រភពទិន្នន័យខ្សែកោងគោលដៅ។', // PROPOSED — "The chart-driven overview is a later build step, blocked on a still-open question about where its target-curve data would come from."
-  comingSoonInstallationHeadline: '"ការដំឡើង" មិនទាន់មានអេក្រង់ផ្ទាល់ខ្លួននៅឡើយទេ', // PROPOSED — '"Installation" doesn't have its own screen'
-  comingSoonInstallationBody:
-    'ការតាមដានដំណាក់កាលរងនៃការដំឡើង ស្ថិតនៅក្នុងទំព័របែងចែកជាន់ផ្ទាល់របស់គម្រោង (អេក្រង់ធ្វើបច្ចុប្បន្នភាព) មិនមែនជាទំព័រដាច់ដោយឡែកទេ។', // PROPOSED — "Installation sub-stage tracking lives inside a project's own floor breakdown (the update screen), not a standalone page."
-  comingSoonTestingCommissioningHeadline: '"ការសាកល្បង និងបញ្ជូនប្រើប្រាស់" មិនទាន់មានអេក្រង់ផ្ទាល់ខ្លួននៅឡើយទេ', // PROPOSED — '"Testing & commissioning" doesn't have its own screen'
-  comingSoonTestingCommissioningBody:
-    'ការតាមដានដំណាក់កាលរងនៃ TNC ស្ថិតនៅក្នុងទំព័របែងចែកជាន់ផ្ទាល់របស់គម្រោង (អេក្រង់ធ្វើបច្ចុប្បន្នភាព) មិនមែនជាទំព័រដាច់ដោយឡែកទេ។', // PROPOSED — "TNC sub-stage tracking lives inside a project's own floor breakdown (the update screen), not a standalone page."
-  comingSoonQcInspectionsHeadline: '"ការត្រួតពិនិត្យគុណភាព" មិនទាន់មានអេក្រង់ផ្ទាល់ខ្លួននៅឡើយទេ', // PROPOSED — '"QC inspections" doesn't have its own screen'
-  comingSoonQcInspectionsBody:
-    'ការកត់ត្រាត្រួតពិនិត្យគុណភាពក៏ស្ថិតនៅក្នុងទំព័របែងចែកជាន់ផ្ទាល់របស់គម្រោងផងដែរ — សូមមើលជួរដំណាក់កាលរងនៅលើអេក្រង់ធ្វើបច្ចុប្បន្នភាព។', // PROPOSED — "QC inspection recording lives inside a project's own floor breakdown too — see the sub-stage rows on the update screen."
-}
+const km: Record<DictionaryKey, string> = { ...en }
  
 export const dictionaries: Record<Lang, Record<DictionaryKey, string>> = { en, km }
  
