@@ -34,7 +34,9 @@ const INSTALLATION_ORDER = ['first_fix', 'second_fix', 'third_fix']
  * building a new per-project screen.
  *
  * Bucket rule ("floor counts at first/second/third fix, plus not
- * started") is a judgment call — see floorStageBuckets.ts's own header.
+ * started, plus complete") — see floorStageBuckets.ts's own header
+ * (Brief 082 §2 added the 'complete' bucket so counts sum to the
+ * project's real floor total).
  */
 export default async function InstallationPage({
   searchParams,
@@ -83,11 +85,16 @@ export default async function InstallationPage({
         data.floors.map((f) => f.id),
         INSTALLATION_ORDER,
       )
-      const counts = { not_started: 0, first_fix: 0, second_fix: 0, third_fix: 0 }
+      // Brief 082 §2 — 'complete' added so counts sum to the project's
+      // real floor total (previously a fully-finished floor was dropped
+      // entirely — the AD9001-26S bug: 5 counted of 6).
+      const counts = { not_started: 0, first_fix: 0, second_fix: 0, third_fix: 0, complete: 0 }
       let oldestAge = 0
       for (const b of buckets) {
         counts[b.bucket as keyof typeof counts]++
-        oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
+        // A complete floor has nothing stuck — excluded from the age key
+        // (floorStageBuckets.ts's own header, Brief 082 §2).
+        if (b.bucket !== 'complete') oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
       }
 
       return {
@@ -102,7 +109,8 @@ export default async function InstallationPage({
           <div className="cross-list__row-summary-line">
             {counts.not_started} {t('crossListInstallationNotStarted')} · {counts.first_fix}{' '}
             {t('crossListInstallationFirstFix')} · {counts.second_fix} {t('crossListInstallationSecondFix')} ·{' '}
-            {counts.third_fix} {t('crossListInstallationThirdFix')}
+            {counts.third_fix} {t('crossListInstallationThirdFix')} · {counts.complete}{' '}
+            {t('crossListInstallationComplete')}
           </div>
         ),
       }

@@ -12,28 +12,45 @@ import { CrossProjectList, type CrossListRow } from '@/components/CrossProjectLi
 import { SCOPE_COOKIE } from '@/lib/scopeCookie'
 import { defaultScopeForRole, type Scope } from '@/lib/reporting/board'
 import { filterProjectsByScope, sortByAgeDescending } from '@/lib/reporting/crossProjectLists'
+import { computeProcurementCounts } from '@/lib/reporting/procurementCounts'
 
 export const metadata: Metadata = {
   title: 'Procurement — ADTECH Workflow Tracker',
 }
 
 /**
- * Brief 080 / Handoff Addendum v6.1 §2 — Procurement cross-project list.
- * DESTINATION: the project's existing procurement route (unambiguous).
+ * Brief 080 / Handoff Addendum v6.1 §2, REVISED BY BRIEF 082 §3 —
+ * Procurement cross-project list. DESTINATION: the project's existing
+ * procurement route (unambiguous).
  *
- * "Lines ordered / delivered of total" — workflow.procurement_lines
- * (migration 001) has no status enum; it's a milestone-timestamp
- * progression (sourcing_started_at / mr_submitted_at / mr_approved_at /
- * po_issued_at) plus a delivery fraction (delivery_received/
- * delivery_total). JUDGMENT CALL, flagged: "ordered" = po_issued_at is
- * set (the PO is the concrete "we have ordered this" event); "delivered"
- * = delivery_total is set AND delivery_received >= delivery_total (fully
- * received, not partial). "Total" = every procurement line on the
- * project. Age key ("age of the oldest undelivered line") = oldest
- * po_issued_at among lines that are ordered but not yet fully delivered
- * — a line never ordered at all has nothing to be "undelivered" from yet
- * in the sense of an active wait, so it is excluded from the age key
- * (though still counted in "total").
+ * workflow.procurement_lines (migration 001) has no status enum; it's a
+ * milestone-timestamp progression (sourcing_started_at / mr_submitted_at
+ * / mr_approved_at / po_issued_at) plus a delivery fraction
+ * (delivery_received/delivery_total).
+ *
+ * DECISION (Seanghakk, 22 Sep 2026): partial deliveries are shown as
+ * their own count, not folded into "not delivered" or "delivered" —
+ * materials often arrive in batches, so counting a partial as
+ * undelivered makes a line look stuck when most of it is on site;
+ * counting it as delivered hides the missing part, which on site can be
+ * exactly what blocks installation. Per project:
+ *
+ *   total lines · ordered (po_issued_at set) · partly delivered ·
+ *   fully delivered
+ *
+ *   partly delivered = delivery_received > 0 AND delivery_received <
+ *                       delivery_total
+ *   fully delivered  = delivery_total set AND delivery_received >=
+ *                       delivery_total
+ *
+ * A line where delivery_total IS NULL cannot be classed as partly or
+ * fully delivered — not guessed. It still counts under "ordered" if a PO
+ * is issued, but contributes to neither delivery bucket. See this
+ * brief's own Result doc for how many such lines exist in real data.
+ *
+ * Age key ("age of the oldest undelivered line") UNCHANGED: oldest
+ * po_issued_at among ordered lines NOT fully delivered — a partly
+ * delivered line is still waiting, so it stays in the age order.
  */
 export default async function ProcurementPage({
   searchParams,
@@ -92,8 +109,8 @@ export default async function ProcurementPage({
     .filter((p) => (linesByProject.get(p.id)?.length ?? 0) > 0)
     .map((project) => {
       const lines = linesByProject.get(project.id)!
+      const counts = computeProcurementCounts(lines)
       const ordered = lines.filter((l) => l.poIssuedAt !== null)
-      const delivered = ordered.filter((l) => l.deliveryTotal !== null && l.deliveryReceived >= l.deliveryTotal)
       const undelivered = ordered.filter((l) => !(l.deliveryTotal !== null && l.deliveryReceived >= l.deliveryTotal))
 
       const oldestAge =
@@ -111,8 +128,8 @@ export default async function ProcurementPage({
         href: `/projects/${project.id}/procurement`,
         summary: (
           <div className="cross-list__row-summary-line">
-            {ordered.length}/{lines.length} {t('crossListProcurementOrdered')} · {delivered.length}{' '}
-            {t('crossListProcurementDeliveredOfTotal')}
+            {counts.ordered}/{counts.total} {t('crossListProcurementOrdered')} · {counts.partlyDelivered}{' '}
+            {t('crossListProcurementPartlyDelivered')} · {counts.fullyDelivered} {t('crossListProcurementFullyDelivered')}
           </div>
         ),
       }

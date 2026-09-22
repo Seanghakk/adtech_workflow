@@ -5339,6 +5339,13 @@ button {
   margin: 0;
 }
 .phone-floor-header__tower-project {
+  /* Brief 082 §5 — FIX: this rule was missing the flex+gap the SO line
+     below already has, so its separator rendered flush against both
+     neighbours ("Podium·Sample Tower") instead of spaced like the SO
+     line's own "AD9001-26S · ELV". Same mechanism, same gap token. */
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   font: 400 var(--wf-t-base) / var(--wf-lh-mixed) var(--font-body);
   color: var(--wf-ink);
 }

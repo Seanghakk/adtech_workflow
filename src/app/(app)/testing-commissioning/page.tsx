@@ -28,16 +28,23 @@ const TNC_ORDER = ['pre_commissioning', 'commissioning']
  * own page header (nav.ts's own case (C) classification; no dedicated
  * route exists anywhere for this track either).
  *
- * Summary: "floors pre-commissioned / commissioned; how many are
- * complete and awaiting QC." "Complete and awaiting QC" reuses the
- * shared display-state rule directly (a commissioning sub-stage that is
- * 'done' with no pass/fail inspection yet) — the SAME function the
- * matrix and QC inspections list call, not re-derived. Bucket rule for
- * the pre-commissioned/commissioned counts mirrors Installation's own
- * (see floorStageBuckets.ts) — a floor is "pre-commissioned" if stuck
- * there, "commissioned" only once BOTH tnc sub-stages are done (which
- * falls outside floorStageBuckets' own buckets, so counted separately
- * here as its own explicit case).
+ * Summary, REVISED BY BRIEF 082 §2: "floors pre-commissioned /
+ * commissioning / complete" — the SAME bucket shape as Installation
+ * (floorStageBuckets.ts, TNC_ORDER = [pre_commissioning, commissioning]),
+ * summing to the project's real floor total. Brief 080's original version
+ * hand-rolled a separate "commissioned" (= all tnc sub-stages done) case
+ * outside floorStageBuckets' own buckets, because that function used to
+ * drop fully-done floors entirely; now that floorStageBuckets itself
+ * buckets a fully-done floor as 'complete' (Brief 082 §2), this page
+ * reuses that bucket directly instead of re-deriving "all done" a second
+ * time here.
+ *
+ * "Awaiting QC" is kept as a SUBSET annotation on the complete count
+ * (not a fourth disjoint bucket — the three main buckets alone already
+ * sum to the floor total, per Brief 082's own sums-to-total rule), via
+ * the shared display-state rule directly (a commissioning sub-stage
+ * that is 'done' with no pass/fail inspection yet) — the SAME function
+ * the matrix and QC inspections list call, not re-derived.
  */
 export default async function TestingCommissioningPage({
   searchParams,
@@ -84,30 +91,28 @@ export default async function TestingCommissioningPage({
       const tncSubStages = data.subStages.filter((s) => s.stage === 'tnc')
       const buckets = bucketFloorsByStage(tncSubStages, data.floors.map((f) => f.id), TNC_ORDER)
 
-      let preCommissioned = 0
-      let commissioned = 0
+      // Brief 082 §2 — the three buckets sum to the project's real floor
+      // total; 'complete' replaces the old hand-rolled "commissioned"
+      // case (see this file's own header).
+      const counts = { pre_commissioning: 0, commissioning: 0, complete: 0 }
       let awaitingQc = 0
       let oldestAge = 0
-      for (const floor of data.floors) {
-        const rowsForFloor = tncSubStages.filter((s) => s.floorId === floor.id)
-        if (rowsForFloor.length === 0) continue
-        const allDone = rowsForFloor.every((r) => r.status === 'done')
-        if (allDone) {
-          commissioned++
-          // "Complete and awaiting QC" — the commissioning sub-stage's
-          // own shared display state, not re-derived: awaiting_qc means
-          // done with no pass/fail inspection yet.
+      for (const b of buckets) {
+        counts[b.bucket as keyof typeof counts]++
+        if (b.bucket === 'complete') {
+          // Subset annotation, not a fourth bucket (see this file's own
+          // header) — the commissioning sub-stage's own shared display
+          // state: awaiting_qc means done with no pass/fail inspection yet.
+          const rowsForFloor = tncSubStages.filter((s) => s.floorId === b.floorId)
           const commissioningRow = rowsForFloor.find((r) => r.subStage === 'commissioning')
           if (commissioningRow && !data.latestInspectionBySubStageId.get(commissioningRow.id)) {
             awaitingQc++
           }
         } else {
-          const bucket = buckets.find((b) => b.floorId === floor.id)
-          if (bucket?.bucket === 'pre_commissioning') preCommissioned++
+          // A complete floor has nothing stuck — excluded from the age
+          // key (floorStageBuckets.ts's own header, Brief 082 §2).
+          oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
         }
-      }
-      for (const b of buckets) {
-        oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
       }
 
       return {
@@ -120,8 +125,9 @@ export default async function TestingCommissioningPage({
         href: `/projects/${project.id}?view=matrix`,
         summary: (
           <div className="cross-list__row-summary-line">
-            {preCommissioned} {t('crossListTncPreCommissioning')} · {commissioned} {t('crossListTncCommissioning')} ·{' '}
-            {awaitingQc} {t('crossListTncAwaitingQc')}
+            {counts.pre_commissioning} {t('crossListTncPreCommissioning')} · {counts.commissioning}{' '}
+            {t('crossListTncCommissioning')} · {counts.complete} {t('crossListTncComplete')}
+            {awaitingQc > 0 ? <> ({awaitingQc} {t('crossListTncAwaitingQc')})</> : null}
           </div>
         ),
       }

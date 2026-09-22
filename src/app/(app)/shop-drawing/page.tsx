@@ -12,29 +12,40 @@ import { CrossProjectList, type CrossListRow } from '@/components/CrossProjectLi
 import { SCOPE_COOKIE } from '@/lib/scopeCookie'
 import { defaultScopeForRole, type Scope } from '@/lib/reporting/board'
 import { filterProjectsByScope, sortByAgeDescending } from '@/lib/reporting/crossProjectLists'
+import { computeShopDrawingCounts } from '@/lib/reporting/shopDrawingCounts'
 
 export const metadata: Metadata = {
   title: 'Shop drawing — ADTECH Workflow Tracker',
 }
 
 /**
- * Brief 080 / Handoff Addendum v6.1 §2 — Shop drawing cross-project
- * list. DESTINATION: the project's existing shop-drawing-boq route
- * (unambiguous — a real per-project route already exists).
+ * Brief 080 / Handoff Addendum v6.1 §2, CORRECTED BY BRIEF 082 §4 — Shop
+ * drawing cross-project list. DESTINATION: the project's existing
+ * shop-drawing-boq route (unambiguous — a real per-project route already
+ * exists).
  *
- * "Floors drawn / approved of total; count sitting with the client" is
- * a JUDGMENT CALL against workflow.shop_drawing_items' own 3-state
- * status (not_started/in_progress/done, migration 008) — the addendum
- * names no explicit mapping. Per FLOOR-scope item (drawing_type in
- * layout/detail_connection; a floor typically carries both):
- *   - "not drawn": every floor-scope item on that floor is not_started
- *   - "with the client": at least one item is in_progress (drawn,
- *     submitted, awaiting the client's approval — 'in_progress' is the
- *     only state between not-yet-drawn and fully approved)
- *   - "approved": every floor-scope item on that floor is done
- * "Total" = every floor that carries at least one floor-scope shop
- * drawing item. Age key ("longest current wait with the client") = the
- * oldest updated_at among items currently in_progress, project-wide.
+ * BRIEF 082 CORRECTION: Brief 080's original version mapped the 3-state
+ * status (not_started/in_progress/done, migration 008) onto "drawn /
+ * approved / with the client" — WRONG, and removed entirely: 'in_progress'
+ * usually means ADTECH's own team is still drawing, not that a client
+ * has it, so "with the client" would send someone chasing a party who
+ * has nothing yet. Seanghakk has since defined the real approval
+ * lifecycle (drafting, internal check, submission to a per-drawing
+ * reviewer, revisions, codes A/B/C) — that needs a database migration
+ * and is a SEPARATE, later brief. NOT built here.
+ *
+ * UNTIL THEN: show the plain truth. Counted PER ITEM (not per floor —
+ * the old floor-grouping logic implied a floor-level verdict the data
+ * doesn't actually support), project-wide, across every floor-scope shop
+ * drawing item: not started / in progress / done. No claim about
+ * approval or about who holds the drawing. This is an INTERIM summary,
+ * pending the lifecycle migration.
+ *
+ * Age key ("longest current wait with the client") UNCHANGED: the oldest
+ * updated_at among items currently in_progress, project-wide — this
+ * label is arguably also imprecise for the same "in_progress != with the
+ * client" reason above, but Brief 082 only asked for the SUMMARY mapping
+ * to be corrected, not the age key; left as-is per that explicit scope.
  */
 export default async function ShopDrawingPage({
   searchParams,
@@ -91,23 +102,8 @@ export default async function ShopDrawingPage({
     .filter((p) => (itemsByProject.get(p.id)?.length ?? 0) > 0)
     .map((project) => {
       const items = itemsByProject.get(project.id)!
-      const floorIds = [...new Set(items.map((i) => i.floorId))]
-      let drawn = 0
-      let approved = 0
-      let withClient = 0
+      const counts = computeShopDrawingCounts(items as { status: 'not_started' | 'in_progress' | 'done' }[])
       let oldestWaitAge = 0
-      for (const floorId of floorIds) {
-        const floorItems = items.filter((i) => i.floorId === floorId)
-        const allDone = floorItems.every((i) => i.status === 'done')
-        const anyInProgress = floorItems.some((i) => i.status === 'in_progress')
-        if (allDone) {
-          approved++
-          drawn++
-        } else if (anyInProgress) {
-          withClient++
-          drawn++
-        }
-      }
       for (const item of items.filter((i) => i.status === 'in_progress')) {
         oldestWaitAge = Math.max(oldestWaitAge, daysSinceICT(item.updatedAt))
       }
@@ -122,8 +118,8 @@ export default async function ShopDrawingPage({
         href: `/projects/${project.id}/shop-drawing-boq`,
         summary: (
           <div className="cross-list__row-summary-line">
-            {drawn}/{floorIds.length} {t('crossListShopDrawingDrawnOfTotal')}, {approved}{' '}
-            {t('crossListShopDrawingApprovedOfTotal')} · {withClient} {t('crossListShopDrawingWithClient')}
+            {counts.not_started} {t('crossListShopDrawingNotStarted')} · {counts.in_progress}{' '}
+            {t('crossListShopDrawingInProgress')} · {counts.done} {t('crossListShopDrawingDone')}
           </div>
         ),
       }
