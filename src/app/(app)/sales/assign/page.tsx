@@ -10,6 +10,15 @@ import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles
 const NO_PROFILE_TEXT = 'No profile on file'
 import { canAssignClientOwners } from '@/lib/auth/sales-roles'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { RestrictedRoleNotice } from '@/components/RestrictedRoleNotice'
+// Brief 090 fix 3 — this ONE string is the sole reason this file now
+// touches the translator, deliberately: the brief's fix explicitly
+// requires the restricted-role message to be bilingual (dictionary EN/KM
+// keys) on all four affected routes, which overrides this file's own
+// "no translator" convention for just this string. Everything else in
+// this file stays hardcoded English exactly as before — not a broader
+// refactor.
+import { getServerTranslator } from '@/lib/i18n/server'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { AssignClientOwnerForm } from './AssignClientOwnerForm'
@@ -25,14 +34,26 @@ export const metadata: Metadata = {
  * migration 004) is the real enforcement; this app-layer gate is the same
  * belt-and-suspenders every other route/action in this app already
  * applies (see AppLayout's own comment on why it re-checks on top of
- * src/proxy.ts) — reusing NoAccessScreen rather than a bespoke message,
- * consistent with how this app already handles every other access denial.
+ * src/proxy.ts).
+ *
+ * Brief 090 fix 3 — the two restriction cases are told apart, per v7.1
+ * §14.1/§14.4 (see users/page.tsx's own comment for the full reasoning):
+ * no member row at all still gets NoAccessScreen (correct for that case);
+ * a linked member who simply isn't a manager/admin now gets a different,
+ * accurate notice instead of NoAccessScreen's "not linked" copy, which
+ * was false for a linked member.
  */
 export default async function AssignClientOwnersPage() {
   const { member } = await getCurrentMember()
 
-  if (!member || !canAssignClientOwners(member)) {
+  if (!member) {
     return <NoAccessScreen />
+  }
+  if (!canAssignClientOwners(member)) {
+    const t = await getServerTranslator()
+    return (
+      <RestrictedRoleNotice kicker="Admin" title="Client owners" body={t('salesAssignRestrictedBody')} />
+    )
   }
 
   const supabase = await createClient()

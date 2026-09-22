@@ -527,6 +527,18 @@ button {
   /* Major-section boundary — the app shell's own header/content edge. */
   border-bottom: 2px solid var(--rule-major);
 }
+/* Brief 090 fix 1 — moved ahead of the 640px media query below (same
+   selector, same specificity: whichever is declared last in the cascade
+   wins regardless of the media query's own condition). This rule's own
+   margin-right: auto was overriding the media query's margin-right: 0
+   below 640px — same pattern as the nav-drawer trigger bug, Brief 089
+   §0 urgent 1. Do not reorder this back. */
+.app-header__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-right: auto;
+}
 /* Brief 043 item 3 — real-device hand-verification (iPhone 14 Pro Max)
    found the language toggle and sign-out button pushed off-screen,
    unreachable: brand-mark + identity + actions never wrapped, and their
@@ -545,12 +557,6 @@ button {
     flex-basis: 100%;
     margin-right: 0;
   }
-}
-.app-header__identity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-right: auto;
 }
 .app-header__owner-box {
   font: 700 12px/1 var(--font-body);
@@ -946,18 +952,14 @@ button {
    NavDrawer.tsx's own header for the one deliberate departure (one
    real AppSidebar mount, not a hand-duplicated second nav tree).
    ----------------------------------------------------------------------- */
-@media (max-width: 640px) {
-  /* The desktop-docked rail Brief 064 built — completely unchanged
-     above this breakpoint (brief §4's own explicit requirement). */
-  .app-sidebar {
-    display: none;
-  }
-  .nav-drawer__trigger {
-    display: inline-flex;
-  }
-}
+/* Brief 090 fix 1 — this base rule must come BEFORE the media query below:
+   same selector, same specificity, so whichever is declared LAST in the
+   cascade wins regardless of the media query's own condition. Declaring
+   the unconditional display:none after the media rule made the trigger
+   permanently hidden at every viewport width — confirmed live, Brief 089
+   §0 urgent 1. Do not reorder this back. */
 .nav-drawer__trigger {
-  display: none; /* shown only under the 640px rule above */
+  display: none; /* shown only under the 640px rule below */
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -969,6 +971,16 @@ button {
   background: transparent;
   padding: 0;
   cursor: pointer;
+}
+@media (max-width: 640px) {
+  /* The desktop-docked rail Brief 064 built — completely unchanged
+     above this breakpoint (brief §4's own explicit requirement). */
+  .app-sidebar {
+    display: none;
+  }
+  .nav-drawer__trigger {
+    display: inline-flex;
+  }
 }
 .nav-drawer__trigger:hover {
   background: var(--surface-hover);
@@ -1036,6 +1048,16 @@ button {
  
 .lang-toggle {
   display: flex;
+  /* Brief 090 fix 2 — overflow:hidden here is a rounded-corner clip on
+     the two buttons, nothing more, but per standard flexbox behavior it
+     also lets this element shrink below its content's natural width
+     inside any flex row. Without flex-shrink:0 it lost a space race
+     against the login brand mark and was squeezed to an unusable ~38px
+     sliver, clipping KM off entirely — Brief 089 §0 urgent 2. The toggle
+     no longer lives in that tight row (see .login-screen__toggle below),
+     but this stays as a defensive floor against the same failure mode
+     wherever this component is placed next to other flex siblings. */
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1290,6 +1312,18 @@ button {
   justify-content: center;
   gap: var(--space-6);
   padding: var(--space-6);
+}
+/* Brief 090 fix 2 — v7.1 §14.1: the language toggle sits above the card,
+   right-aligned. Same width as the card (--wf-login-w) so the two share
+   a right edge; the flex row inside right-aligns the toggle within that
+   width. Previously the toggle lived inside .login-form__header, where
+   it was squeezed to an unusable sliver competing with the brand mark
+   for space (Brief 089 §0 urgent 2). */
+.login-screen__toggle {
+  width: var(--wf-login-w);
+  max-width: 100%;
+  display: flex;
+  justify-content: flex-end;
 }
 .login-form {
   /* §2.1: was 360px; --wf-login-w (400px) already existed as a token,
@@ -3188,7 +3222,19 @@ button {
   font: 500 12px/1.4 var(--font-body);
   color: var(--danger);
 }
- 
+
+/* Brief 090 fix 3 — RestrictedRoleNotice.tsx. Same blue-tint triad as
+   .wf-queue above (nothing here is wrong or late — v7.1's own rule for
+   why this is blue, never amber or red), plain body text rather than a
+   large numeral since there's no count to show. */
+.wf-restricted-notice {
+  background: var(--navy-tint-bg);
+  border: 2px solid var(--navy);
+  padding: var(--space-4) var(--space-5);
+  color: var(--navy-tint-deep);
+  font: 400 14px/1.5 var(--font-body);
+}
+
 /* §2.2/§6.1 — the member table itself. 1px rules between rows, 2px above
    the header. */
 .wf-admin-table {

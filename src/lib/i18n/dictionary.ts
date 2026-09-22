@@ -155,7 +155,25 @@ const en = {
   noAccessBody:
     "Your account is signed in, but it isn't linked to a Workflow Tracker member yet. Ask a project manager to link your account — you're already on the list they'll see.",
   noAccessSignOut: 'Sign out',
- 
+
+  // Brief 090 fix 3 — the OTHER access-denial case, told apart from
+  // noAccessBody above per v7.1 §14.1/§14.4: a LINKED member who simply
+  // isn't a manager/admin. Previously these four routes reused
+  // NoAccessScreen and its "not linked" copy for this case too, which is
+  // false for a linked member — see RestrictedRoleNotice.tsx. One key per
+  // route rather than one templated sentence: this dictionary has no
+  // string-interpolation mechanism anywhere (checked before adding one
+  // just for this), and each route already names itself in its own
+  // sentence, matching how every other screen-specific string here reads.
+  usersRestrictedBody:
+    'Users and members is for managers. Your account is linked and working — ask a manager if you need something changed here.',
+  lookupsRestrictedBody:
+    'Lookup tables is for managers. Your account is linked and working — ask a manager if you need something changed here.',
+  notificationsRestrictedBody:
+    'Telegram messages is for managers. Your account is linked and working — ask a manager if you need something changed here.',
+  salesAssignRestrictedBody:
+    'Client owners is for managers. Your account is linked and working — ask a manager if you need something changed here.',
+
   // Kept under its original "dashboard" name (Brief 002) even though the
   // interim placeholder it was coined for is gone as of Brief 009 —
   // still the one shared "no PIC/owner" label used across the update

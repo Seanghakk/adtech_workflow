@@ -3,6 +3,7 @@ import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { RestrictedRoleNotice } from '@/components/RestrictedRoleNotice'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import {
@@ -44,15 +45,26 @@ export const metadata: Metadata = {
  * one is out of scope for a reference page and would need a real
  * chat_id and a real trigger, neither of which exist yet (see this
  * page's own §ntoe below and the Result doc).
+ *
+ * Brief 090 fix 3 — the two restriction cases are told apart, per v7.1
+ * §14.1/§14.4 (see users/page.tsx's own comment for the full reasoning).
  */
 export default async function NotificationsPage() {
   const { member } = await getCurrentMember()
+  const t = await getServerTranslator()
 
-  if (!member || !isManagerOrAdmin(member)) {
+  if (!member) {
     return <NoAccessScreen />
   }
-
-  const t = await getServerTranslator()
+  if (!isManagerOrAdmin(member)) {
+    return (
+      <RestrictedRoleNotice
+        kicker={t('notificationsKicker')}
+        title={t('notificationsTitle')}
+        body={t('notificationsRestrictedBody')}
+      />
+    )
+  }
 
   const entries: {
     id: string

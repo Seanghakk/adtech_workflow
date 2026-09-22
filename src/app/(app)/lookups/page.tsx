@@ -4,6 +4,7 @@ import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { RestrictedRoleNotice } from '@/components/RestrictedRoleNotice'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { LookupRow } from './LookupRow'
@@ -26,16 +27,29 @@ export const metadata: Metadata = {
  *
  * §3.9 — managers and admins only, same RLS-backed boundary as /users
  * (workflow.is_manager()-gated writes), not merely a navigation choice.
+ *
+ * Brief 090 fix 3 — the two restriction cases are told apart, per v7.1
+ * §14.1/§14.4 (see users/page.tsx's own comment on this for the full
+ * reasoning).
  */
 export default async function LookupsPage() {
   const { member } = await getCurrentMember()
+  const t = await getServerTranslator()
 
-  if (!member || !isManagerOrAdmin(member)) {
+  if (!member) {
     return <NoAccessScreen />
+  }
+  if (!isManagerOrAdmin(member)) {
+    return (
+      <RestrictedRoleNotice
+        kicker={t('lookupsKicker')}
+        title={t('lookupsTitle')}
+        body={t('lookupsRestrictedBody')}
+      />
+    )
   }
 
   const supabase = await createClient()
-  const t = await getServerTranslator()
 
   const [{ data: reasonCodes }, { data: scopeTypes }, { data: stages }, { data: teams }] = await Promise.all([
     supabase.from('reason_codes').select('code, label_en, label_km, sort_order, is_active').order('sort_order'),
