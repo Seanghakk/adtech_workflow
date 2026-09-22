@@ -234,16 +234,25 @@ export interface SubtreeItem {
 
 /** v5 §2.3's own nine items, in its own order. See this file's header
  *  for the full (A)/(B)/(C) reasoning behind each href. */
+/**
+ * Brief 080 / Handoff Addendum v6.1 — six of these nine items (all but
+ * 'overview', still case C / blocked on v5 §9 open item 1, and the two
+ * already-real (A) links) now have a REAL GLOBAL DESTINATION: the
+ * cross-project list this brief built for each, replacing the "coming
+ * soon" stub. Reclassified from (B)/(C) to (A) accordingly — this
+ * brief's own answer to the design gap this file's header originally
+ * reported ("how a global rail should reach a per-project screen").
+ */
 export const EXECUTION_SUBTREE_ITEMS: SubtreeItem[] = [
   { key: 'overview', labelKey: 'navExecOverview', href: null, case: 'C' },
-  { key: 'shop-drawing', labelKey: 'navExecShopDrawing', href: null, case: 'B' },
-  { key: 'procurement', labelKey: 'navExecProcurement', href: null, case: 'B' },
-  { key: 'installation', labelKey: 'navExecInstallation', href: null, case: 'C' },
-  { key: 'testing-commissioning', labelKey: 'navExecTestingCommissioning', href: null, case: 'C' },
-  { key: 'qc-inspections', labelKey: 'navExecQcInspections', href: null, case: 'C' },
+  { key: 'shop-drawing', labelKey: 'navExecShopDrawing', href: '/shop-drawing', case: 'A' },
+  { key: 'procurement', labelKey: 'navExecProcurement', href: '/procurement', case: 'A' },
+  { key: 'installation', labelKey: 'navExecInstallation', href: '/installation', case: 'A' },
+  { key: 'testing-commissioning', labelKey: 'navExecTestingCommissioning', href: '/testing-commissioning', case: 'A' },
+  { key: 'qc-inspections', labelKey: 'navExecQcInspections', href: '/qc-inspections', case: 'A' },
   { key: 'delays-and-blockers', labelKey: 'navExceptions', href: '/delays-and-blockers', case: 'A', showBadge: true },
   { key: 'who-is-on-what', labelKey: 'navLoad', href: '/who-is-on-what', case: 'A' },
-  { key: 'floor-progress', labelKey: 'navExecFloorProgress', href: null, case: 'B', belowDashedRule: true },
+  { key: 'floor-progress', labelKey: 'navExecFloorProgress', href: '/floor-progress', case: 'A', belowDashedRule: true },
 ]
 
 export function isSubtreeItemActive(item: SubtreeItem, pathname: string): boolean {

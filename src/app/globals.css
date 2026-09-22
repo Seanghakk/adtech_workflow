@@ -1711,7 +1711,158 @@ button {
   background: var(--navy);
   color: #fff;
 }
- 
+
+/* -----------------------------------------------------------------------
+   Brief 080 / Handoff Addendum v6.1 — the six cross-project Execution
+   lists (Shop drawing, Procurement, Installation, Testing &
+   commissioning, QC inspections, Floor progress). Reuses .board__tabs/
+   .board__tab/.board__control-label for the scope control (same shape,
+   same tokens) rather than a second tab component.
+   ----------------------------------------------------------------------- */
+.cross-list__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--rule-major);
+  margin-bottom: var(--space-6);
+}
+.cross-list__title {
+  margin: 0;
+  font: 800 28px/1.1 var(--font-heading);
+  letter-spacing: 0.2px;
+}
+.cross-list__scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.cross-list__group-heading {
+  font: 800 15px/1.3 var(--font-heading);
+  margin: var(--space-6) 0 var(--space-3);
+}
+.cross-list__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+}
+.cross-list__row {
+  border-bottom: 1px solid var(--border);
+  /* Addendum §3.1 — 5px left rule, four colours keyed off the SAME
+     four-band age ladder every other screen uses (src/lib/age.ts), but
+     this scheme's own simpler four values, not the age-band-1..4
+     gradient (a different, already-spoken-for token set — see
+     CrossProjectList.tsx's own header). */
+  border-left: 5px solid transparent;
+}
+.cross-list__row:last-child {
+  border-bottom: none;
+}
+.cross-list__row--moving {
+  border-left-color: transparent;
+}
+.cross-list__row--waiting {
+  border-left-color: rgba(32, 30, 29, 0.3);
+}
+.cross-list__row--late {
+  border-left-color: var(--ink);
+}
+.cross-list__row--stalled {
+  border-left-color: var(--danger);
+}
+.cross-list__row-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  text-decoration: none;
+  color: var(--text);
+}
+.cross-list__row-link:hover {
+  background: var(--surface-hover);
+}
+.cross-list__row-identity {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 180px;
+}
+.cross-list__row-project-name {
+  font: 500 13px/1.3 var(--font-body);
+  color: var(--text);
+}
+.cross-list__row-summary {
+  flex: 1;
+  min-width: 0;
+}
+.cross-list__row-summary-line {
+  font: 400 13px/1.4 var(--font-body);
+  /* Brief 064 — --text-muted (~4.40:1) fails WCAG AA; this app's own
+     .62-opacity ink is the correct secondary-text value (~4.63:1),
+     addendum §5's own explicit instruction. */
+  color: rgba(32, 30, 29, 0.62);
+}
+.cross-list__row-summary-line--qc-failed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* The QC list's own small hatch swatch beside "N failed, awaiting
+   re-inspection" — same texture the matrix cell and the phone row use
+   (v6 §7.4's own "same swatch on either screen" instruction), just
+   sized for an inline row rather than a grid cell. */
+.cross-list__cell--qc-failed {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  background: var(--wf-hatch-ink);
+  border: 1px solid var(--ink);
+}
+
+/* Floor progress's own bar (addendum §2) — segments reuse the MATRIX'S
+   OWN cell classes (.floor-matrix__cell--*) directly, so a colour can
+   never drift between the matrix and this bar. Never a second matrix. */
+.cross-list__bar {
+  display: flex;
+  height: 16px;
+  width: 100%;
+  border: 1px solid var(--border);
+}
+.cross-list__bar-segment {
+  height: 100%;
+}
+.cross-list__bar-counts {
+  margin-top: var(--space-2);
+  font: 400 12.5px/1.4 var(--font-body);
+  color: rgba(32, 30, 29, 0.62);
+}
+
+/* Addendum §5 — below 640px each list becomes stacked cards: SO number
+   and age sharing one baseline, summary beneath. Same 640px breakpoint
+   this app already uses everywhere (the sidebar drawer, the header
+   wrap) — grepped before picking one, not a second convention. */
+@media (max-width: 640px) {
+  .cross-list__row-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .cross-list__row-identity {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+}
+
 /* §4 — the visibility problem. A notice, not an empty-state variant: it
    applies whether the scope returns zero projects or a hundred, since a
    restricted member's "Everything" is never literally everything. */
