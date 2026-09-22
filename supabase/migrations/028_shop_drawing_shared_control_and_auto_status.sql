@@ -24,6 +24,16 @@
 --   (c) THE MANUAL DROPDOWN STAYS — not retired; anyone in (a) can still
 --       set status by hand, in either direction.
 --
+-- ADDITION TO BRIEF 086 (same date, on this same branch/PR before it was
+-- reviewed further): shop_drawing_items.drafting_started_at (timestamptz,
+-- nullable) — set automatically the FIRST time a drawing leaves
+-- not_started, BY ANY ROUTE, and never overwritten after. See §5 below
+-- for why this needs no new trigger and no change to §3's own function
+-- at all: every route already funnels through §2's single BEFORE UPDATE
+-- trigger, which fires on EVERY update to this table regardless of who
+-- or what issued it (no WHEN clause, no "OF column" restriction — see
+-- that trigger's own CREATE TRIGGER statement).
+--
 -- =============================================================================
 -- §4 INVESTIGATION FINDINGS (from the migration files directly, not
 -- memory or a database read — production reads may be blocked per this
@@ -243,6 +253,30 @@
 begin;
 
 -- -----------------------------------------------------------------------------
+-- 0. shop_drawing_items.drafting_started_at — ADDITIVE column, nullable,
+--    no default, so every EXISTING row stays NULL (per the addition's own
+--    explicit "leave it NULL for existing rows" instruction — no backfill
+--    attempted, since there is no real "when did drafting start" fact to
+--    recover for a pre-migration row, the same reasoning migration 027
+--    already applied to legacy_done_no_lifecycle_history rather than
+--    guessing a timestamp). Set exactly once, going forward, by §2 below.
+-- -----------------------------------------------------------------------------
+
+alter table workflow.shop_drawing_items
+  add column drafting_started_at timestamptz;
+
+comment on column workflow.shop_drawing_items.drafting_started_at is
+  'Set automatically the FIRST time this drawing leaves not_started, by
+   ANY route — pre_submission_stage set to drafting/internal_check, a
+   submission created, or a manual status change — never overwritten
+   once set (see workflow.shop_drawing_items_before_update()''s own
+   comment for the single unified condition that catches all three
+   routes). NULL means either the drawing is still not_started, or it
+   left not_started before this migration existed (no backfill — see
+   this file''s own header). Never written anywhere except that one
+   trigger function.';
+
+-- -----------------------------------------------------------------------------
 -- 1. Policy widenings (§4 findings 1 and 2 above).
 -- -----------------------------------------------------------------------------
 
@@ -354,17 +388,55 @@ begin
     new.status := 'in_progress';
   end if;
 
+  -- ADDITION TO BRIEF 086 — drafting_started_at. Checked AFTER the
+  -- block above so it sees this statement's FINAL new.status (the
+  -- pre_submission_stage-triggered auto-advance may have just set it).
+  -- ONE condition catches ALL THREE routes named by the addition,
+  -- because every one of them arrives here as an ordinary UPDATE on
+  -- THIS table, and this trigger has no WHEN clause / "OF column"
+  -- restriction (see its own CREATE TRIGGER statement) — it fires on
+  -- every UPDATE regardless of who or what issued it:
+  --   1. pre_submission_stage set to drafting/internal_check: caught by
+  --      the block above already changing new.status in this same call.
+  --   2. a submission is created: workflow.shop_drawing_submissions_
+  --      auto_status()'s own INSERT branch issues `update
+  --      shop_drawing_items set status='in_progress' where
+  --      status='not_started'` — that UPDATE is itself a normal write
+  --      to this table, so it fires THIS trigger too, arriving here with
+  --      old.status='not_started' and new.status='in_progress' as
+  --      supplied by that UPDATE statement. No separate logic needed in
+  --      that other function at all.
+  --   3. a manual status change away from not_started (by anyone in
+  --      §2a, per rule 2) — an ordinary UPDATE ... SET status = ...,
+  --      caught the same way.
+  -- "Never overwrite it once set": guarded twice over — old.status must
+  -- still read 'not_started' (permanently false forever after the first
+  -- real departure) AND old.drafting_started_at must still be null
+  -- (false forever after the first time this branch runs) — either
+  -- guard alone would already be sufficient.
+  if old.status = 'not_started'
+    and new.status is distinct from 'not_started'
+    and old.drafting_started_at is null
+  then
+    new.drafting_started_at := now();
+  end if;
+
   return new;
 end;
 $$;
 
 comment on function workflow.shop_drawing_items_before_update() is
-  'Migration 028 / Brief 086 §3/§4. BEFORE UPDATE on workflow.
+  'Migration 028 / Brief 086 §3/§4, extended by this brief''s own
+   drafting_started_at addition. BEFORE UPDATE on workflow.
    shop_drawing_items. Bumps updated_at unconditionally (§4 finding 3 —
    this table never had this before). Enforces rule 1''s "entering the
    lifecycle while not_started" forward-only auto-status case inline, on
    the same row being written — no second statement, so this branch
-   cannot recurse by construction.';
+   cannot recurse by construction. Also sets drafting_started_at, once,
+   the first time status actually leaves not_started by ANY route — see
+   the inline comment above that block for why this single, unconditional
+   trigger is the one place that can observe every route without any
+   change to workflow.shop_drawing_submissions_auto_status().';
 
 drop trigger if exists shop_drawing_items_before_update on workflow.shop_drawing_items;
 create trigger shop_drawing_items_before_update
@@ -378,6 +450,13 @@ create trigger shop_drawing_items_before_update
 --    being recorded. Each branch issues exactly one guarded UPDATE on
 --    shop_drawing_items — see this file's own header §b for the full
 --    trace showing this cannot loop or double-count.
+--
+--    Deliberately UNCHANGED by this brief's own drafting_started_at
+--    addition: this function's UPDATE on shop_drawing_items (below)
+--    already flows through §2's own BEFORE UPDATE trigger on that
+--    table, which is where drafting_started_at is actually set — see
+--    that trigger's own comment for why no logic needs to be duplicated
+--    here.
 -- -----------------------------------------------------------------------------
 
 create or replace function workflow.shop_drawing_submissions_auto_status()

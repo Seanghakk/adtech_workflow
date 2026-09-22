@@ -13,10 +13,11 @@
 -- STANDING TRAP (carried forward from every prior verify file in this
 -- project): run through a superuser/service-role session and you bypass
 -- RLS entirely — nothing here proves anything about app-level access,
--- only about the objects' shape. Queries 7-16 below specifically need
+-- only about the objects' shape. Queries 9-24 below specifically need
 -- real authenticated sessions (a PIC not on either team, a Shop Drawing
 -- member, an A&A member, and an outsider) to exercise RLS and the
--- automatic status triggers.
+-- automatic status triggers, including the drafting_started_at addition
+-- (queries 20-24).
 -- =============================================================================
 
 -- 1. shop_drawing_items_update policy text now mentions current_team(),
@@ -85,6 +86,27 @@ select p.proname, p.prosecdef, p.pronargs
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'workflow' and p.proname = 'record_shop_drawing_check';
+
+-- 8a. ADDITION: shop_drawing_items gained exactly one new column,
+-- drafting_started_at, nullable, no default. Expect 1 row.
+select column_name, data_type, is_nullable, column_default
+from information_schema.columns
+where table_schema = 'workflow' and table_name = 'shop_drawing_items'
+  and column_name = 'drafting_started_at';
+
+-- 8b. ADDITION: shop_drawing_items' own column count grew by exactly one
+-- from migration 027's own end state (that migration's own verify file
+-- query 1 established 2 columns added on top of migration 008's
+-- original set — this migration adds a third, drafting_started_at, on
+-- top of THOSE). Cross-check: information_schema.columns for this table
+-- should show drafting_started_at alongside the two migration-027
+-- columns (pre_submission_stage, legacy_done_no_lifecycle_history).
+-- Expect 3 rows.
+select column_name, data_type, is_nullable
+from information_schema.columns
+where table_schema = 'workflow' and table_name = 'shop_drawing_items'
+  and column_name in ('drafting_started_at', 'pre_submission_stage', 'legacy_done_no_lifecycle_history')
+order by column_name;
 
 -- =============================================================================
 -- BEHAVIOURAL CHECKS — proves the widened policies and the automatic
@@ -219,3 +241,71 @@ where n.nspname = 'workflow' and p.proname = 'record_shop_drawing_check';
 -- computed percentage is, since both ultimately funnel through the SAME
 -- recalculate_project_rollup()/record_project_progress_history() chain
 -- (see this migration's own header for the full trace).
+
+-- =============================================================================
+-- BEHAVIOURAL CHECKS FOR drafting_started_at (the addition to this
+-- brief) — three routes leaving not_started, each set on a SEPARATE
+-- fresh not_started item so the three tests don't interfere.
+-- =============================================================================
+
+-- 20. ROUTE 1 — pre_submission_stage set. On a fresh not_started item
+-- with drafting_started_at still null:
+--   update workflow.shop_drawing_items
+--   set pre_submission_stage = 'drafting'
+--   where id = '<fresh not_started item id, route 1>'
+--   returning status, drafting_started_at;
+--   -- expect: status = 'in_progress' (rule 1, case 1, unchanged by this
+--   -- addition), drafting_started_at IS NOT NULL and ~= now().
+
+-- 21. ROUTE 2 — a submission is created (no prior pre_submission_stage
+-- change on this item at all; a valid check must already be recorded
+-- for revision 0 on this item, per migration 027's own gate):
+--   insert into workflow.shop_drawing_submissions
+--     (item_id, revision, submitted_by, reviewer_party)
+--   values ('<fresh not_started item id, route 2>', 0, auth.uid(), 'consultant');
+--   select status, drafting_started_at from workflow.shop_drawing_items
+--   where id = '<same item id>';
+--   -- expect: status = 'in_progress', drafting_started_at IS NOT NULL
+--   -- and ~= now() — set even though this item's pre_submission_stage
+--   -- was never touched, proving the single unified trigger catches
+--   -- this route too, not just route 1.
+
+-- 22. ROUTE 3 — a manual status change away from not_started, with NO
+-- pre_submission_stage change and NO submission at all:
+--   update workflow.shop_drawing_items
+--   set status = 'in_progress'
+--   where id = '<fresh not_started item id, route 3>'
+--   returning drafting_started_at;
+--   -- expect: drafting_started_at IS NOT NULL and ~= now().
+
+-- 23. NEVER OVERWRITTEN ONCE SET — on the SAME item from query 20 (or
+-- 21/22), note its exact drafting_started_at value, wait a moment, then
+-- make ANOTHER status-changing update to the same item (e.g. move it
+-- along further, or even manually set status back to 'not_started' and
+-- then forward again — rule 2 allows a manual change in either
+-- direction):
+--   select drafting_started_at from workflow.shop_drawing_items
+--   where id = '<the item from query 20>'; -- note this value, call it V1
+--   update workflow.shop_drawing_items set status = 'not_started'
+--   where id = '<same item id>'; -- a manual reversal, allowed per rule 2
+--   update workflow.shop_drawing_items set status = 'in_progress'
+--   where id = '<same item id>'; -- forward again
+--   select drafting_started_at from workflow.shop_drawing_items
+--   where id = '<same item id>'; -- call it V2
+--   -- expect: V2 = V1, byte-for-byte identical — even after leaving and
+--   -- re-entering not_started, the ORIGINAL first-departure timestamp is
+--   -- never overwritten (old.drafting_started_at is null is false by
+--   -- this point, so the trigger's own guard skips the assignment).
+
+-- 24. LEFT NULL FOR EXISTING ROWS — any shop_drawing_items row that
+-- existed before this migration (i.e. every row already in the table at
+-- apply time) has drafting_started_at = null immediately after applying,
+-- regardless of its current status (including 'done' or 'in_progress'
+-- rows from before this migration existed) — no backfill was attempted.
+-- Run this ONCE, immediately after applying, before any of queries
+-- 20-23 above:
+--   select count(*) as rows_with_a_value
+--   from workflow.shop_drawing_items
+--   where drafting_started_at is not null;
+--   -- expect: 0, immediately after applying (before any real write
+--   -- happens) — confirms no backfill occurred.
