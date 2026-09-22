@@ -21,10 +21,14 @@ const LEGEND_KEYS: Record<MatrixCellState, DictionaryKey> = {
   in_progress: 'floorMatrixLegendInProgress',
   awaiting_qc: 'floorMatrixLegendAwaitingQc',
   qc_passed: 'floorMatrixLegendQcPassed',
+  qc_failed: 'floorMatrixLegendQcFailed',
   stalled: 'floorMatrixLegendStalled',
 }
 
-const LEGEND_ORDER: MatrixCellState[] = ['not_applicable', 'not_started', 'in_progress', 'awaiting_qc', 'qc_passed', 'stalled']
+/** Brief 078 / v6 §7.4 — the seven-item legend, in the handoff's exact
+ *  order (previously six items, 'not_applicable' first; v6 puts it last
+ *  and adds 'qc_failed' between 'qc_passed' and 'stalled'). */
+const LEGEND_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting_qc', 'qc_passed', 'qc_failed', 'stalled', 'not_applicable']
 
 /**
  * Brief 056 — the floor x sub-stage colour matrix itself. Colour block
@@ -54,7 +58,14 @@ export function FloorMatrix({
     <div className="floor-matrix">
       <div className="floor-matrix__legend" aria-label={t('floorMatrixLegendTitle')}>
         {LEGEND_ORDER.map((state) => (
-          <span key={state} className="floor-matrix__legend-item">
+          <span
+            key={state}
+            /* v6 §7.4 — at 390px the legend is a two-column grid and
+               "Complete, awaiting QC" is the one label that spans both
+               columns (it does not fit half of 390px without breaking
+               mid-phrase; every other label pairs). */
+            className={state === 'awaiting_qc' ? 'floor-matrix__legend-item floor-matrix__legend-item--span-2' : 'floor-matrix__legend-item'}
+          >
             <span className={`floor-matrix__cell floor-matrix__cell--${state} floor-matrix__legend-swatch`} aria-hidden="true" />
             {t(LEGEND_KEYS[state])}
           </span>

@@ -13,6 +13,7 @@ import { getAgeLabelBand } from '@/lib/age'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { buildMatrixRows } from './floor-matrix'
+import { resolveLatestInspection, type LatestInspection } from '@/lib/subStageDisplayState'
 import { FloorMatrix } from './FloorMatrix'
 
 export const metadata: Metadata = {
@@ -97,17 +98,29 @@ export default async function SoRecordPage({
             .in('floor_id', floorIds)
         : Promise.resolve({ data: [] }),
       floorIds.length > 0
-        ? supabase.from('qc_inspections').select('floor_sub_stage_id, status').eq('project_id', project.id)
+        ? supabase
+            .from('qc_inspections')
+            .select('floor_sub_stage_id, status, inspected_at, created_at')
+            .eq('project_id', project.id)
+            .in('status', ['pass', 'fail'])
         : Promise.resolve({ data: [] }),
     ])
 
-    // Same "any PASSED inspection wins, a later fail/pending never erases
-    // an earlier pass" rule as update/page.tsx's own passedSubStageIds —
-    // one definition, not a second one invented here.
-    const passedSubStageIds = new Set(
-      (inspectionRows ?? [])
-        .filter((r): r is { floor_sub_stage_id: string; status: string } => r.status === 'pass' && r.floor_sub_stage_id !== null)
-        .map((r) => r.floor_sub_stage_id),
+    // Brief 078 / v6 §7.1 — LATEST inspection per sub-stage, not "any pass
+    // ever" (the prior rule here: a fail after an old pass used to stay
+    // green forever, since passedSubStageIds only ever recorded whether a
+    // pass had EVER happened, ignoring order). inspected_at falls back to
+    // created_at since the column is nullable (migration 008) — see
+    // src/lib/subStageDisplayState.ts's own header.
+    const inspectionsBySubStage = new Map<string, { result: 'pass' | 'fail'; date: string }[]>()
+    for (const r of inspectionRows ?? []) {
+      if (r.floor_sub_stage_id === null || (r.status !== 'pass' && r.status !== 'fail')) continue
+      const list = inspectionsBySubStage.get(r.floor_sub_stage_id) ?? []
+      list.push({ result: r.status, date: r.inspected_at ?? r.created_at })
+      inspectionsBySubStage.set(r.floor_sub_stage_id, list)
+    }
+    const latestInspectionBySubStageId = new Map<string, LatestInspection | null>(
+      [...inspectionsBySubStage.entries()].map(([id, rows]) => [id, resolveLatestInspection(rows)]),
     )
 
     const matrixRows = buildMatrixRows({
@@ -121,10 +134,13 @@ export default async function SoRecordPage({
         status: s.status,
         updatedAt: s.updated_at,
       })),
-      passedSubStageIds,
+      latestInspectionBySubStageId,
       // Brief 056 §4: the SAME src/lib/age.ts thresholds every other
-      // staleness read in this app uses — not a second definition.
-      daysSinceUpdate: (updatedAt) => daysSinceICT(updatedAt),
+      // staleness read in this app uses — not a second definition. Now
+      // generic over which date to clock (v6 §7.3 — a QC-failed cell
+      // clocks from its failed inspection's date, not its status date;
+      // see floor-matrix.ts's own computeCellState).
+      daysSince: (isoDate) => daysSinceICT(isoDate),
       isStale: (days) => getAgeLabelBand(days) === 'stalled',
     })
 

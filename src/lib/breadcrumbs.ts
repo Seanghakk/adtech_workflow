@@ -79,3 +79,14 @@ export const CRUMB_TRIAGE: AncestorCrumb = { label: 'navJourneyTriage', href: '/
 export function requestStatusAncestors(): { label: string; href: string }[] {
   return []
 }
+
+/**
+ * Brief 078 / v6 §2 — no breadcrumb on the scanned-floor phone page,
+ * same reason as requestStatusAncestors above: "Nobody arriving from a
+ * QR sticker is navigating a hierarchy" (v6 §2's own words). A named,
+ * empty derivation, not an omitted <Breadcrumbs> call, per that
+ * function's own header for why this shape is used instead.
+ */
+export function floorScanAncestors(): { label: string; href: string }[] {
+  return []
+}
