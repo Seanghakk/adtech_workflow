@@ -1073,20 +1073,30 @@ const en = {
   crossListEmptyMine: 'No projects assigned to you.',
   crossListEmptyScopePrefix: 'Nothing in',
 
-  crossListShopDrawingDrawnOfTotal: 'drawn of total',
-  crossListShopDrawingApprovedOfTotal: 'approved',
-  crossListShopDrawingWithClient: 'with the client',
+  // Brief 082 §4 — REPLACES the removed drawn/approved/with-client
+  // mapping (Brief 080's original guess was wrong: 'in_progress' means
+  // ADTECH's own team is still drawing, not that a client has it).
+  // Plain status labels only, until the real approval lifecycle
+  // migration (a separate, later brief) exists.
+  crossListShopDrawingNotStarted: 'not started',
+  crossListShopDrawingInProgress: 'in progress',
+  crossListShopDrawingDone: 'done',
 
-  crossListProcurementDeliveredOfTotal: 'delivered',
   crossListProcurementOrdered: 'ordered',
+  // Brief 082 §3 — replaces the single "delivered" count with a
+  // partly/fully split (see procurement/page.tsx's own header).
+  crossListProcurementPartlyDelivered: 'partly delivered',
+  crossListProcurementFullyDelivered: 'fully delivered',
 
   crossListInstallationNotStarted: 'not started',
   crossListInstallationFirstFix: 'first fix',
   crossListInstallationSecondFix: 'second fix',
   crossListInstallationThirdFix: 'third fix',
+  crossListInstallationComplete: 'complete', // Brief 082 §2
 
   crossListTncPreCommissioning: 'pre-commissioning',
   crossListTncCommissioning: 'commissioning',
+  crossListTncComplete: 'complete', // Brief 082 §2
   crossListTncAwaitingQc: 'awaiting QC',
 
   crossListQcWaitingHeading: 'Waiting for inspection',
