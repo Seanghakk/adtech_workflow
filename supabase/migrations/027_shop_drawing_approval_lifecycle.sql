@@ -1,22 +1,48 @@
 -- =============================================================================
 -- ADTECH Workflow Tracker — Migration 027: shop drawing approval lifecycle
--- Brief: ADTECH_WF_Brief_083_Shop_Drawing_Lifecycle_Investigate_And_Draft
+-- Brief: ADTECH_WF_Brief_083_Shop_Drawing_Lifecycle_Investigate_And_Draft,
+--        REVISED BY ADTECH_WF_Brief_084_Revise_PR55_Shop_Drawing_Check_And_
+--        Recording_Rules (Seanghakk's answers to Brief 083 §4d/§4f — see
+--        that brief's own §2/§3 for the decisions and the hole they close).
 --
--- DRAFT ONLY. NOT APPLIED BY THIS BRIEF, NOT EVEN TO THE ROLLBACK-TEST
--- PROJECT (a separate rollback-test brief follows, same pattern as
--- migrations 025/026 and Brief 079). No UI reads or writes any of this
--- yet — that is a later, separate Claude Design brief once this data
--- model exists and Seanghakk has confirmed §4d below.
+-- DRAFT ONLY. NOT APPLIED BY THIS BRIEF EITHER, NOT EVEN TO THE
+-- ROLLBACK-TEST PROJECT (a separate rollback-test brief follows, same
+-- pattern as migrations 025/026 and Brief 079). No UI reads or writes any
+-- of this yet — that is a later, separate Claude Design brief.
 --
 -- WHY: workflow.shop_drawing_items' 3-state status (not_started/
 -- in_progress/done, migration 008) cannot say "our team is drawing it"
 -- vs "the consultant has it" — the single most useful fact a PIC needs
 -- (whose court the ball is in). Brief 080 guessed at this mapping and
 -- guessed wrong; Brief 082 replaced the guess with plain status labels
--- as an interim measure. This migration is the real fix, decided by
--- Seanghakk 22 Sep 2026: not started -> drafting -> internal check ->
--- submitted -> returned (code A/B/C) -> approved, with reviewer identity
--- and revision history tracked per submission.
+-- as an interim measure. This migration is the real fix: not started ->
+-- drafting -> internal check -> submitted -> returned (code A/B/C) ->
+-- approved, with reviewer identity and revision history tracked per
+-- submission.
+--
+-- BRIEF 084 REVISION, IN ONE PARAGRAPH: Brief 083's draft let checked_by/
+-- checked_at be typed directly into a submission row BY WHOEVER CREATES
+-- IT. Once Seanghakk decided only the Shop Drawing team's manager may
+-- perform the check (Brief 084 §2a), that became a real hole — an A&A
+-- member (who may submit, per §2c) could simply write the manager's id
+-- into checked_by and the database would accept a check that never
+-- happened. This revision closes it with a SEPARATE, narrowly-guarded
+-- check record (workflow.shop_drawing_checks, §2A below) written ONLY
+-- through workflow.record_shop_drawing_check() — a SECURITY DEFINER
+-- function that verifies the caller is the Shop Drawing manager and
+-- writes auth.uid()/now() itself, never trusting a caller-supplied value
+-- for who/when — and a new BEFORE INSERT trigger on shop_drawing_
+-- submissions (§2B) that REFUSES the insert unless a matching check
+-- exists for that exact item+revision, then COPIES checked_by/checked_at
+-- from the check row onto the submission, overwriting whatever the
+-- submitter supplied. See this migration's own §2A/§2B comments for the
+-- full walkthrough against each of Brief 084 §3's five guarantees, and
+-- "Brief 084 - RESULT" for the complete design writeup.
+--
+-- Also changed by Brief 084 §2c: shop_drawing_submissions' own INSERT/
+-- UPDATE (submit / record-a-return) policies now admit BOTH the Shop
+-- Drawing and A&A teams, not Shop Drawing alone — Brief 083's own §4f
+-- flagged this as an open question; Seanghakk answered it. See §2 below.
 --
 -- =============================================================================
 -- THE OVERRIDING CONSTRAINT (brief's own words): ADDITIVE, NOTHING
@@ -89,10 +115,25 @@ comment on column workflow.shop_drawing_items.pre_submission_stage is
    this — not built here, no UI in this brief).
    NULL = not yet started on this lifecycle at all (matches status =
    ''not_started'' for a fresh/legacy row, or between revisions before
-   drafting resumes). Nothing writes to this column yet — no UI exists;
-   see the Result doc for why RLS on this column is inherited from the
-   TABLE''s existing PIC-keyed policy (migration 019), not team-gated,
-   until a future brief decides whether that should change.';
+   drafting resumes). Nothing writes to this column yet — no UI exists.
+
+   BRIEF 084 §2c — WHO SHOULD move an item between ''drafting'' and
+   ''internal_check'': the Shop Drawing team AND the A&A team, the SAME
+   two teams decision (c) names for submitting/recording-returns (this is
+   ordinary pre-submission team activity, not the check itself, which is
+   the much narrower Shop Drawing-manager-only gate in §2A below). NOT
+   YET ENFORCED as such: writes to this column are still governed by
+   shop_drawing_items'' EXISTING, UNCHANGED PIC-keyed UPDATE policy
+   (migration 019) — this migration deliberately does not touch that
+   policy (the overriding "nothing existing breaks" constraint). This is
+   the same PIC-vs-team-gating tension flagged as carried-forward in
+   Brief 084''s own Result doc §5 (item 1) for a future UI brief to
+   settle, not solved here. CONSISTENCY WITH THE RECORDED CHECK: an item
+   showing ''internal_check'' with no row yet in workflow.shop_drawing_
+   checks for its current (next) revision correctly reads as "waiting for
+   the manager" — this holds structurally, since §2A''s function is the
+   ONLY way such a row can ever exist, regardless of what pre_submission_
+   stage says.';
 
 comment on column workflow.shop_drawing_items.legacy_done_no_lifecycle_history is
   'Design question (e) — set true ONLY by this migration''s own one-time
@@ -208,31 +249,30 @@ create policy shop_drawing_submissions_select on workflow.shop_drawing_submissio
     )
   );
 
--- WRITE — design question (f): team-gated to the Shop Drawing team
--- (workflow.teams.code = 'shop_drawing'), reusing workflow.current_team()
--- (migration 001) — the exact mechanism migration 022 already uses for
--- floor_sub_stages/project_handover_items/shop_drawing_boq_lines, not a
--- third definition. NO manager/superadmin bypass, matching migration
--- 022's own explicit precedent ("No manager bypass, matching every
--- team-keyed policy in this schema") — not extending superadmin's
--- migration-019 bypass to this brand-new table either, for the same
--- reason. FLAGGED, NOT DECIDED SILENTLY: migration 022's shop_drawing_boq
--- policies gate on current_team() IN ('shop_drawing', 'a_and_a') — two
--- teams, not one — because A&A co-owns that BOQ. This brief's own text
--- names only the Shop Drawing team for the approval lifecycle, so this
--- migration follows that literally ('shop_drawing' alone); if A&A should
--- also be able to record a submission/return, that is Seanghakk's own
--- call to make, same shape as §4d.
+-- WRITE — design question (f), ANSWERED BY BRIEF 084 §2c: team-gated to
+-- BOTH the Shop Drawing team AND the A&A team (current_team() IN
+-- ('shop_drawing', 'a_and_a')), reusing workflow.current_team()
+-- (migration 001) — the EXACT two-team shape migration 022 already uses
+-- for shop_drawing_boq_lines (A&A co-owns that BOQ; Seanghakk decided the
+-- same co-ownership applies to submitting/recording-returns here). Brief
+-- 083's own draft gated this to 'shop_drawing' alone and flagged the
+-- question rather than deciding it; Brief 084 answers it. NO manager/
+-- superadmin bypass, matching migration 022's own explicit precedent
+-- ("No manager bypass, matching every team-keyed policy in this schema").
+-- NOTE: this governs SUBMITTING and RECORDING A RETURN only — it does
+-- NOT govern the internal CHECK itself, which is a separate, much
+-- narrower gate (Shop Drawing manager only) enforced by §2A/§2B below,
+-- not by this policy.
 create policy shop_drawing_submissions_insert on workflow.shop_drawing_submissions
   for insert with check (
-    workflow.current_team() = 'shop_drawing'
+    workflow.current_team() in ('shop_drawing', 'a_and_a')
   );
 
 create policy shop_drawing_submissions_update on workflow.shop_drawing_submissions
   for update using (
-    workflow.current_team() = 'shop_drawing'
+    workflow.current_team() in ('shop_drawing', 'a_and_a')
   ) with check (
-    workflow.current_team() = 'shop_drawing'
+    workflow.current_team() in ('shop_drawing', 'a_and_a')
   );
 
 -- No DELETE policy — matches migrations 014/017/022's own precedent for
@@ -240,8 +280,222 @@ create policy shop_drawing_submissions_update on workflow.shop_drawing_submissio
 -- Brief's own explicit instruction: "No deletes by clients."
 
 -- -----------------------------------------------------------------------------
+-- 2A. workflow.shop_drawing_checks + workflow.record_shop_drawing_check()
+--     — NEW in Brief 084, answering Brief 083 §4d/§3's five guarantees.
+--     A check is recorded in its OWN table, one row per item+revision,
+--     written EXCLUSIVELY through the guarded function below — the table
+--     itself carries a SELECT policy only, no INSERT/UPDATE/DELETE policy
+--     of any kind, so the function is the only writer even for a caller
+--     with a direct database connection (Brief 084 §3's own requirement:
+--     "even for a caller bypassing the app").
+-- -----------------------------------------------------------------------------
+
+create table workflow.shop_drawing_checks (
+  id          uuid primary key default gen_random_uuid(),
+  item_id     uuid not null references workflow.shop_drawing_items (id) on delete restrict,
+  revision    integer not null,
+  checked_by  uuid not null references public.user_profiles (id) on delete restrict,
+  checked_at  timestamptz not null,
+  created_at  timestamptz not null default now(),
+
+  constraint shop_drawing_checks_item_revision_unique unique (item_id, revision),
+  constraint shop_drawing_checks_revision_check check (revision >= 0)
+);
+
+comment on table workflow.shop_drawing_checks is
+  'Migration 027 / Brief 084 §3. ONE recorded check per item+revision —
+   the database-level gate that makes "only the Shop Drawing manager may
+   check a drawing" (Brief 084 §2a) actually mean something. The ONLY
+   writer is workflow.record_shop_drawing_check() below; no client role
+   holds any INSERT/UPDATE/DELETE privilege on this table via RLS at all,
+   so even a caller with a raw database connection cannot forge a row
+   directly — they would have to go through the function, which enforces
+   who (the Shop Drawing manager) and writes checked_by/checked_at itself
+   from auth.uid()/now(), never from caller input. Unique on
+   (item_id, revision): guarantee 3 (Brief 084 §3) — a check is scoped to
+   exactly one revision and cannot be silently reused for the next one.';
+
+alter table workflow.shop_drawing_checks enable row level security;
+
+-- READ: same is_member() + can_view_project() shape as
+-- shop_drawing_submissions above — no reason to restrict visibility of
+-- "was this checked" more tightly than the submission it gates.
+create policy shop_drawing_checks_select on workflow.shop_drawing_checks
+  for select using (
+    workflow.is_member()
+    and exists (
+      select 1
+      from workflow.shop_drawing_items i
+      join workflow.projects p on p.id = i.project_id
+      where i.id = shop_drawing_checks.item_id
+        and workflow.can_view_project(p.client_id, p.is_maintenance_contract)
+    )
+  );
+
+-- Deliberately NO insert/update/delete policy on this table — see the
+-- table's own comment. Every write goes through the function below.
+
+create or replace function workflow.record_shop_drawing_check(p_item_id uuid)
+returns workflow.shop_drawing_checks
+language plpgsql
+security definer
+set search_path = workflow, pg_temp
+as $$
+declare
+  v_is_shop_drawing_manager boolean;
+  v_next_revision integer;
+  v_open_submission_exists boolean;
+  v_row workflow.shop_drawing_checks;
+begin
+  -- Guarantee 2 (Brief 084 §3) — ONLY the Shop Drawing team's manager.
+  -- Deliberately NOT workflow.is_manager() (that helper also admits
+  -- 'admin', and any team) — Brief 084 §2a is explicit: Shop Drawing
+  -- AND 'manager' specifically, no admin bypass, no other-team-manager
+  -- bypass. Checked directly against workflow.members/workflow.teams,
+  -- not composed from an existing helper, because no existing helper
+  -- expresses "this specific team AND this specific role" together.
+  select exists (
+    select 1
+    from workflow.members m
+    join workflow.teams t on t.id = m.team_id
+    where m.user_id = (select auth.uid())
+      and m.is_active
+      and m.role = 'manager'
+      and t.code = 'shop_drawing'
+  ) into v_is_shop_drawing_manager;
+
+  if not v_is_shop_drawing_manager then
+    raise exception 'Only the Shop Drawing team''s manager may record an internal check.';
+  end if;
+
+  -- Guarantee 3 — the check is scoped to a SPECIFIC revision. Rather
+  -- than trust a caller-supplied revision number (the same class of
+  -- trust problem this whole revision exists to close), this function
+  -- DERIVES it the same way a submission's own revision is derived
+  -- (Brief 083 §4b's own comment: "current highest revision for this
+  -- item, from a SELECT, + 1") — 0 if the item has no submissions yet.
+  select coalesce(max(revision) + 1, 0)
+  into v_next_revision
+  from workflow.shop_drawing_submissions
+  where item_id = p_item_id;
+
+  -- Defensive: an item cannot be re-checked while a submission for it is
+  -- still open (awaiting return) — checking "ahead" of an in-flight
+  -- review has no meaning, since the next real revision does not exist
+  -- yet until that open submission is closed (returned with code C).
+  select exists (
+    select 1
+    from workflow.shop_drawing_submissions s
+    where s.item_id = p_item_id and s.returned_at is null
+  ) into v_open_submission_exists;
+
+  if v_open_submission_exists then
+    raise exception 'This item has a submission awaiting return — it cannot be checked again until that submission is closed.';
+  end if;
+
+  -- The unique constraint on (item_id, revision) is the backstop against
+  -- a duplicate check for the same revision; this explicit check gives a
+  -- readable error instead of a raw constraint-violation message.
+  if exists (
+    select 1 from workflow.shop_drawing_checks
+    where item_id = p_item_id and revision = v_next_revision
+  ) then
+    raise exception 'Revision % of this item has already been checked.', v_next_revision;
+  end if;
+
+  -- Guarantee 1 — checked_by/checked_at come from THIS function's own
+  -- auth.uid()/now(), never from any argument the caller supplied (this
+  -- function takes only p_item_id — there is no checked_by/checked_at
+  -- PARAMETER at all, so there is nothing for a caller to lie about).
+  insert into workflow.shop_drawing_checks (item_id, revision, checked_by, checked_at)
+  values (p_item_id, v_next_revision, (select auth.uid()), now())
+  returning * into v_row;
+
+  return v_row;
+end;
+$$;
+
+comment on function workflow.record_shop_drawing_check(uuid) is
+  'Migration 027 / Brief 084 §3. THE ONLY way to write a row into
+   workflow.shop_drawing_checks. Verifies the caller is the Shop Drawing
+   team''s manager (guarantee 2), derives the revision being checked
+   itself rather than trusting caller input (guarantee 3), and writes
+   checked_by/checked_at from auth.uid()/now() internally — the function
+   signature takes only the item id, so there is no parameter through
+   which a caller could supply a different checker or time (guarantee 1).
+   SECURITY DEFINER so it can write to shop_drawing_checks despite that
+   table having no client-writable policy at all — the same shape
+   workflow.set_project_dates() (migration 026) and every other narrow
+   action-function in this schema already uses.';
+
+-- -----------------------------------------------------------------------------
+-- 2B. shop_drawing_submissions BEFORE INSERT — the other half of the
+--     gate (Brief 084 §3 guarantees 4 and 5). A submission cannot be
+--     created without a matching recorded check for the SAME item and
+--     revision, and the submission row's own checked_by/checked_at are
+--     copied from that check — never trusted from whatever the INSERT
+--     statement itself supplied for those two columns.
+-- -----------------------------------------------------------------------------
+
+create or replace function workflow.shop_drawing_submissions_before_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = workflow, pg_temp
+as $$
+declare
+  v_check workflow.shop_drawing_checks;
+begin
+  -- Guarantee 4 — no matching check, no submission. Looked up by the
+  -- EXACT item_id + revision the submitter is trying to create, so a
+  -- check for one revision can never gate a submission at another
+  -- (closing the same "Rev 0 check must not cover Rev 1" hole guarantee
+  -- 3 exists for, from the submission side this time).
+  select * into v_check
+  from workflow.shop_drawing_checks
+  where item_id = new.item_id and revision = new.revision;
+
+  if not found then
+    raise exception 'No recorded internal check exists for this item and revision — the Shop Drawing manager must check it before it can be submitted.';
+  end if;
+
+  -- Guarantee 5 — checked_by/checked_at on the submission row are
+  -- ALWAYS the check's own values, regardless of what the INSERT
+  -- statement supplied for these two columns (including NULL, or an
+  -- attempted forgery of a different user''s id — both are silently
+  -- overwritten here, before the table''s own NOT NULL constraints are
+  -- even evaluated). The submission row therefore stays self-contained
+  -- and trustworthy (Brief 083''s own original design intent) without
+  -- ever trusting the submitter for these two fields.
+  new.checked_by := v_check.checked_by;
+  new.checked_at := v_check.checked_at;
+
+  return new;
+end;
+$$;
+
+comment on function workflow.shop_drawing_submissions_before_insert() is
+  'Migration 027 / Brief 084 §3, guarantees 4 and 5. Refuses an INSERT on
+   shop_drawing_submissions unless workflow.shop_drawing_checks holds a
+   matching (item_id, revision) row, then overwrites new.checked_by/
+   new.checked_at with that check''s own values — the submitter''s own
+   INSERT statement cannot set either field to anything that survives.';
+
+create trigger shop_drawing_submissions_before_insert
+  before insert on workflow.shop_drawing_submissions
+  for each row
+  execute function workflow.shop_drawing_submissions_before_insert();
+
+-- -----------------------------------------------------------------------------
 -- 3. Immutability + updated_at — ONE trigger, both jobs (design
---    questions b and g).
+--    questions b and g). UNCHANGED BY BRIEF 084 — this trigger only ever
+--    fires BEFORE UPDATE, so it runs after §2B's BEFORE INSERT trigger
+--    has already fixed checked_by/checked_at for a brand-new row; the
+--    "everything except the return fields is immutable" check below
+--    still holds for checked_by/checked_at exactly as before, since
+--    §2B''s trigger is what SET them correctly on insert in the first
+--    place, and this trigger still refuses any later attempt to change
+--    them.
 -- -----------------------------------------------------------------------------
 
 create or replace function workflow.shop_drawing_submissions_before_update()
