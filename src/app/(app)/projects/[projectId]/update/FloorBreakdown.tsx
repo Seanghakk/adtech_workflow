@@ -26,6 +26,7 @@ import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
+import type { SubStageDisplayState } from '@/lib/subStageDisplayState'
 
 const STATUS_KEYS: Record<string, DictionaryKey> = {
   not_started: 'statusNotStarted',
@@ -70,7 +71,19 @@ export interface SubStageRow {
   stage: 'installation' | 'tnc'
   subStage: string
   status: string
-  hasPassedInspection: boolean
+  /** Brief 081 — the v6 §7.1 shared derivation (src/lib/subStageDisplayState.ts),
+   *  computed by the caller from this sub-stage's status and its LATEST
+   *  pass/fail inspection (not "any pass ever" — that was the bug this
+   *  brief fixes; see this file's own git history / Brief 081's Result
+   *  doc). Replaces the old `hasPassedInspection: boolean`, which only
+   *  ever recorded whether a pass had EVER happened, so a fail recorded
+   *  after an old pass used to stay shown as passed forever. */
+  qcDisplayState: SubStageDisplayState
+  /** The single most recent qc_inspections row of ANY status for this
+   *  sub-stage, INCLUDING 'pending' — a literal "what happened most
+   *  recently" read, genuinely different from qcDisplayState above
+   *  (which only ever considers pass/fail, per the shared rule's own
+   *  contract) — not a second derivation of the same question. */
   lastInspectionStatus: string | null
   /** Migration 024 / Brief 059 §3 — Storage URL of the most recently
    *  uploaded completion photo, if any. */
@@ -150,10 +163,16 @@ export function FloorBreakdown({
     return () => window.cancelAnimationFrame(id)
   }, [expanded])
 
+  // Brief 081 — a done sub-stage is an exception whenever its shared
+  // display state is anything OTHER than qc_passed: either no pass/fail
+  // inspection exists yet (qcDisplayState stays 'done' — see below) or
+  // the LATEST one failed (qc_failed). Previously this only checked
+  // hasPassedInspection, so a fail recorded after an old pass silently
+  // stopped being an exception — the exact bug this brief fixes.
   const exceptions = floors.flatMap((floor) =>
     floor.subStages
-      .filter((s) => s.status === 'done' && !s.hasPassedInspection)
-      .map((s) => ({ floorLabel: floor.label, subStage: s.subStage })),
+      .filter((s) => s.status === 'done' && s.qcDisplayState !== 'qc_passed')
+      .map((s) => ({ floorLabel: floor.label, subStage: s.subStage, qcDisplayState: s.qcDisplayState })),
   )
 
   const handoverByDeliverable = new Map(handoverItems.map((h) => [h.deliverable, h.status]))
@@ -190,7 +209,18 @@ export function FloorBreakdown({
               <ul className="floor-breakdown__exception-list">
                 {exceptions.map((e, i) => (
                   <li key={i} className="floor-breakdown__exception-item">
-                    <span className="floor-breakdown__exception-flag">{t('floorBreakdownExceptionFlag')}</span>
+                    {/* Brief 081 — distinguish "never inspected" from "latest
+                        inspection failed": "No passed inspection" reads wrong
+                        for a sub-stage that WAS passed once and later failed a
+                        re-inspection. Reuses the matrix's own exact wording
+                        (floorMatrixLegendQcFailed, Brief 078) for the failed
+                        case so the same state reads identically on both
+                        screens, rather than inventing a second label. */}
+                    <span className="floor-breakdown__exception-flag">
+                      {e.qcDisplayState === 'qc_failed'
+                        ? t('floorMatrixLegendQcFailed')
+                        : t('floorBreakdownExceptionFlag')}
+                    </span>
                     {e.floorLabel} — {t(SUB_STAGE_KEYS[e.subStage] ?? 'subStageFirstFix')}
                   </li>
                 ))}
@@ -352,7 +382,7 @@ function SubStageRowView({
   const { t } = useLanguage()
   const [isPending, startTransition] = useTransition()
   const [recording, setRecording] = useState(false)
-  const showException = subStage.status === 'done' && !subStage.hasPassedInspection
+  const showException = subStage.status === 'done' && subStage.qcDisplayState !== 'qc_passed'
 
   // Migration 024 / Brief 059 §3 — the required-on-completion photo gate,
   // mirroring UpdateProgressForm's own needsPhoto/hasPhoto/canSave shape
@@ -432,7 +462,11 @@ function SubStageRowView({
     <div id={`substage-${subStage.id}`} className="floor-breakdown__row floor-breakdown__row--anchor">
       <span className="floor-breakdown__row-label">
         {t(SUB_STAGE_KEYS[subStage.subStage] ?? 'subStageFirstFix')}
-        {showException && <span className="floor-breakdown__exception-flag">{t('floorBreakdownExceptionFlag')}</span>}
+        {showException && (
+          <span className="floor-breakdown__exception-flag">
+            {subStage.qcDisplayState === 'qc_failed' ? t('floorMatrixLegendQcFailed') : t('floorBreakdownExceptionFlag')}
+          </span>
+        )}
       </span>
       <select
         className="floor-breakdown__status-select"

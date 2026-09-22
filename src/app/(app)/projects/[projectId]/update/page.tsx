@@ -10,6 +10,7 @@ import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { UpdateProgressForm } from './UpdateProgressForm'
 import { FloorTrackedProgress } from './FloorTrackedProgress'
 import { FloorBreakdown, type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
+import { computeSubStageQcFields } from './subStageQcFields'
 
 /**
  * Fable Brief 002 §2.1 — "the unassigned-project state, required not
@@ -130,27 +131,35 @@ export default async function UpdateProgressPage({
       // qc_inspections.project_id is always set (migration 008), so every
       // inspection against this project — material, installation, or
       // commissioning — comes back from one query keyed on it directly.
+      // inspected_at is added (Brief 081) alongside created_at — the same
+      // "inspected_at, falling back to created_at" date every other
+      // reader of this table now uses (see src/lib/subStageDisplayState.ts
+      // and the matrix's own page.tsx, Brief 078) — not a second date
+      // convention invented here.
       supabase
         .from('qc_inspections')
-        .select('id, floor_sub_stage_id, status, created_at')
+        .select('id, floor_sub_stage_id, status, inspected_at, created_at')
         .eq('project_id', project.id)
         .order('created_at', { ascending: false }),
       supabase.from('project_handover_items').select('deliverable, status').eq('project_id', project.id),
     ])
 
-  // Brief 024 §3.3 — the soft-gate exception flag: the LAST recorded
-  // inspection's status per sub-stage (for the "last inspection" caption),
-  // and whether ANY passed inspection exists against it (for the
-  // done-with-no-pass exception flag — a later fail/pending row must not
-  // erase an earlier pass).
-  const lastInspectionBySubStage = new Map<string, string>()
-  const passedSubStageIds = new Set<string>()
+  // Brief 024 §3.3, revised by Brief 081 — group every inspection row by
+  // sub-stage first (material inspections have no floor_sub_stage_id and
+  // are excluded here, same as before). computeSubStageQcFields()
+  // (subStageQcFields.ts, this brief) answers the two genuinely
+  // different questions this screen needs from that grouping: the
+  // literal "last inspection of any status" caption, and the v6 §7.1
+  // shared "is this currently QC-passed" state — the SAME shared
+  // functions the floor matrix calls (page.tsx, Brief 078) for the SAME
+  // sub-stage, not a second derivation written here. See that file's own
+  // header for the full reasoning.
+  const inspectionsBySubStage = new Map<string, { status: string; date: string }[]>()
   for (const row of inspectionRows ?? []) {
     if (!row.floor_sub_stage_id) continue // material inspections have none
-    if (!lastInspectionBySubStage.has(row.floor_sub_stage_id)) {
-      lastInspectionBySubStage.set(row.floor_sub_stage_id, row.status)
-    }
-    if (row.status === 'pass') passedSubStageIds.add(row.floor_sub_stage_id)
+    const list = inspectionsBySubStage.get(row.floor_sub_stage_id) ?? []
+    list.push({ status: row.status, date: row.inspected_at ?? row.created_at })
+    inspectionsBySubStage.set(row.floor_sub_stage_id, list)
   }
 
   const projectShopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
@@ -160,15 +169,21 @@ export default async function UpdateProgressPage({
   const floors: FloorRow[] = (floorRows ?? []).map((floor) => {
     const subStages: SubStageRow[] = (subStageRows ?? [])
       .filter((s) => s.floor_id === floor.id)
-      .map((s) => ({
-        id: s.id,
-        stage: s.stage as 'installation' | 'tnc',
-        subStage: s.sub_stage,
-        status: s.status,
-        hasPassedInspection: passedSubStageIds.has(s.id),
-        lastInspectionStatus: lastInspectionBySubStage.get(s.id) ?? null,
-        photoUrl: s.photo_url,
-      }))
+      .map((s) => {
+        const { qcDisplayState, lastInspectionStatus } = computeSubStageQcFields(
+          s.status as 'not_started' | 'in_progress' | 'done',
+          inspectionsBySubStage.get(s.id) ?? [],
+        )
+        return {
+          id: s.id,
+          stage: s.stage as 'installation' | 'tnc',
+          subStage: s.sub_stage,
+          status: s.status,
+          qcDisplayState,
+          lastInspectionStatus,
+          photoUrl: s.photo_url,
+        }
+      })
 
     const shopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
       .filter((r) => r.scope === 'floor' && r.floor_id === floor.id)
