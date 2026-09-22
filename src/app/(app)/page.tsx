@@ -1,6 +1,9 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { SCOPE_COOKIE } from '@/lib/scopeCookie'
+import { ScopeSync } from '@/components/ScopeSync'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isSalesTeamMember } from '@/lib/auth/sales-roles'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
@@ -58,11 +61,21 @@ export default async function ProjectBoardPage({
 
   const restricted = isSalesTeamMember(member)
 
+  // Brief 080 §5 — the scope choice is ONE preference shared by the Board
+  // and all six cross-project lists, remembered per device. An explicit
+  // ?scope= wins first (a tab click on THIS page); otherwise fall back to
+  // the persisted cookie (set by ScopeSync below, on this page or any of
+  // the six lists) before finally falling back to the role default. Not
+  // a database setting — see scopeCookie.ts's own header.
+  const cookieStore = await cookies()
+  const persistedScope = cookieStore.get(SCOPE_COOKIE)?.value
   const scopeParam = Array.isArray(params.scope) ? params.scope[0] : params.scope
   const scope: Scope =
     scopeParam === 'mine' || scopeParam === 'my-team' || scopeParam === 'everything'
       ? scopeParam
-      : defaultScopeForRole(member.role)
+      : persistedScope === 'mine' || persistedScope === 'my-team' || persistedScope === 'everything'
+        ? persistedScope
+        : defaultScopeForRole(member.role)
 
   const groupParam = Array.isArray(params.group) ? params.group[0] : params.group
   // §3.3 — default grouping is by stream.
@@ -198,6 +211,7 @@ export default async function ProjectBoardPage({
 
   return (
     <div className="board">
+      <ScopeSync scope={scope} />
       <div className="board__header">
         <div>
           <div className="board__kicker">{t('boardKicker')}</div>

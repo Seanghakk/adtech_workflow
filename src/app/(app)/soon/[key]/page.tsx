@@ -61,40 +61,17 @@ const ENTRIES: Record<string, ComingSoonEntry> = {
   // itself (above) is UNREACHABLE from the rail as of this brief — item
   // 5's own row is now a subtree toggle, not a link (see AppSidebar.tsx)
   // — kept here regardless, harmless and still directly navigable.
-  'shop-drawing': {
-    headlineKey: 'comingSoonShopDrawingHeadline',
-    bodyKey: 'comingSoonShopDrawingBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecShopDrawing' },
-  },
-  procurement: {
-    headlineKey: 'comingSoonProcurementHeadline',
-    bodyKey: 'comingSoonProcurementBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecProcurement' },
-  },
-  'floor-progress': {
-    headlineKey: 'comingSoonFloorProgressHeadline',
-    bodyKey: 'comingSoonFloorProgressBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecFloorProgress' },
-  },
+  //
+  // Brief 080 — shop-drawing, procurement, installation, testing-
+  // commissioning, qc-inspections and floor-progress are REMOVED from
+  // this list: all six now have a real cross-project list route (see
+  // nav.ts's own EXECUTION_SUBTREE_ITEMS) and no longer stub here.
+  // 'overview' remains — still blocked on v5 §9 open item 1, out of this
+  // brief's scope.
   overview: {
     headlineKey: 'comingSoonOverviewHeadline',
     bodyKey: 'comingSoonOverviewBody',
     breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecOverview' },
-  },
-  installation: {
-    headlineKey: 'comingSoonInstallationHeadline',
-    bodyKey: 'comingSoonInstallationBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecInstallation' },
-  },
-  'testing-commissioning': {
-    headlineKey: 'comingSoonTestingCommissioningHeadline',
-    bodyKey: 'comingSoonTestingCommissioningBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecTestingCommissioning' },
-  },
-  'qc-inspections': {
-    headlineKey: 'comingSoonQcInspectionsHeadline',
-    bodyKey: 'comingSoonQcInspectionsBody',
-    breadcrumb: { ancestor: CRUMB_EXECUTION, crumbLabel: 'navExecQcInspections' },
   },
   // Brief 070 §2.2 — "Admin" needed a real, honest destination to be a
   // valid breadcrumb ancestor link for its own 8 children (same

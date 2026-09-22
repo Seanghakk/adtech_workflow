@@ -1061,6 +1061,46 @@ const en = {
   shopDrawingBoqImportSuccessPrefix: 'Imported',
   shopDrawingBoqImportSuccessSuffix: 'line(s).',
   shopDrawingBoqImportRejected: 'Nothing was imported — fix these and try again:',
+
+  // Brief 080 / Handoff Addendum v6.1 — the six cross-project Execution
+  // lists, shared row shape (src/components/CrossProjectList.tsx) and
+  // per-track summary lines (addendum §2). Every summary is built from
+  // these prefix/suffix pairs plus real numbers interpolated inline in
+  // JSX — this dictionary has no interpolation syntax of its own (grep
+  // confirmed before writing these: every existing multi-part sentence
+  // in this file is built the same prefix+value+suffix way, e.g.
+  // shopDrawingBoqImportSuccessPrefix/Suffix above).
+  crossListEmptyMine: 'No projects assigned to you.',
+  crossListEmptyScopePrefix: 'Nothing in',
+
+  crossListShopDrawingDrawnOfTotal: 'drawn of total',
+  crossListShopDrawingApprovedOfTotal: 'approved',
+  crossListShopDrawingWithClient: 'with the client',
+
+  crossListProcurementDeliveredOfTotal: 'delivered',
+  crossListProcurementOrdered: 'ordered',
+
+  crossListInstallationNotStarted: 'not started',
+  crossListInstallationFirstFix: 'first fix',
+  crossListInstallationSecondFix: 'second fix',
+  crossListInstallationThirdFix: 'third fix',
+
+  crossListTncPreCommissioning: 'pre-commissioning',
+  crossListTncCommissioning: 'commissioning',
+  crossListTncAwaitingQc: 'awaiting QC',
+
+  crossListQcWaitingHeading: 'Waiting for inspection',
+  crossListQcQuietHeading: 'Nothing waiting',
+  crossListQcWaitingCount: 'waiting for inspection',
+  crossListQcFailedCount: 'failed, awaiting re-inspection',
+  crossListQcNamedPlusN: 'more',
+
+  crossListFloorProgressNotStarted: 'Not started',
+  crossListFloorProgressInProgress: 'In progress',
+  crossListFloorProgressAwaitingQc: 'Awaiting QC',
+  crossListFloorProgressQcPassed: 'QC passed',
+  crossListFloorProgressQcFailed: 'QC failed',
+  crossListFloorProgressStalled: 'Stalled',
 } as const
  
 export type DictionaryKey = keyof typeof en
