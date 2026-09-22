@@ -26,7 +26,9 @@
  * bolted on here as a guess.
  */
 
-export type MatrixCellState = 'not_applicable' | 'not_started' | 'in_progress' | 'awaiting_qc' | 'qc_passed' | 'stalled'
+import { computeSubStageDisplayState, type LatestInspection } from '@/lib/subStageDisplayState'
+
+export type MatrixCellState = 'not_applicable' | 'not_started' | 'in_progress' | 'awaiting_qc' | 'qc_passed' | 'qc_failed' | 'stalled'
 
 export interface MatrixColumn {
   stage: 'installation' | 'tnc'
@@ -107,39 +109,62 @@ export function orderFloors(towers: TowerInput[], floors: FloorInput[]): (FloorI
 }
 
 /**
- * Brief §3/§4 — six states, RED WINS, except for one judgment call
- * (flagged, not silently decided): a row already 'done' with a PASSED
- * inspection is a terminal, fully resolved cell — nothing is pending on
- * it — so staleness does not turn it red. "RED = delay only" (§3's own
- * Rev 2 palette constraint) reads as "something is pending and hasn't
- * moved," which does not describe a passed, closed-out sub-stage. Every
- * OTHER state (not started, in progress, done-awaiting-QC) still has
+ * Brief §3/§4, revised by Brief 078 / v6 §7 — RED WINS, except for one
+ * judgment call (flagged, not silently decided): a row already 'done'
+ * with the LATEST inspection PASSED is a terminal, fully resolved cell —
+ * nothing is pending on it — so staleness does not turn it red. "RED =
+ * delay only" (§3's own Rev 2 palette constraint) reads as "something is
+ * pending and hasn't moved," which does not describe a passed, closed-out
+ * sub-stage. Every OTHER state — not started, in progress,
+ * done-awaiting-QC, and (v6 §7.3, new) done-QC-FAILED — still has
  * something pending, so staleness overrides those exactly as §4 says:
- * "regardless of how far along the stage is."
+ * "regardless of how far along the stage is." QC failed is not an
+ * exception: a fail nobody has picked up is rework nobody picked up,
+ * which is the worst thing on a floor.
+ *
+ * The actual QC/pass/fail state itself now comes from the ONE shared
+ * rule in src/lib/subStageDisplayState.ts (v6 §7.1), not derived here a
+ * second time — this function's own remaining job is layering the
+ * matrix's staleness override on top of that shared result.
+ *
+ * v6 §7.3 — THE CLOCK CHANGE: for a cell the shared rule resolves to
+ * qc_failed, staleness counts from the FAILED INSPECTION'S OWN DATE
+ * (latestInspection.date), not the sub-stage's status date. A failed
+ * cell's status never changes (the installer's "done" stands; only a new
+ * inspection can clear it), so counting from the status date would
+ * freeze the clock on exactly the cells that most need it. Every other
+ * state still counts from the status's own updated_at, as before.
  */
-export function computeCellState(args: { row: SubStageInput | undefined; hasPassedInspection: boolean; daysSinceUpdate: number; isStale: (days: number) => boolean }): MatrixCellState {
-  const { row, hasPassedInspection, daysSinceUpdate, isStale } = args
+export function computeCellState(args: { row: SubStageInput | undefined; latestInspection: LatestInspection | null; daysSince: (isoDate: string) => number; isStale: (days: number) => boolean }): MatrixCellState {
+  const { row, latestInspection, daysSince, isStale } = args
   if (!row) return 'not_applicable'
 
-  if (row.status === 'done') {
-    if (hasPassedInspection) return 'qc_passed'
-    return isStale(daysSinceUpdate) ? 'stalled' : 'awaiting_qc'
-  }
-  if (row.status === 'in_progress') {
-    return isStale(daysSinceUpdate) ? 'stalled' : 'in_progress'
-  }
-  return isStale(daysSinceUpdate) ? 'stalled' : 'not_started'
+  const displayState = computeSubStageDisplayState({
+    status: row.status as 'not_started' | 'in_progress' | 'done',
+    latestInspection,
+  })
+
+  if (displayState === 'qc_passed') return 'qc_passed'
+
+  const clockDate = displayState === 'qc_failed' && latestInspection ? latestInspection.date : row.updatedAt
+  return isStale(daysSince(clockDate)) ? 'stalled' : displayState
 }
 
 export function buildMatrixRows(args: {
   towers: TowerInput[]
   floors: FloorInput[]
   subStages: SubStageInput[]
-  passedSubStageIds: Set<string>
-  daysSinceUpdate: (updatedAt: string) => number
+  /** Each sub-stage's own LATEST inspection (v6 §7.1 — "latest wins"), or
+   *  null when it has none. Callers resolve this via
+   *  resolveLatestInspection (src/lib/subStageDisplayState.ts) — this
+   *  function no longer resolves "any pass ever" itself, since that rule
+   *  was the exact bug Brief 078 fixes (a fail after an old pass used to
+   *  stay green forever). */
+  latestInspectionBySubStageId: Map<string, LatestInspection | null>
+  daysSince: (isoDate: string) => number
   isStale: (days: number) => boolean
 }): MatrixRow[] {
-  const { towers, floors, subStages, passedSubStageIds, daysSinceUpdate, isStale } = args
+  const { towers, floors, subStages, latestInspectionBySubStageId, daysSince, isStale } = args
   const orderedFloors = orderFloors(towers, floors)
 
   return orderedFloors.map((floor) => {
@@ -147,8 +172,8 @@ export function buildMatrixRows(args: {
       const row = subStages.find((s) => s.floorId === floor.id && s.stage === col.stage && s.subStage === col.subStage)
       const state = computeCellState({
         row,
-        hasPassedInspection: row ? passedSubStageIds.has(row.id) : false,
-        daysSinceUpdate: row ? daysSinceUpdate(row.updatedAt) : 0,
+        latestInspection: row ? (latestInspectionBySubStageId.get(row.id) ?? null) : null,
+        daysSince,
         isStale,
       })
       return { state, subStageId: row?.id ?? null }

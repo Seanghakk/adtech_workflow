@@ -641,6 +641,7 @@ const en = {
   floorMatrixLegendInProgress: 'In progress',
   floorMatrixLegendAwaitingQc: 'Complete, awaiting QC',
   floorMatrixLegendQcPassed: 'QC passed / done',
+  floorMatrixLegendQcFailed: 'QC failed',
   floorMatrixLegendStalled: 'Stalled (16+ days)',
 
   // Screen 2d (Brief 023) — the dependency chain, days taken against days
@@ -747,6 +748,10 @@ const en = {
   // Screen 3c — phone, two frames (Brief 028). Its own archetype, NOT a
   // shrunken desktop screen (§2's own instruction). See each route's own
   // comment for the real blockers found and how each was handled.
+  // Brief 078 / v6 §3 — the scanned-floor phone page's floor header. Header
+  // only this brief (v6 §10 steps 1-4); the rest of the page (steps 5-12)
+  // is later work.
+  phoneFloorHeaderKicker: 'You scanned',
   phoneStatusKicker: 'Status',
   phoneStatusHeldByLabel: 'Held by',
   phoneStatusInStateLabel: 'in this state',

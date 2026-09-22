@@ -202,8 +202,145 @@
      Flagged in Brief 064's own result doc as a pre-existing, app-wide
      contrast gap this brief found but did not fix. */
   --wf-text-muted: rgba(32, 30, 29, 0.62);
+
+  /* ---- Brief 078 / v6 §0 — reconciled against ADTECH_WF_design_globals.css
+     (exported 21 Sep 2026), RECONCILE-NOT-COPY per that file's own header
+     and v6 §0. Every value below is either (a) a token this file did not
+     previously declare under this exact name (even where an equivalent
+     value already existed under this file's own established name — the
+     reconcile rule is "add what's named there and missing here", not "skip
+     if the value already exists somewhere"), or (b) one of v6 §9's six
+     genuinely NEW tokens. Nothing existing above this block was changed.
+     CONFLICTS (same token name, two different values) are called out
+     individually below, NOT auto-resolved — the app's current value wins
+     until Seanghakk decides; see this brief's Result doc for the full list
+     restated in one place. ---- */
+
+  /* v6 §9 — the six new tokens this brief exists to add. */
+  --wf-tap-min: 56px; /* any control a site worker taps */
+  --wf-tap-primary: 60px; /* the one primary action on a phone screen */
+  --wf-tap-gap: 10px; /* minimum gap between adjacent tap targets */
+  --wf-t-floor: 38px; /* the scanned floor name, phone header */
+  --wf-phone-w: 390px; /* design target; must hold at 360px */
+  --wf-hatch-ink: repeating-linear-gradient(135deg, #ffffff 0 4px, #201e1d 4px 8px);
+  /* QC failed — matrix + (later) phone row. Always paired with a 1px
+     --wf-ink border, never used alone. */
+
+  /* v6 §0's own explicit call-out — add verbatim, do not redefine locally. */
+  --wf-lh-mixed: 1.9; /* any string that may contain Khmer, set on the row */
+  --wf-blue-edge: #aecbe0; /* 1px border on a blue tint */
+
+  /* Design copy's colour-triad members this file named differently or not
+     at all. Where an equivalent VALUE already existed under this file's
+     own name, that existing token/name is untouched — these are additive,
+     not renames. */
+  --wf-blue-ink: #08344b; /* blue text on a blue tint (same value as this
+     file's own --navy-tint-deep) */
+  --wf-blue-deep: #0a4767; /* age ladder segment 1 (same value as this
+     file's own --age-band-1) */
+  --wf-red-ink: #8e1620; /* same value as --danger-tint-deep */
+  --wf-red-tint: #f8e3e1; /* same value as --danger-tint-bg */
+  --wf-red-edge: #e3a7a2; /* same value as --danger-tint-border */
+  --wf-amber-ink: #8a4b00; /* same value as --warning-tint-deep */
+  --wf-amber-tint: #fdf1e2; /* same value as --warning-tint-bg */
+  --wf-amber-edge: #e8c48f; /* same value as --warning-tint-border */
+  --wf-surface-2: #eae9e9; /* neutral lane header, empty bar track — no
+     equivalent existed anywhere in this file under any name */
+  --wf-grey: #d7d3d3; /* same value as this file's own --grey */
+  --wf-rule: rgba(32, 30, 29, 0.25); /* 1px, between rows — same value as
+     this file's own --rule-minor */
+
+  /* CONFLICT — flagged, NOT auto-resolved, per v6 §0's explicit rule.
+     This file's existing --wf-rule-hair alias (line ~189, `var(--border)`)
+     resolves to rgba(32,30,29,.25) — the SAME value as --wf-rule above,
+     i.e. this file currently treats "row" and "card hairline" as one
+     value. The design copy defines --wf-rule-hair as a THIRD, LIGHTER
+     value, rgba(32,30,29,.16) — "1px card border, Moving band" — which
+     this file already has under a DIFFERENT name, --card-hairline (used
+     by .wf-card--moving-equivalent treatment via .age-ladder's own hairline
+     border). Left AS-IS (app's .25, via the existing alias) per this
+     brief's instruction to never auto-resolve a same-name conflict. If
+     Seanghakk wants the design copy's .16 value for --wf-rule-hair, the
+     existing alias at line ~189 needs to be repointed to --card-hairline
+     instead of --border — not done here. */
+
+  /* Type scale — the design copy's whole --wf-t-* ladder was previously
+     absent from this file entirely (this file uses literal px sizes
+     directly, e.g. `font: 700 15px/1 ...`, not a named scale). Added
+     verbatim; nothing consumes these yet outside this brief's own new
+     phone-header CSS below. */
+  --wf-t-label: 12px; /* smallest type in the app */
+  --wf-t-meta: 12.5px;
+  --wf-t-body: 14px;
+  --wf-t-base: 15px;
+  --wf-t-name: 16px;
+  --wf-t-age: 18px;
+  --wf-t-lane: 15px;
+  --wf-t-h4: 19px;
+  --wf-t-h3: 22px;
+  --wf-t-h2: 28px;
+  --wf-t-figure: 44px;
+  --wf-lh-latin: 1.55;
+  --wf-track-kicker: 0.09em;
+
+  /* Shape/space scale under the design copy's own --wf-* names — this
+     file's equivalent VALUES already exist under --radius/--space-1..6
+     (identical numbers); added here too since the design copy names them
+     under --wf-* specifically and the reconcile rule adds what's named
+     there and missing here, not what's value-equivalent under another
+     name. --wf-border-hair/--wf-border-full/--wf-spine/--wf-lane-min/
+     --wf-lane-gap/--wf-card-gap/--wf-form-w/--wf-control-h had no
+     equivalent named token at all (this file hardcodes these values
+     directly at each call site). */
+  --wf-radius: 0;
+  --wf-shadow: none;
+  --wf-border-hair: 1px;
+  --wf-border-full: 2px;
+  --wf-spine: 5px;
+  --wf-s1: 4px;
+  --wf-s2: 8px;
+  --wf-s3: 12px;
+  --wf-s4: 16px;
+  --wf-s5: 20px;
+  --wf-s6: 24px;
+  --wf-lane-min: 300px;
+  --wf-lane-gap: 12px;
+  --wf-card-gap: 10px;
+  --wf-form-w: 720px;
+  --wf-control-h: 44px;
+  --wf-ladder-seg-w: 20px;
+  --wf-ladder-seg-h: 9px;
+  --wf-ladder-gap: 2px;
+
+  /* Hatching — --wf-hatch-red already existed in this file (Brief 064,
+     identical value); --wf-hatch-amber/--wf-hatch-grey did not exist
+     under any name and are added verbatim. The design copy's own comment
+     calls these two "deliberately unspecified, pending a stakeholder
+     answer" — added per the reconcile rule regardless, since nothing
+     asks this brief to skip pending/unspecified tokens, but nothing in
+     this brief consumes them either. */
+  --wf-hatch-amber: repeating-linear-gradient(135deg, #fdf1e2 0 8px, #f7e3c6 8px 16px);
+  --wf-hatch-grey: repeating-linear-gradient(135deg, #eae9e9 0 8px, #ddd9d9 8px 16px);
+
+  /* NOT ported from the design copy, and reported rather than silently
+     skipped (v6 §0's own reconcile rule only asks to add what's missing —
+     it does not ask this brief to judge what to skip, so this is
+     explicitly flagged for the Result doc rather than assumed obvious):
+     .wf-card--{moving,waiting,late,stalled} — this app already has a
+     complete, real, LIVE equivalent under its own names (.age-ladder__
+     segment--*, --age-band-1..4), built well before this handoff's draft
+     copy. .wf-admin-row/.wf-admin-head/.wf-queue — this app already has a
+     complete, real, LIVE admin/login system under its own names
+     (.wf-admin-table, .wf-admin-row--inactive, .wf-admin-row__*, further
+     down this file) — the design copy's simpler versions describe a
+     screen this app has since actually built under different, richer
+     class names; adding the design copy's own simpler duplicates would
+     just be dead, unused CSS. :focus-visible / ::selection — this file
+     already has its own :focus-visible rule (line ~248); the design
+     copy's version was not compared value-for-value since focus styling
+     was not asked for by any of this brief's four steps. */
 }
- 
+
 * {
   box-sizing: border-box;
 }
@@ -4997,6 +5134,78 @@ button {
 }
 
 /* -----------------------------------------------------------------------
+   Brief 078 / v6 §2-§3 — the scanned-floor phone page's floor header.
+   HEADER ONLY this brief; the rest of the page is later work (v6 §10
+   steps 5-12). Deliberately does NOT reuse .phone-status/.phone-approve's
+   own max-width:420px centred-column shape below — v6 §2 is explicit
+   this page's bands are "full-bleed --wf-surface... no side margins on
+   bands, no cards, no inset boxes," a departure from the OLDER (Brief
+   028) phone archetype those two classes were built for, not an
+   oversight. Width is governed by --wf-phone-w (390px) as a design
+   TARGET, not a hard max-width — the page must also hold at 360px with
+   no horizontal scroll (v6 §2), so nothing here clamps to a fixed width;
+   it simply fills its container, same as this page's actual container,
+   .app-shell__main (this app has no chrome-free phone layout — the two
+   named v6 §1 precedents render inside the same app shell too).
+----------------------------------------------------------------------- */
+.phone-floor-header {
+  background: var(--wf-surface);
+  border-bottom: var(--wf-border-full) solid var(--wf-ink);
+  padding: var(--wf-s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* v6 §3 — "Floor and tower names are USER DATA and may be in either
+     script. This block carries --wf-lh-mixed." Applied on the whole
+     block (not just the floor name) so no line inside it can ever
+     collide with the one below it, the same "set on the row, not the
+     glyph" principle --wf-lh-mixed exists for everywhere else it's used. */
+  line-height: var(--wf-lh-mixed);
+}
+.phone-floor-header__kicker {
+  font: 500 var(--wf-t-label) / var(--wf-lh-mixed) var(--font-body);
+  letter-spacing: var(--wf-track-kicker);
+  text-transform: uppercase;
+  color: var(--wf-text-muted);
+}
+/* v6 §3 — "the largest type anywhere in the app apart from 6c's figures,"
+   first and biggest so a person's first half-second question ("did I
+   scan the right label?") is answered immediately. JUDGMENT CALL,
+   flagged rather than silently picked: v6 §3's own geometry line gives
+   this element "line-height 1.05," but the SAME section's very next
+   paragraph says this whole block "carries --wf-lh-mixed" and explicitly
+   asks for a Khmer-name test at THIS element's own 38px size, calling it
+   "the largest type the mixed line-height has ever had to hold" — a
+   sentence that only makes sense if the floor name itself actually uses
+   --wf-lh-mixed, not a fixed 1.05 that would clip Khmer diacritics at
+   this size. Read as: 1.05 describes how a short Latin label happens to
+   look, --wf-lh-mixed is what is actually SET, and inherited from the
+   parent block above rather than overridden here — flagged in this
+   brief's Result doc either way. */
+.phone-floor-header__floor-name {
+  font: 800 var(--wf-t-floor) / var(--wf-lh-mixed) var(--wf-head);
+  color: var(--wf-ink);
+  margin: 0;
+}
+.phone-floor-header__tower-project {
+  font: 400 var(--wf-t-base) / var(--wf-lh-mixed) var(--font-body);
+  color: var(--wf-ink);
+}
+.phone-floor-header__project {
+  font-weight: 600;
+}
+.phone-floor-header__so-system {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 400 var(--wf-t-meta) / var(--wf-lh-mixed) var(--font-body);
+  color: var(--wf-text-muted);
+}
+.phone-floor-header__separator {
+  color: var(--wf-text-muted);
+}
+
+/* -----------------------------------------------------------------------
    Screen 3c — phone, two frames (Brief 028). Its own archetype (README
    "Phone — two jobs only"), NOT a scaled-down desktop screen — a narrow
    intrinsic column, generous type, 44px+ hit targets, built fresh rather
@@ -5330,12 +5539,29 @@ button {
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--space-4);
 }
+/* Brief 078 / v6 §7.4 — at --wf-phone-w (390px) the legend becomes a
+   two-column grid, "Complete, awaiting QC" spanning both columns (see
+   .floor-matrix__legend-item--span-2 below). Above that width it stays
+   the wrapping flex row above — unchanged, still the Brief 062 fix (never
+   scrolls sideways, never truncates or breaks a label mid-word). */
+@media (max-width: 390px) {
+  .floor-matrix__legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px 12px;
+  }
+}
 .floor-matrix__legend-item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   font: 500 12px/1 var(--font-body);
   color: var(--text-muted);
+}
+@media (max-width: 390px) {
+  .floor-matrix__legend-item--span-2 {
+    grid-column: 1 / -1;
+  }
 }
 /* Brief 062 — FIX: the swatch reuses .floor-matrix__cell (so its colour
    always matches the real grid cells exactly), but that base rule's own
@@ -5354,10 +5580,21 @@ button {
    .floor-matrix__cell's 0,1,0), so it wins regardless of source order —
    not a fix that only works by accident of where this rule happens to
    sit in the file. */
+/* Brief 078 / v6 §7.4 — swatch size is now spec'd explicitly (22x14
+   desktop, 18x12 at --wf-phone-w) rather than this file's own prior
+   ad-hoc 18x18 square; still the same higher-specificity override Brief
+   062 established (0,2,0 vs .floor-matrix__cell's 0,1,0), for the exact
+   reason documented above this rule. */
 .floor-matrix__cell.floor-matrix__legend-swatch {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 14px;
   flex: none;
+}
+@media (max-width: 390px) {
+  .floor-matrix__cell.floor-matrix__legend-swatch {
+    width: 18px;
+    height: 12px;
+  }
 }
 /* Only the legend's own "not applicable" swatch gets a visible outline —
    the grid's real cells for this state render nothing at all (§3: "empty
@@ -5438,6 +5675,17 @@ a.floor-matrix__cell {
 }
 .floor-matrix__cell--qc_passed {
   background: var(--navy);
+}
+/* Brief 078 / v6 §7.2 — TEXTURE, not hue: every colour this app owns is
+   already spoken for (blue = ownership/done, amber = waiting, red = delay
+   only, white = untouched), and a QC fail is none of those — it's a
+   finding, not a delay. The only patterned cell in the grid, on purpose:
+   a PIC scanning many floors sees the texture before reading anything.
+   Colour-only per Brief 056 §5 — no text, no icon, no count, same as
+   every other cell here. */
+.floor-matrix__cell--qc_failed {
+  background: var(--wf-hatch-ink);
+  border: 1px solid var(--ink);
 }
 .floor-matrix__cell--stalled {
   background: var(--danger);
