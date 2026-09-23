@@ -12,6 +12,7 @@ import { NumberingModeSwitch } from './NumberingModeSwitch'
 import { FloorTableRow, type FloorTableRowData } from './FloorTableRow'
 import { AddFloorRow } from './AddFloorRow'
 import { AddTowerRow } from './AddTowerRow'
+import { SystemsSection, type ProjectSystemRow } from './SystemsSection'
 
 export const metadata: Metadata = {
   title: 'Project setup — ADTECH Workflow Tracker',
@@ -92,6 +93,19 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
       .eq('project_id', projectId),
   ])
 
+  // Brief 098 §2 — systems are STORED now (migration 037), no longer
+  // derived from whatever system_type strings happened to appear in BOQ
+  // lines. The CAD system codes come from the migration 031 lookup, never
+  // hardcoded (v7.2 §6.2 item 3).
+  const [{ data: systemRows }, { data: cadSystemRows }] = await Promise.all([
+    supabase
+      .from('project_systems')
+      .select('id, name, cad_code, source')
+      .eq('project_id', projectId)
+      .order('name'),
+    supabase.from('cad_systems').select('code, label_en').eq('is_active', true).order('sort_order'),
+  ])
+
   const towers = (towerRows ?? []).map((t2) => ({ id: t2.id, label: t2.label, sortOrder: t2.sort_order }))
   const towerLabelById = new Map(towers.map((tw) => [tw.id, tw.label]))
 
@@ -117,15 +131,13 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
     hasProgress: progressByFloor.get(f.id) ?? false,
   }))
 
-  // §6.2 item 3 — Systems: free text, not a closed list; derived from the
-  // BOQ tiers that actually carry a system_type today (contract_boq_lines
-  // has none — checked directly, migration 018). NOT persisted with a
-  // CAD-code assignment: see this brief's own Result doc §6 for why that
-  // half is stopped on, not built.
-  const systemNames = new Set<string>()
-  for (const l of tenderLines ?? []) if (l.system_type) systemNames.add(l.system_type)
-  for (const l of shopDrawingLines ?? []) if (l.system_type) systemNames.add(l.system_type)
-  const systems = [...systemNames].sort()
+  const systems: ProjectSystemRow[] = (systemRows ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    cadCode: s.cad_code,
+    source: s.source as 'imported' | 'manual',
+  }))
+  const cadSystems = (cadSystemRows ?? []).map((c) => ({ code: c.code, labelEn: c.label_en }))
 
   // BOQ tier summaries.
   const contractCount = contractSummary?.length ?? 0
@@ -279,7 +291,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                   inviting button for something they cannot do. */}
               {isPic && (
                 <div className="wf-empty-state-card__actions">
-                  <Link href={`/projects/${project.id}/contract-boq/import`} className="btn btn--primary">
+                  <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
                     {t('setupStructureEmptyImport')}
                   </Link>
                 </div>
@@ -313,20 +325,28 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
         {/* §3 Systems */}
         <section id="systems" className="wf-setup-section">
           <h2 className="wf-setup-section__title">{t('setupSection3Name')}</h2>
-          {systems.length === 0 ? (
+          {systems.length === 0 && !isPic ? (
             <div className="wf-empty-state-card">
               <p className="wf-empty-state-card__headline">{t('setupSystemsEmptyHeadline')}</p>
               <p className="wf-empty-state-card__body">{t('setupSystemsEmptyBody')}</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-              {systems.map((name) => (
-                <span key={name} className="wf-status-tag wf-status-tag--recorded">
-                  {name} · {t('setupSystemsNoCadCode')}
-                </span>
-              ))}
-            </div>
+            <>
+              {systems.length === 0 && (
+                <div className="wf-empty-state-card">
+                  <p className="wf-empty-state-card__headline">{t('setupSystemsEmptyHeadline')}</p>
+                  <p className="wf-empty-state-card__body">{t('setupSystemsEmptyBody')}</p>
+                </div>
+              )}
+              <SystemsSection
+                projectId={project.id}
+                systems={systems}
+                cadSystems={cadSystems}
+                canEdit={isPic}
+              />
+            </>
           )}
+          {!isPic && <RefusedNotice t={t} picLabel={picLabel} sectionKey="setupSection3Name" />}
         </section>
 
         {/* §4 BOQ — summary only (Brief 098 builds the real import preview) */}
@@ -339,7 +359,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
               <p className="wf-empty-state-card__body">{t('setupBoqEmptyBody')}</p>
               {isPic && (
                 <div className="wf-empty-state-card__actions">
-                  <Link href={`/projects/${project.id}/contract-boq/import`} className="btn btn--primary">
+                  <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
                     {t('setupBoqEmptyImport')}
                   </Link>
                 </div>
@@ -353,15 +373,25 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 lastImport={contractLastImport}
                 importedBy={null}
                 href={`/projects/${project.id}/contract-boq`}
+                importHref={isPic ? `/projects/${project.id}/boq-import/contract` : null}
                 t={t}
               />
-              <BoqTierRow name={t('setupBoqTierTender')} count={tenderCount} lastImport={tenderLastImport} importedBy={null} href={null} t={t} />
+              <BoqTierRow
+                name={t('setupBoqTierTender')}
+                count={tenderCount}
+                lastImport={tenderLastImport}
+                importedBy={null}
+                href={`/projects/${project.id}/tender-boq`}
+                importHref={isPic ? `/projects/${project.id}/boq-import/tender` : null}
+                t={t}
+              />
               <BoqTierRow
                 name={t('setupBoqTierShopDrawing')}
                 count={shopDrawingCount}
                 lastImport={shopDrawingLastImport}
                 importedBy={shopDrawingImporterLabel}
                 href={`/projects/${project.id}/shop-drawing-boq`}
+                importHref={isPic ? `/projects/${project.id}/boq-import/shop-drawing` : null}
                 t={t}
               />
             </div>
@@ -463,6 +493,7 @@ function BoqTierRow({
   lastImport,
   importedBy,
   href,
+  importHref,
   t,
 }: {
   name: string
@@ -470,10 +501,11 @@ function BoqTierRow({
   lastImport: string | null
   importedBy: string | null
   href: string | null
+  importHref: string | null
   t: (key: DictionaryKey) => string
 }) {
   return (
-    <div className="wf-data-table__row wf-data-table__row--body" style={{ gridTemplateColumns: '1fr 100px 160px 160px 120px' }}>
+    <div className="wf-data-table__row wf-data-table__row--body" style={{ gridTemplateColumns: '1fr 100px 160px 160px 120px 120px' }}>
       <span>{name}</span>
       <span>
         {count} {t('setupBoqLineCount')}
@@ -487,6 +519,13 @@ function BoqTierRow({
       ) : (
         <span>—</span>
       )}
+      {importHref ? (
+        <Link href={importHref} className="wf-data-table__row-actions">
+          {t('boqImportKicker')}
+        </Link>
+      ) : (
+        <span />
+      )}
     </div>
   )
 }
@@ -498,7 +537,7 @@ function RefusedNotice({
 }: {
   t: (key: DictionaryKey) => string
   picLabel: string | null
-  sectionKey: 'setupSection1Name' | 'setupSection2Name' | 'setupSection5Name'
+  sectionKey: 'setupSection1Name' | 'setupSection2Name' | 'setupSection3Name' | 'setupSection5Name'
 }) {
   return (
     <p className="wf-refused-card" role="status">

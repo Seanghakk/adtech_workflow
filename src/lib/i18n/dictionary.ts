@@ -990,15 +990,6 @@ const en = {
   // quantity to contract_boq_lines; contract_boq_line_locations is
   // deliberately untouched by this importer.
   contractBoqGoToImport: 'Import from Excel',
-  contractBoqImportKicker: 'Import Contract BOQ',
-  contractBoqImportBackToList: 'Back to Contract BOQ',
-  contractBoqImportDownloadTemplate: 'Download template',
-  contractBoqImportFileLabel: 'File (.xlsx)',
-  contractBoqImportSubmit: 'Import',
-  contractBoqImportSubmitting: 'Importing…',
-  contractBoqImportSuccessPrefix: 'Imported',
-  contractBoqImportSuccessSuffix: 'line(s).',
-  contractBoqImportRejected: 'Nothing was imported — fix these and try again:',
 
   // Floor & Zone (Tower/Wing) Configuration (Brief 047) — PIC-only writes
   // (migration 021's project_towers policies; project_floors' own
@@ -1086,15 +1077,6 @@ const en = {
   // (same requireTeam() pattern as update/floor-actions.ts). Writes
   // shop_drawing_boq_lines plus, for each non-empty floor/zone column,
   // one shop_drawing_boq_line_locations row resolved to a real floor_id.
-  shopDrawingBoqImportKicker: 'Import Shop Drawing BOQ',
-  shopDrawingBoqImportBackToList: 'Back to Shop Drawing BOQ',
-  shopDrawingBoqImportDownloadTemplate: 'Download template',
-  shopDrawingBoqImportFileLabel: 'File (.xlsx)',
-  shopDrawingBoqImportSubmit: 'Import',
-  shopDrawingBoqImportSubmitting: 'Importing…',
-  shopDrawingBoqImportSuccessPrefix: 'Imported',
-  shopDrawingBoqImportSuccessSuffix: 'line(s).',
-  shopDrawingBoqImportRejected: 'Nothing was imported — fix these and try again:',
 
   // Brief 080 / Handoff Addendum v6.1 — the six cross-project Execution
   // lists, shared row shape (src/components/CrossProjectList.tsx) and
@@ -1264,6 +1246,155 @@ const en = {
   setupLoadFailedHeadline: 'Project setup did not load',
   setupLoadFailedBody: 'Nothing on this project has changed. Try again; if it keeps failing, tell a project manager.',
   setupLoadFailedRetry: 'Try again',
+
+  // -------------------------------------------------------------------
+  // Brief 098 — BOQ import (v7.2 §7 and §21.2). Every string below is
+  // v7.2's own exact copy; the few places where v7.2 carries no string
+  // are marked and listed in the brief's Result doc rather than quietly
+  // invented.
+  // -------------------------------------------------------------------
+  boqImportKicker: 'Import a BOQ',
+  // v7.2 §4.3 — one of the four status tags, by its own name there.
+  boqTagImported: 'Imported',
+  boqImportTierTender: 'tender',
+  boqImportTierContract: 'contract',
+  boqImportTierShopDrawing: 'shop drawing',
+
+  // Step strip (§21.2, exact): "1 Upload · 2 Preview · 3 Commit".
+  boqImportStep1: '1 Upload',
+  boqImportStep2: '2 Preview',
+  boqImportStep3: '3 Commit',
+
+  // First ever on this tier (§21.2, exact).
+  boqImportFirstHeadlinePrefix: 'This is the first',
+  boqImportFirstHeadlineMiddle: 'BOQ for',
+  boqImportFirstBodyPrefix: 'Download the template for this project — it already carries this project’s',
+  boqImportFirstBodySuffix:
+    'floor columns — fill it in, and upload it here. The preview shows every line before anything is written.',
+  boqImportFirstBodyNoFloors:
+    'Download the template for this project, fill it in, and upload it here. The preview shows every line before anything is written.',
+  boqImportTemplateOnlyNote:
+    'One file, the ADTECH template only. A client BOQ is converted into the template by hand first.',
+  boqImportChooseFile: 'Choose a file',
+  boqImportDownloadTemplate: 'Download the template',
+  boqImportChooseAnotherFile: 'Choose another file',
+  boqImportUploading: 'Reading the file…',
+
+  // Not the template — file-level refusal (§7.3 / §21.2, exact).
+  boqImportNotTemplateSuffix: 'is not the ADTECH template',
+  boqImportNotTemplateBodyPrefix: 'The template’s first row is',
+  boqImportNotTemplateBodyMiddle: '; this file starts with',
+  boqImportNotTemplateBodySuffix: '. Nothing was written and nothing was partly read.',
+
+  // Preview — the four figures (§7.4 / §21.2, exact).
+  boqImportFigureNew: 'new lines',
+  boqImportFigureChanged: 'changed lines',
+  boqImportFigureUnchanged: 'unchanged',
+  boqImportFigureMissing: 'in the app, not in the file',
+  boqImportPreviewBody: 'Re-importing updates existing lines — it does not duplicate them.',
+  boqImportCommitPrefix: 'Commit',
+  boqImportCommitSuffix: 'changes',
+  boqImportCancel: 'Cancel — nothing is written',
+  boqImportCommitting: 'Committing…',
+
+  // Re-import, mostly unchanged (§21.2, exact).
+  boqImportMostlyUnchangedPrefix: 'Committing updates these',
+  boqImportMostlyUnchangedMiddle: 'lines in place. The',
+  boqImportMostlyUnchangedSuffix: 'unchanged lines are not rewritten and keep their history.',
+
+  // No differences (§21.2, exact).
+  boqImportNoDiffHeadline: 'This file matches the app exactly',
+  boqImportNoDiffBodyPrefix: 'lines read, no differences from what',
+  boqImportNoDiffBodySuffix: 'already holds. There is nothing to commit.',
+
+  // Changed / missing tables.
+  boqImportColWas: 'Was',
+  boqImportColNow: 'Now',
+  boqImportColItemNumber: 'Item number',
+  boqImportColDescription: 'Description',
+  boqImportColField: 'Field',
+  boqImportChangedTitle: 'Changed lines',
+  boqImportMissingTitle: 'In the app, not in the file',
+  boqImportMissingNote: 'These are listed only. Committing does not delete them.',
+
+  // Row errors (§7.5 / §21.2, exact).
+  boqImportRowErrorsHeadlinePrefix: 'rows can be committed ·',
+  boqImportRowErrorsHeadlineSuffix: 'rows were refused',
+  boqImportCommitPassingPrefix: 'Commit the',
+  boqImportCommitPassingSuffix: 'rows that pass',
+  boqImportCancelWholeFile: 'Cancel the whole file',
+
+  // Proposed floors (§7.6 / §21.2, exact).
+  boqImportProposedFloorsPrefix: 'This file uses',
+  boqImportProposedFloorsSuffix: 'floors that are not set up yet',
+  boqImportProposedColFloor: 'Floor',
+  boqImportProposedColDrawingCode: 'Drawing code',
+  boqImportProposedColOrder: 'Order',
+  boqImportProposalCreate: 'Create',
+  boqImportProposalMap: 'Map to existing',
+  boqImportProposalSkip: 'Skip',
+  // v7.2 gives the exact sentence for proposed FLOORS (§7.6) but carries
+  // no equivalent for proposed SYSTEMS, which §7.6 describes in prose
+  // only. Mirrored from the floors sentence rather than newly worded —
+  // flagged in the Result doc.
+  boqImportProposedSystemsPrefix: 'This file uses',
+  boqImportProposedSystemsSuffix: 'systems that are not set up yet',
+  boqImportProposedColSystem: 'System',
+  boqImportProposedColCadCode: 'CAD code',
+  boqImportProposedCadCodeNone: 'No code — pick one',
+
+  // Committed — the blue result (§7.7 / §21.2, exact).
+  boqImportResultLinesWritten: 'lines written',
+  boqImportResultFloorsCreated: 'floors created',
+  boqImportResultFloorsMapped: 'floors mapped',
+  boqImportResultSystemsAdded: 'systems added',
+  boqImportResultRowsLeftOut: 'rows left out',
+  boqImportResultAppLinesKept: 'app lines kept',
+  boqImportResultByPrefix: 'by',
+  boqImportResultAtPrefix: 'at',
+  boqImportBackToSetup: 'Back to Project setup',
+
+  // Preview failed (§21.2, exact).
+  boqImportPreviewFailedHeadline: 'The preview could not be built',
+  boqImportPreviewFailedBody:
+    'The file reached the app but the preview did not finish. Nothing was written and nothing was partly read. Try again; if it fails twice with the same file, send it to a project manager.',
+  boqImportTryAgain: 'Try again',
+
+  // Refusal + remaining top-level messages.
+  boqImportRefusedNotPic: 'Only the PIC can import a BOQ on this project.',
+  boqImportRefusedPrefix: 'Only the PIC,',
+  boqImportRefusedSuffix: ', can import a BOQ on this project. You can read everything here.',
+  boqImportNoRows: 'This file has no rows to import. Nothing was written.',
+  boqImportNothingToCommit: 'There is nothing to commit.',
+  boqImportCommitFailed: 'Could not commit this import. Nothing was written — try again.',
+
+  // -------------------------------------------------------------------
+  // Brief 098 — the Systems section, now that it can be written (§2).
+  // -------------------------------------------------------------------
+  setupSystemsAddHeading: 'Add a system',
+  setupSystemsNameLabel: 'System name',
+  setupSystemsCadCodeLabel: 'CAD system code',
+  setupSystemsCadCodeNone: 'No code yet',
+  setupSystemsSave: 'Save',
+  setupSystemsFromImportPrefix: 'of these came from a BOQ import.',
+  setupSystemsDuplicate: 'This project already has a system with that name. Nothing was saved.',
+
+  // -------------------------------------------------------------------
+  // Brief 098 §3.8 — the Tender BOQ list (no screen existed before).
+  // -------------------------------------------------------------------
+  tenderBoqKicker: 'Tender BOQ',
+  tenderBoqEmptyHeadline: 'No tender BOQ for this project yet',
+  tenderBoqEmptyBody:
+    'The tender BOQ is imported from the ADTECH template. The preview shows every line before anything is written.',
+  tenderBoqImport: 'Import a BOQ',
+  tenderBoqColItemNumber: 'Item number',
+  tenderBoqColSystem: 'System',
+  tenderBoqColDescription: 'Description',
+  tenderBoqColBrand: 'Brand',
+  tenderBoqColUnit: 'Unit',
+  tenderBoqColQuantity: 'Quantity',
+  tenderBoqLineCount: 'lines',
+  tenderBoqLoadFailedHeadline: 'Tender BOQ did not load',
 } as const
  
 export type DictionaryKey = keyof typeof en

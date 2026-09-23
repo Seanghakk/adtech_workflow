@@ -108,7 +108,7 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
 
       {isPic && (
         <p>
-          <Link href={`/projects/${project.id}/contract-boq/import`}>{t('contractBoqGoToImport')}</Link>
+          <Link href={`/projects/${project.id}/boq-import/contract`}>{t('contractBoqGoToImport')}</Link>
         </p>
       )}
 

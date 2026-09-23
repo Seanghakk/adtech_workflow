@@ -34,32 +34,32 @@ export async function getSetupSectionsStatus(
 ): Promise<SetupSectionsStatus> {
   const [
     { data: floorRows },
-    { data: tenderLines },
-    { data: shopDrawingLines },
+    { count: tenderCount },
+    { count: shopDrawingCount },
     { count: contractCount },
+    { count: systemCount },
     { count: shopDrawingItemCount },
     { count: exportCount },
   ] = await Promise.all([
     supabase.from('project_floors').select('id').eq('project_id', projectId),
-    supabase.from('tender_boq_lines').select('id, system_type').eq('project_id', projectId),
-    supabase.from('shop_drawing_boq_lines').select('id, system_type').eq('project_id', projectId),
+    supabase.from('tender_boq_lines').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
+    supabase.from('shop_drawing_boq_lines').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
     supabase.from('contract_boq_lines').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
+    // Brief 098 §2 — systems are their own stored rows now (migration 037),
+    // no longer inferred from BOQ system_type strings.
+    supabase.from('project_systems').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
     supabase.from('shop_drawing_items').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
     supabase.from('autocad_export_log').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
   ])
-
-  const systemNames = new Set<string>()
-  for (const l of tenderLines ?? []) if (l.system_type) systemNames.add(l.system_type)
-  for (const l of shopDrawingLines ?? []) if (l.system_type) systemNames.add(l.system_type)
 
   const identityDone = Boolean(
     project.so_number && project.name && clientName && project.pic_id && project.cad_owner_name && project.cad_consultant_name,
   )
   const structureDone = (floorRows?.length ?? 0) > 0
-  const systemsDone = systemNames.size > 0
-  const tenderCount = tenderLines?.length ?? 0
-  const shopDrawingCount = shopDrawingLines?.length ?? 0
-  const boqTiersFilled = [(contractCount ?? 0) > 0, tenderCount > 0, shopDrawingCount > 0].filter(Boolean).length
+  const systemsDone = (systemCount ?? 0) > 0
+  const boqTiersFilled = [(contractCount ?? 0) > 0, (tenderCount ?? 0) > 0, (shopDrawingCount ?? 0) > 0].filter(
+    Boolean,
+  ).length
   const drawingCount = shopDrawingItemCount ?? 0
   const drawingsDone = structureDone && drawingCount > 0
   const exportsDone = drawingCount > 0 && (exportCount ?? 0) > 0

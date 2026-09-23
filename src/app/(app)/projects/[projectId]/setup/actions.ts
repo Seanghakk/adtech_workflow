@@ -22,6 +22,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
+import { verifyWriteAffectedRow, existsByColumn, writeFailureMessage } from '@/lib/supabase/verified-write'
 import type { SetupFormState } from './setup-shared'
 
 export async function updateProjectIdentity(
@@ -91,6 +92,93 @@ export async function updateNumberingMode(
   if (error) {
     const t = await getServerTranslator()
     return { error: error.message.includes('PIC') ? t('setupRefusedNotPic') : 'Could not save. Nothing was changed — try again.', savedAt: null }
+  }
+
+  revalidatePath(`/projects/${projectId}/setup`)
+  return { error: null, savedAt: crypto.randomUUID() }
+}
+
+/**
+ * Brief 098 §2 — the Systems section can now be written. Unlike the three
+ * identity fields above, workflow.project_systems is a NEW table
+ * (migration 037) with its own four RLS policies referencing
+ * projects.pic_id directly, so these go through the table rather than a
+ * SECURITY DEFINER function.
+ *
+ * The INSERT is Class A per Brief 094's inventory — an INSERT refused by a
+ * WITH CHECK clause always throws, so a plain error check is honest. The
+ * UPDATE is Class B: RLS refusing it returns zero rows and NO error, so it
+ * goes through the verified-write helper, per Brief 098 §4's "Every write
+ * goes through Brief 094's verified-write helper".
+ */
+export async function addProjectSystem(
+  _prevState: SetupFormState,
+  formData: FormData,
+): Promise<SetupFormState> {
+  const projectId = String(formData.get('projectId') ?? '')
+  const name = String(formData.get('name') ?? '').trim()
+  const cadCode = String(formData.get('cadCode') ?? '').trim()
+
+  if (!projectId || !name) {
+    return { error: 'Invalid request.', savedAt: null }
+  }
+
+  const supabase = await createClient()
+  const t = await getServerTranslator()
+
+  const { error } = await supabase.from('project_systems').insert({
+    project_id: projectId,
+    name,
+    cad_code: cadCode || null,
+    source: 'manual',
+  })
+
+  if (error) {
+    // 23505 — the (project_id, name) unique index from migration 037.
+    if (error.code === '23505') {
+      return { error: t('setupSystemsDuplicate'), savedAt: null }
+    }
+    if (error.code === '42501') {
+      return { error: t('setupRefusedNotPic'), savedAt: null }
+    }
+    return { error: 'Could not save. Nothing was changed — try again.', savedAt: null }
+  }
+
+  revalidatePath(`/projects/${projectId}/setup`)
+  return { error: null, savedAt: crypto.randomUUID() }
+}
+
+export async function updateSystemCadCode(
+  _prevState: SetupFormState,
+  formData: FormData,
+): Promise<SetupFormState> {
+  const projectId = String(formData.get('projectId') ?? '')
+  const systemId = String(formData.get('systemId') ?? '')
+  const cadCode = String(formData.get('cadCode') ?? '').trim()
+
+  if (!projectId || !systemId) {
+    return { error: 'Invalid request.', savedAt: null }
+  }
+
+  const supabase = await createClient()
+  const t = await getServerTranslator()
+
+  const writeResult = await supabase
+    .from('project_systems')
+    .update({ cad_code: cadCode || null, updated_at: new Date().toISOString() })
+    .eq('id', systemId)
+    .select('id')
+
+  const verdict = await verifyWriteAffectedRow(
+    writeResult,
+    existsByColumn(supabase, 'project_systems', 'id', systemId),
+  )
+
+  if (!verdict.ok) {
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath(`/projects/${projectId}/setup`)
