@@ -6,6 +6,7 @@ import { formatMemberName, getUserProfilesByIds, type MemberProfile } from '@/li
 import { getServerTranslator } from '@/lib/i18n/server'
 import { formatDateICT } from '@/lib/format/datetime'
 import { NoAccessScreen } from '@/components/NoAccessScreen'
+import { RestrictedRoleNotice } from '@/components/RestrictedRoleNotice'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_ADMIN } from '@/lib/breadcrumbs'
 import { UnlinkedAccountRow } from './UnlinkedAccountRow'
@@ -33,18 +34,32 @@ interface UnlinkedAccount {
  * late; a person is just a person").
  *
  * §2.7 — restricted, not empty: a member without rights is told plainly,
- * never shown a blank table. Same NoAccessScreen every other restricted
- * route in this app already uses (see sales/assign/page.tsx).
+ * never shown a blank table.
+ *
+ * Brief 090 fix 3 — the two restriction cases are told apart, per v7.1
+ * §14.1/§14.4: no member row at all (NoAccessScreen, unchanged, correct
+ * for that case) vs. a linked member who simply isn't a manager/admin
+ * (RestrictedRoleNotice — was wrongly shown NoAccessScreen's "not linked"
+ * copy before this fix, which is false for a linked member).
  */
 export default async function UsersPage() {
   const { member } = await getCurrentMember()
+  const t = await getServerTranslator()
 
-  if (!member || !isManagerOrAdmin(member)) {
+  if (!member) {
     return <NoAccessScreen />
+  }
+  if (!isManagerOrAdmin(member)) {
+    return (
+      <RestrictedRoleNotice
+        kicker={t('usersKicker')}
+        title={t('usersTitle')}
+        body={t('usersRestrictedBody')}
+      />
+    )
   }
 
   const supabase = await createClient()
-  const t = await getServerTranslator()
 
   const [{ data: unlinked }, { data: memberRows }, { data: teams }, { data: picProjects }] =
     await Promise.all([

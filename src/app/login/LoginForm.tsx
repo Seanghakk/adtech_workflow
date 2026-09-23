@@ -2,7 +2,6 @@
 
 import { useActionState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
-import { LanguageToggle } from '@/components/LanguageToggle'
 import { signIn, type SignInState } from './actions'
 
 const initialState: SignInState = { error: null }
@@ -11,11 +10,16 @@ const initialState: SignInState = { error: null }
  * Rebuilt to the administration archetype (Brief 010 §2 / Design Note
  * Rev 3 §5, Token Spec v3 §2) — this screen predated Rev 3 and had never
  * been brought up to it. Card sizing (400px / 48px controls), the full-
- * size brand mark with a 2px ink rule under it, the language toggle
- * above the fields (§5.3 — "the one place it cannot live behind
- * authentication"), and the plain-text reset path (§5.5) all live in
- * globals.css's own "Login screen" section; see that file for the
- * reasoning behind each.
+ * size brand mark with a 2px ink rule under it, and the plain-text reset
+ * path (§5.5) all live in globals.css's own "Login screen" section; see
+ * that file for the reasoning behind each.
+ *
+ * Brief 090 fix 2 — the language toggle moved OUT of this card entirely:
+ * v7.1 §14.1 places it "above the card, right-aligned," not inside the
+ * card's own header. It had been living here (inside .login-form__header,
+ * competing for space with the brand mark), which is what let it be
+ * squeezed to an unusable ~38px sliver on /login — Brief 089 §0 urgent 2.
+ * Now rendered by page.tsx, a sibling above this form. See LoginPage.
  */
 export function LoginForm({ next }: { next?: string }) {
   const { t } = useLanguage()
@@ -39,7 +43,6 @@ export function LoginForm({ next }: { next?: string }) {
             <span className="brand-mark__app">Workflow</span>
           </span>
         </span>
-        <LanguageToggle />
       </div>
       <div className="login-form__fields">
         <label className="field">
