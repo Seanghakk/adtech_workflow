@@ -112,7 +112,7 @@ export default async function FloorLabelsPage({ params }: PageProps<'/projects/[
       breadcrumbAncestors={[
         { label: t(CRUMB_BOARD.label), href: CRUMB_BOARD.href },
         { label: project.so_number ?? t('soRecordNoSoYet'), href: `/projects/${project.id}` },
-        { label: t('floorConfigKicker'), href: `/projects/${project.id}/floors` },
+        { label: t('setupSection2Name'), href: `/projects/${project.id}/setup#structure` },
       ]}
     />
   )

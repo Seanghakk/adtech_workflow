@@ -47,6 +47,11 @@ function isForeignKeyViolation(error: { code?: string } | null): boolean {
   return error?.code === '23503'
 }
 
+/** migration 030's own project_floors_drawing_code_format_check. */
+function isDrawingCodeFormatViolation(error: { code?: string; message?: string } | null): boolean {
+  return error?.code === '23514' && (error.message ?? '').includes('drawing_code')
+}
+
 // -----------------------------------------------------------------------------
 // Towers
 // -----------------------------------------------------------------------------
@@ -85,6 +90,7 @@ export async function createTower(
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null, savedAt: crypto.randomUUID() }
 }
 
@@ -125,6 +131,7 @@ export async function updateTower(
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null, savedAt: crypto.randomUUID() }
 }
 
@@ -159,6 +166,7 @@ export async function deleteTower(
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null }
 }
 
@@ -180,6 +188,13 @@ export async function createFloor(
   const label = String(formData.get('label') ?? '').trim()
   const towerIdRaw = String(formData.get('towerId') ?? '')
   const towerId = towerIdRaw || null
+  // Brief 097 §2 — migration 030's own column, optional, surfaced here for
+  // the first time (Project Setup absorbs /floors completely). Format is
+  // enforced by the column's own CHECK constraint; a bad value surfaces
+  // via the isDrawingCodeFormatViolation branch below, same technique
+  // isUniqueViolation already uses for the label constraint.
+  const drawingCodeRaw = String(formData.get('drawingCode') ?? '').trim()
+  const drawingCode = drawingCodeRaw || null
 
   if (!projectId || !label) {
     return { error: 'A floor label is required.', savedAt: null }
@@ -198,23 +213,30 @@ export async function createFloor(
     project_id: projectId,
     tower_id: towerId,
     label,
+    drawing_code: drawingCode,
     sort_order: (count ?? 0) + 1,
   })
 
   if (error) {
     if (isUniqueViolation(error)) {
       return {
-        error: towerId
-          ? 'A floor with this label already exists under this tower.'
-          : 'A floor with this label already exists on this project.',
+        error: (error.message ?? '').includes('drawing_code')
+          ? 'This drawing code is already used by another floor on this project.'
+          : towerId
+            ? 'A floor with this label already exists under this tower.'
+            : 'A floor with this label already exists on this project.',
         savedAt: null,
       }
+    }
+    if (isDrawingCodeFormatViolation(error)) {
+      return { error: 'A drawing code may only contain letters and digits, no spaces.', savedAt: null }
     }
     return { error: 'Could not add this floor. Nothing was saved — try again.', savedAt: null }
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
   revalidatePath(`/projects/${projectId}/update`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null, savedAt: crypto.randomUUID() }
 }
 
@@ -228,6 +250,8 @@ export async function updateFloor(
   const sortOrder = Number(String(formData.get('sortOrder') ?? ''))
   const towerIdRaw = String(formData.get('towerId') ?? '')
   const towerId = towerIdRaw || null
+  const drawingCodeRaw = String(formData.get('drawingCode') ?? '').trim()
+  const drawingCode = drawingCodeRaw || null
 
   if (!projectId || !floorId || !label || !Number.isFinite(sortOrder)) {
     return { error: 'A label and a valid order number are required.', savedAt: null }
@@ -239,17 +263,22 @@ export async function updateFloor(
 
   const { data, error } = await supabase
     .from('project_floors')
-    .update({ label, sort_order: sortOrder, tower_id: towerId, updated_at: new Date().toISOString() })
+    .update({ label, sort_order: sortOrder, tower_id: towerId, drawing_code: drawingCode, updated_at: new Date().toISOString() })
     .eq('id', floorId)
     .select('id')
 
   if (error && isUniqueViolation(error)) {
     return {
-      error: towerId
-        ? 'A floor with this label already exists under this tower.'
-        : 'A floor with this label already exists on this project.',
+      error: (error.message ?? '').includes('drawing_code')
+        ? 'This drawing code is already used by another floor on this project.'
+        : towerId
+          ? 'A floor with this label already exists under this tower.'
+          : 'A floor with this label already exists on this project.',
       savedAt: null,
     }
+  }
+  if (error && isDrawingCodeFormatViolation(error)) {
+    return { error: 'A drawing code may only contain letters and digits, no spaces.', savedAt: null }
   }
   const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'project_floors', 'id', floorId))
   if (!verdict.ok) {
@@ -262,6 +291,7 @@ export async function updateFloor(
 
   revalidatePath(`/projects/${projectId}/floors`)
   revalidatePath(`/projects/${projectId}/update`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null, savedAt: crypto.randomUUID() }
 }
 
@@ -372,5 +402,6 @@ export async function deleteFloor(
 
   revalidatePath(`/projects/${projectId}/floors`)
   revalidatePath(`/projects/${projectId}/update`)
+  revalidatePath(`/projects/${projectId}/setup`)
   return { error: null }
 }
