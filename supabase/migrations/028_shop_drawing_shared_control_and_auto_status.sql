@@ -3,12 +3,21 @@
 -- automatic status
 -- Brief: ADTECH_WF_Brief_086_Shop_Drawing_Shared_Control_And_Auto_Status_Draft
 --
--- DRAFT ONLY. NOT APPLIED BY THIS BRIEF, NOT EVEN TO THE ROLLBACK-TEST
--- PROJECT (a separate rollback-test brief follows, same pattern as
--- migrations 025/026/027). No UI reads or writes any of this yet — not
--- even the shared "which done-reading is this" display function (§4d
--- below only confirms the DATA supports deriving it; writing that
--- function is explicitly UI/application work for a later build brief).
+-- CORRECTED (Brief 095, 23 Sep 2026): this header used to say "DRAFT
+-- ONLY. NOT APPLIED BY THIS BRIEF, NOT EVEN TO THE ROLLBACK-TEST
+-- PROJECT." That is stale — Brief 095 needed this migration's own
+-- updated_at trigger to be honest and checked information_schema/
+-- pg_trigger directly rather than trust this comment: this migration
+-- IS live, on both rollback-test and production, confirmed by querying
+-- the column and trigger directly on each. Left the rest of this file's
+-- own reasoning/trace comments below exactly as written at the time —
+-- only this stale claim is corrected, so a future reader does not get
+-- misled the same way this brief nearly did.
+--
+-- No UI reads or writes any of this yet — not even the shared "which
+-- done-reading is this" display function (§4d below only confirms the
+-- DATA supports deriving it; writing that function is explicitly
+-- UI/application work for a later build brief).
 --
 -- WHY: migration 027 built the shop drawing approval lifecycle but left
 -- two questions open (Brief 084's own §5 carried-forward list, items 1
