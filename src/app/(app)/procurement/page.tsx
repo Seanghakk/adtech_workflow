@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -27,6 +28,14 @@ export const metadata: Metadata = {
  * milestone-timestamp progression (sourcing_started_at / mr_submitted_at
  * / mr_approved_at / po_issued_at) plus a delivery fraction
  * (delivery_received/delivery_total).
+ *
+ * CORRECTED (Brief 095 §4.1): this header used to say procurement_lines
+ * "carries no name/description/item column" — true of migration 001, but
+ * migration 015 (§2, applied on both projects — checked directly, not
+ * assumed, after a live INSERT here hit its NOT NULL constraint) added
+ * exactly that: procurement_lines.description, NOT NULL on both
+ * projects. The per-row age context below now names the specific oldest
+ * undelivered line, the same pattern the other five lists already use.
  *
  * DECISION (Seanghakk, 22 Sep 2026): partial deliveries are shown as
  * their own count, not folded into "not delivered" or "delivered" —
@@ -99,21 +108,32 @@ export default async function ProcurementPage({
   const scopedProjects = filterProjectsByScope(allProjects, scope, member, teamIdByUserId)
   const projectIds = scopedProjects.map((p) => p.id)
 
+  // Brief 095 §4.3 — see installation/page.tsx's own identical comment.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const { data: lineRows } =
     projectIds.length > 0
       ? await supabase
           .from('procurement_lines')
-          .select('project_id, po_issued_at, delivery_received, delivery_total')
+          .select('project_id, description, po_issued_at, delivery_received, delivery_total')
           .in('project_id', projectIds)
       : { data: [] }
 
   const linesByProject = new Map<
     string,
-    { poIssuedAt: string | null; deliveryReceived: number; deliveryTotal: number | null }[]
+    { description: string; poIssuedAt: string | null; deliveryReceived: number; deliveryTotal: number | null }[]
   >()
   for (const r of lineRows ?? []) {
     const list = linesByProject.get(r.project_id) ?? []
-    list.push({ poIssuedAt: r.po_issued_at, deliveryReceived: r.delivery_received, deliveryTotal: r.delivery_total })
+    list.push({
+      description: r.description,
+      poIssuedAt: r.po_issued_at,
+      deliveryReceived: r.delivery_received,
+      deliveryTotal: r.delivery_total,
+    })
     linesByProject.set(r.project_id, list)
   }
 
@@ -125,10 +145,22 @@ export default async function ProcurementPage({
       const ordered = lines.filter((l) => l.poIssuedAt !== null)
       const undelivered = ordered.filter((l) => !(l.deliveryTotal !== null && l.deliveryReceived >= l.deliveryTotal))
 
-      const oldestAge =
-        undelivered.length > 0
-          ? Math.max(...undelivered.map((l) => daysSinceICT(l.poIssuedAt!)))
-          : 0
+      // Brief 095 §4.1 — names the SPECIFIC oldest undelivered line, via
+      // migration 015's description column (see this file's own header
+      // for why this replaces the earlier "no per-line identity" finding).
+      let oldestAge = 0
+      let oldestDescription: string | null = null
+      for (const line of undelivered) {
+        const age = daysSinceICT(line.poIssuedAt!)
+        if (oldestDescription === null || age > oldestAge) {
+          oldestAge = age
+          oldestDescription = line.description
+        }
+      }
+      const ageContext =
+        oldestDescription === null
+          ? t('crossListAgeNothingWaiting')
+          : `${oldestDescription} · ${t('crossListProcurementSincePoIssued')}`
 
       return {
         projectId: project.id,
@@ -137,6 +169,8 @@ export default async function ProcurementPage({
         soIsPending: !project.soNumber,
         ageDays: oldestAge,
         ageBand: getAgeLabelBand(oldestAge),
+        holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+        ageContext,
         href: `/projects/${project.id}/procurement`,
         summary: (
           <div className="cross-list__row-summary-line">

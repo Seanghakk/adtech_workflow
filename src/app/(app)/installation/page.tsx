@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -14,12 +15,24 @@ import { defaultScopeForRole, type Scope } from '@/lib/reporting/board'
 import { filterProjectsByScope, sortByAgeDescending } from '@/lib/reporting/crossProjectLists'
 import { fetchFloorTrackData } from '@/lib/reporting/floorTrackData'
 import { bucketFloorsByStage } from '@/lib/reporting/floorStageBuckets'
+import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
 export const metadata: Metadata = {
   title: 'Installation — ADTECH Workflow Tracker',
 }
 
 const INSTALLATION_ORDER = ['first_fix', 'second_fix', 'third_fix']
+
+// Same sub-stage label keys every other reader of these codes uses
+// (FloorBreakdown.tsx / FloorMatrix.tsx / qc-inspections/page.tsx) — this
+// app's own convention is every file keeps its own local copy rather than
+// a shared import (see floors/actions.ts's requireProjectPic for the same
+// pattern applied to a gate helper).
+const SUB_STAGE_KEYS: Record<string, DictionaryKey> = {
+  first_fix: 'subStageFirstFix',
+  second_fix: 'subStageSecondFix',
+  third_fix: 'subStageThirdFix',
+}
 
 /**
  * Brief 080 / Handoff Addendum v6.1 §2 — Installation cross-project list.
@@ -88,6 +101,14 @@ export default async function InstallationPage({
     scopedProjects.map((p) => p.id),
   )
 
+  // Brief 095 §4.3 — the project's own PIC, named first on every row
+  // (v7.1 §1.1). Same getUserProfilesByIds/formatMemberName pattern the
+  // rest of the app already uses for a project's PIC.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const rows: CrossListRow[] = scopedProjects
     .filter((p) => (trackData.get(p.id)?.floors.length ?? 0) > 0)
     .map((project) => {
@@ -101,13 +122,35 @@ export default async function InstallationPage({
       // real floor total (previously a fully-finished floor was dropped
       // entirely — the AD9001-26S bug: 5 counted of 6).
       const counts = { not_started: 0, first_fix: 0, second_fix: 0, third_fix: 0, complete: 0 }
+      // Brief 095 §4.1/§3 — tracks not just the oldest AGE but WHICH floor
+      // and bucket produced it, so the row can name what the age is of
+      // ("L07 · second fix"). oldestFloorId stays null when no bucket
+      // ever qualifies (every floor 'complete') — deliberately NOT the
+      // same thing as oldestAge === 0, which could also mean a real stuck
+      // bucket that started moving today (§3's "never moved" rule).
       let oldestAge = 0
+      let oldestFloorId: string | null = null
+      let oldestBucketKey: string | null = null
       for (const b of buckets) {
         counts[b.bucket as keyof typeof counts]++
         // A complete floor has nothing stuck — excluded from the age key
         // (floorStageBuckets.ts's own header, Brief 082 §2).
-        if (b.bucket !== 'complete') oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
+        if (b.bucket !== 'complete') {
+          const age = daysSinceICT(b.stuckSince)
+          if (oldestFloorId === null || age > oldestAge) {
+            oldestAge = age
+            oldestFloorId = b.floorId
+            oldestBucketKey = b.bucket
+          }
+        }
       }
+      const oldestFloorLabel = oldestFloorId ? (data.floors.find((f) => f.id === oldestFloorId)?.label ?? oldestFloorId) : null
+      const ageContext =
+        oldestFloorId === null
+          ? t('crossListAgeNothingWaiting')
+          : oldestBucketKey === 'not_started'
+            ? `${oldestFloorLabel} · ${t('statusNotStarted')}`
+            : `${oldestFloorLabel} · ${t(SUB_STAGE_KEYS[oldestBucketKey!] ?? 'subStageFirstFix')}`
 
       return {
         projectId: project.id,
@@ -116,6 +159,8 @@ export default async function InstallationPage({
         soIsPending: !project.soNumber,
         ageDays: oldestAge,
         ageBand: getAgeLabelBand(oldestAge),
+        holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+        ageContext,
         href: `/projects/${project.id}?view=matrix`,
         summary: (
           <div className="cross-list__row-summary-line">

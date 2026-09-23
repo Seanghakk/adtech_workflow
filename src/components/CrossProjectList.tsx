@@ -25,6 +25,10 @@ import type { DictionaryKey } from '@/lib/i18n/dictionary'
  * (transparent / rgba(32,30,29,.3) / #201e1d / #c62430), scoped to these
  * six lists via its own CSS classes (.cross-list__row--{band}) rather
  * than reusing --age-band-* (a different, already-spoken-for token set).
+ * This rule and the ageBand/ageDays fields already existed before Brief
+ * 095 — what was missing, and what that brief added, was the visible age
+ * TEXT itself (holderLabel/ageContext below) — the row wrapper was
+ * already getting coloured correctly, it just never said why.
  */
 export interface CrossListRow {
   projectId: string
@@ -36,6 +40,19 @@ export interface CrossListRow {
   href: string
   /** The track-specific summary line(s) — each page renders its own. */
   summary: ReactNode
+  /** Brief 095 §4.3 — v7.1 §1.1's "one owner, one clock" invariant: the
+   *  person holding the row named FIRST, on every row including a
+   *  red-band one. The project's own PIC, for these six project-level
+   *  lists. null when no PIC is assigned (rendered as the app's usual
+   *  "Unassigned" word, not left blank). */
+  holderLabel: string
+  /** Brief 095 §4.1 — the age's own short context: what the age is OF
+   *  ("L07 · second fix", "since PO issued"), or a plain-words statement
+   *  when there is genuinely nothing to clock (§3's own "never moved"
+   *  rule — never a bare "0d"). null only when a track has no age concept
+   *  to show at all for this row (never expected in practice, since every
+   *  row on these six lists has at least one of these to say). */
+  ageContext: string | null
 }
 
 function scopeTabsFor(t: (key: DictionaryKey) => string): { value: Scope; label: string }[] {
@@ -139,8 +156,16 @@ export function CrossProjectListRows({
         <li key={row.projectId} className={`cross-list__row cross-list__row--${row.ageBand}`}>
           <Link href={row.href} className="cross-list__row-link">
             <div className="cross-list__row-identity">
+              {/* Brief 095 §4.3 — the holder named FIRST, v7.1 §1.1,
+                  unchanged on every band including red/stalled. */}
+              <span className="cross-list__row-holder">{row.holderLabel}</span>
               <span className={row.soIsPending ? 'so-number so-number--pending' : 'so-number'}>{row.soLabel}</span>
               <span className="cross-list__row-project-name">{row.projectName}</span>
+              {row.ageContext && (
+                <span className="cross-list__row-age">
+                  {row.ageDays > 0 ? `${row.ageDays}d · ${row.ageContext}` : row.ageContext}
+                </span>
+              )}
             </div>
             <div className="cross-list__row-summary">{row.summary}</div>
           </Link>

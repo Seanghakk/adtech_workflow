@@ -1117,6 +1117,16 @@ const en = {
   // Brief 094 §3.4 — distinct from both empty-state sentences above: a
   // genuine read failure must never look like a scope with nothing in it.
   crossListLoadError: 'This list could not be loaded — try refreshing. If this keeps happening, tell a manager.',
+  // Brief 095 §3 — the honest "nothing to clock" context, shared across
+  // all six lists' rows, rather than a bare, misleadingly-precise "0d"
+  // when nothing is actually waiting/stuck/undelivered/in progress.
+  crossListAgeNothingWaiting: 'Nothing currently waiting.',
+  // Brief 095 §4.1 — procurement's own row context: workflow.
+  // procurement_lines carries no name/description column (checked, not
+  // assumed — see this list's own page header), so unlike the other five
+  // lists this cannot name a specific line; this is the honest, best-
+  // available substitute naming the real event the age is measured from.
+  crossListProcurementSincePoIssued: 'since PO issued',
 
   // Brief 082 §4 — REPLACES the removed drawn/approved/with-client
   // mapping (Brief 080's original guess was wrong: 'in_progress' means

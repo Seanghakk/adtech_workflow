@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -94,6 +95,12 @@ export default async function ShopDrawingPage({
   const scopedProjects = filterProjectsByScope(allProjects, scope, member, teamIdByUserId)
   const projectIds = scopedProjects.map((p) => p.id)
 
+  // Brief 095 §4.3 — see installation/page.tsx's own identical comment.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const { data: itemRows } =
     projectIds.length > 0
       ? await supabase
@@ -104,11 +111,20 @@ export default async function ShopDrawingPage({
       : { data: [] }
 
   const itemsByProject = new Map<string, { floorId: string; status: string; updatedAt: string }[]>()
+  const floorIds = new Set<string>()
   for (const r of itemRows ?? []) {
     const list = itemsByProject.get(r.project_id) ?? []
     list.push({ floorId: r.floor_id!, status: r.status, updatedAt: r.updated_at })
     itemsByProject.set(r.project_id, list)
+    if (r.floor_id) floorIds.add(r.floor_id)
   }
+
+  // Brief 095 §4.1 — a floor label to name what the age is of ("L07"),
+  // same shape as installation/testing-commissioning's own floor lookup
+  // — this page has no other reason to read project_floors otherwise.
+  const { data: floorRows } =
+    floorIds.size > 0 ? await supabase.from('project_floors').select('id, label').in('id', [...floorIds]) : { data: [] }
+  const floorLabelById = new Map((floorRows ?? []).map((f) => [f.id, f.label]))
 
   const rows: CrossListRow[] = scopedProjects
     .filter((p) => (itemsByProject.get(p.id)?.length ?? 0) > 0)
@@ -116,9 +132,17 @@ export default async function ShopDrawingPage({
       const items = itemsByProject.get(project.id)!
       const counts = computeShopDrawingCounts(items as { status: 'not_started' | 'in_progress' | 'done' }[])
       let oldestWaitAge = 0
+      let oldestWaitFloorId: string | null = null
       for (const item of items.filter((i) => i.status === 'in_progress')) {
-        oldestWaitAge = Math.max(oldestWaitAge, daysSinceICT(item.updatedAt))
+        const age = daysSinceICT(item.updatedAt)
+        if (oldestWaitFloorId === null || age > oldestWaitAge) {
+          oldestWaitAge = age
+          oldestWaitFloorId = item.floorId
+        }
       }
+      const ageContext = oldestWaitFloorId
+        ? `${floorLabelById.get(oldestWaitFloorId) ?? oldestWaitFloorId} · ${t('crossListShopDrawingInProgress')}`
+        : t('crossListAgeNothingWaiting')
 
       return {
         projectId: project.id,
@@ -127,6 +151,8 @@ export default async function ShopDrawingPage({
         soIsPending: !project.soNumber,
         ageDays: oldestWaitAge,
         ageBand: getAgeLabelBand(oldestWaitAge),
+        holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+        ageContext,
         href: `/projects/${project.id}/shop-drawing-boq`,
         summary: (
           <div className="cross-list__row-summary-line">

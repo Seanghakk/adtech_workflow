@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -29,6 +30,17 @@ const COUNT_LABEL_KEYS: Partial<Record<MatrixCellState, DictionaryKey>> = {
   stalled: 'crossListFloorProgressStalled',
 }
 const BAR_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting_qc', 'qc_passed', 'qc_failed', 'stalled']
+
+// Same convention as installation/page.tsx's own local copy — see that
+// file's own comment for why this is duplicated per file rather than
+// shared.
+const SUB_STAGE_KEYS: Record<string, DictionaryKey> = {
+  first_fix: 'subStageFirstFix',
+  second_fix: 'subStageSecondFix',
+  third_fix: 'subStageThirdFix',
+  pre_commissioning: 'subStagePreCommissioning',
+  commissioning: 'subStageCommissioning',
+}
 
 /**
  * Brief 080 / Handoff Addendum v6.1 §2, §3 — the Floor progress
@@ -98,6 +110,12 @@ export default async function FloorProgressPage({
     scopedProjects.map((p) => p.id),
   )
 
+  // Brief 095 §4.3 — see installation/page.tsx's own identical comment.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const rows: CrossListRow[] = scopedProjects
     .filter((p) => (trackData.get(p.id)?.floors.length ?? 0) > 0) // no floors = nothing for the bar to show
     .map((project) => {
@@ -121,6 +139,11 @@ export default async function FloorProgressPage({
         stalled: 0,
       }
       let oldestStalledAge = 0
+      // Brief 095 §4.1/§3 — tracks WHICH floor/sub-stage is the oldest
+      // stalled cell, same reasoning as installation/page.tsx's own
+      // identical comment.
+      let oldestStalledFloorId: string | null = null
+      let oldestStalledSubStage: string | null = null
       for (const row of matrixRows) {
         for (const cell of row.cells) {
           counts[cell.state]++
@@ -137,11 +160,22 @@ export default async function FloorProgressPage({
               // came from buildMatrixRows above) is unavoidable since
               // computeCellState's own return type is state-only.
               const clockDate = latest?.result === 'fail' ? latest.date : subStage.updatedAt
-              oldestStalledAge = Math.max(oldestStalledAge, daysSinceICT(clockDate))
+              const age = daysSinceICT(clockDate)
+              if (oldestStalledFloorId === null || age > oldestStalledAge) {
+                oldestStalledAge = age
+                oldestStalledFloorId = subStage.floorId
+                oldestStalledSubStage = subStage.subStage
+              }
             }
           }
         }
       }
+      const oldestFloorLabel = oldestStalledFloorId
+        ? (data.floors.find((f) => f.id === oldestStalledFloorId)?.label ?? oldestStalledFloorId)
+        : null
+      const ageContext = oldestStalledFloorId
+        ? `${oldestFloorLabel} · ${t(SUB_STAGE_KEYS[oldestStalledSubStage!] ?? 'subStageFirstFix')}`
+        : t('crossListAgeNothingWaiting')
 
       const totalCells = BAR_ORDER.reduce((sum, s) => sum + counts[s], 0)
 
@@ -152,6 +186,8 @@ export default async function FloorProgressPage({
         soIsPending: !project.soNumber,
         ageDays: oldestStalledAge,
         ageBand: getAgeLabelBand(oldestStalledAge),
+        holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+        ageContext,
         href: `/projects/${project.id}?view=matrix`,
         summary: (
           <>
