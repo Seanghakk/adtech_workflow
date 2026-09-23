@@ -1360,10 +1360,33 @@ const en = {
     'The file reached the app but the preview did not finish. Nothing was written and nothing was partly read. Try again; if it fails twice with the same file, send it to a project manager.',
   boqImportTryAgain: 'Try again',
 
-  // Refusal + remaining top-level messages.
+  // Refusals + remaining top-level messages.
+  //
+  // Brief 099 §3 — the sentence names whoever actually owns that TIER,
+  // never "the PIC" by default, because sending someone to the wrong
+  // person is worse than saying nothing. Contract belongs to the project's
+  // PIC; the shop drawing BOQ to Shop Drawing and A&A; the tender BOQ has
+  // no team rule behind it at all today, only superadmin, so it says that
+  // plainly rather than naming a team that cannot actually help.
+  boqImportRefusedContractPrefix: 'Only the PIC,',
+  boqImportRefusedContractSuffix:
+    ', can import the contract BOQ on this project. You can read everything here.',
+  boqImportRefusedShopDrawing:
+    'Only the Shop Drawing and A&A teams can import the shop drawing BOQ. You can read everything here.',
+  boqImportRefusedTender:
+    'Only a superadmin can import the tender BOQ. Ask a project manager if it needs importing. You can read everything here.',
   boqImportRefusedNotPic: 'Only the PIC can import a BOQ on this project.',
-  boqImportRefusedPrefix: 'Only the PIC,',
-  boqImportRefusedSuffix: ', can import a BOQ on this project. You can read everything here.',
+
+  // Brief 099 §2 — an importer who may write this tier but is not the PIC
+  // cannot create floors or systems, so "Create" is not offered at all.
+  // The proposal is still named, and so is the person who can add it.
+  boqImportProposalCannotCreatePrefix: 'This file uses',
+  boqImportProposalCannotCreateFloorSuffix:
+    'which is not set up on this project. Only the PIC,',
+  boqImportProposalCannotCreateSystemSuffix:
+    'which is not set up on this project. Only the PIC,',
+  boqImportProposalCannotCreateEnd:
+    ', can add it. You can map it to an existing one, or skip it — either way the lines still import.',
   boqImportNoRows: 'This file has no rows to import. Nothing was written.',
   boqImportNothingToCommit: 'There is nothing to commit.',
   boqImportCommitFailed: 'Could not commit this import. Nothing was written — try again.',

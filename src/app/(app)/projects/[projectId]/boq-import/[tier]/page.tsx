@@ -7,6 +7,8 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { BOQ_TIER_BY_SLUG } from '@/lib/boq/tiers'
+import { canImportTier, canCreateProjectSetup } from '@/lib/boq/permissions'
+import { getCurrentMember } from '@/lib/auth/current-member'
 import { buildFloorColumns } from '../../shop-drawing-boq/floor-columns'
 import { BoqImportFlow } from './BoqImportFlow'
 
@@ -20,10 +22,12 @@ export const metadata: Metadata = {
  * older per-tier import routes now redirect here, so there is one flow to
  * maintain and one place the behaviour lives.
  *
- * PIC-gated (§4): a non-PIC still sees the section and its data, with the
- * §6.4 sentence standing in place of the controls — never a disabled
- * button. The real enforcement is migration 037's own internal check
- * inside workflow.commit_boq_import.
+ * Brief 099 §3 — the import control appears for whoever may actually write
+ * THAT TIER, and the refusal sentence names that tier's real owner rather
+ * than the PIC by default. Someone who may not import still reads
+ * everything on the page; the sentence stands in place of the controls,
+ * never a disabled button. The real enforcement is migration 037's own
+ * per-tier check inside workflow.commit_boq_import.
  */
 export default async function BoqImportPage({ params }: PageProps<'/projects/[projectId]/boq-import/[tier]'>) {
   const { projectId, tier } = await params
@@ -35,9 +39,7 @@ export default async function BoqImportPage({ params }: PageProps<'/projects/[pr
   const supabase = await createClient()
   const t = await getServerTranslator()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, member } = await getCurrentMember()
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
@@ -53,6 +55,12 @@ export default async function BoqImportPage({ params }: PageProps<'/projects/[pr
   }
 
   const isPic = Boolean(user && project.pic_id && project.pic_id === user.id)
+  const who = {
+    isPic,
+    isSuperadmin: Boolean(member?.isSuperadmin),
+    teamCode: member?.teamCode ?? '',
+  }
+  const mayImport = canImportTier(config.tier, who)
 
   const [{ data: towerRows }, { data: floorRows }, { count: existingCount, error: countError }] = await Promise.all([
     supabase.from('project_towers').select('id, label, sort_order').eq('project_id', projectId),
@@ -101,7 +109,7 @@ export default async function BoqImportPage({ params }: PageProps<'/projects/[pr
           <h1 className="wf-admin__title">{project.name}</h1>
         </div>
 
-        {isPic ? (
+        {mayImport ? (
           <BoqImportFlow
             projectId={project.id}
             tierSlug={config.slug}
@@ -111,11 +119,21 @@ export default async function BoqImportPage({ params }: PageProps<'/projects/[pr
             floorColumnHeaders={floorColumnHeaders}
             isFirstImport={(existingCount ?? 0) === 0}
             setupHref={`/projects/${project.id}/setup#boq`}
+            canCreateSetup={canCreateProjectSetup(who)}
+            picLabel={picLabel ?? t('dashboardUnassigned')}
           />
         ) : (
           <p className="wf-refused-card" role="status">
-            {t('boqImportRefusedPrefix')} {picLabel ?? t('dashboardUnassigned')}
-            {t('boqImportRefusedSuffix')}
+            {config.tier === 'contract' ? (
+              <>
+                {t('boqImportRefusedContractPrefix')} {picLabel ?? t('dashboardUnassigned')}
+                {t('boqImportRefusedContractSuffix')}
+              </>
+            ) : config.tier === 'shop_drawing' ? (
+              t('boqImportRefusedShopDrawing')
+            ) : (
+              t('boqImportRefusedTender')
+            )}
           </p>
         )}
       </div>

@@ -26,6 +26,8 @@ export function BoqImportFlow({
   floorColumnHeaders,
   isFirstImport,
   setupHref,
+  canCreateSetup,
+  picLabel,
 }: {
   projectId: string
   tierSlug: string
@@ -35,6 +37,10 @@ export function BoqImportFlow({
   floorColumnHeaders: string[]
   isFirstImport: boolean
   setupHref: string
+  /** Brief 099 §2 — creating floors and systems stays PIC-only, even for an
+   *  importer who may legitimately write this tier. */
+  canCreateSetup: boolean
+  picLabel: string
 }) {
   const { t } = useLanguage()
   const [previewState, previewAction, previewing] = useActionState(previewBoqImport, boqImportInitialState)
@@ -156,6 +162,8 @@ export function BoqImportFlow({
                 commitAction={commitAction}
                 committing={committing}
                 onCancel={() => setDismissedFor(preview)}
+                canCreateSetup={canCreateSetup}
+                picLabel={picLabel}
                 t={t}
               />
             )}
@@ -243,6 +251,8 @@ function PreviewCard({
   commitAction,
   committing,
   onCancel,
+  canCreateSetup,
+  picLabel,
   t,
 }: {
   preview: BoqPreview
@@ -252,6 +262,8 @@ function PreviewCard({
   commitAction: (formData: FormData) => void
   committing: boolean
   onCancel: () => void
+  canCreateSetup: boolean
+  picLabel: string
   t: T
 }) {
   const [floorDecisions, setFloorDecisions] = useState<FloorProposalDecision[]>(
@@ -260,12 +272,12 @@ function PreviewCard({
       towerLabel: f.towerLabel,
       drawingCode: f.drawingCode,
       sortOrder: f.sortOrder,
-      choice: 'create' as const,
+      choice: (canCreateSetup ? 'create' : 'skip') as FloorProposalDecision['choice'],
       mapToFloorId: null,
     })),
   )
   const [systemDecisions, setSystemDecisions] = useState(
-    preview.proposedSystems.map((s) => ({ name: s.name, cadCode: s.cadCode, include: true })),
+    preview.proposedSystems.map((s) => ({ name: s.name, cadCode: s.cadCode, include: canCreateSetup })),
   )
 
   const changedCount = preview.changedLines.length
@@ -368,23 +380,29 @@ function PreviewCard({
                   }
                 />
                 <span className="boq-import__choices">
-                  {(['create', 'map', 'skip'] as const).map((choice) => (
-                    <label key={choice} className="boq-import__choice">
-                      <input
-                        type="radio"
-                        name={`floor-${i}`}
-                        checked={d.choice === choice}
-                        onChange={() =>
-                          setFloorDecisions((prev) => prev.map((x, j) => (j === i ? { ...x, choice } : x)))
-                        }
-                      />
-                      {choice === 'create'
-                        ? t('boqImportProposalCreate')
-                        : choice === 'map'
-                          ? t('boqImportProposalMap')
-                          : t('boqImportProposalSkip')}
-                    </label>
-                  ))}
+                  {/* Brief 099 §2 — "Create" is simply not offered to an
+                      importer who is not the PIC, rather than shown and
+                      then refused. The sentence below names the missing
+                      floor and the person who can add it. */}
+                  {(canCreateSetup ? (['create', 'map', 'skip'] as const) : (['map', 'skip'] as const)).map(
+                    (choice) => (
+                      <label key={choice} className="boq-import__choice">
+                        <input
+                          type="radio"
+                          name={`floor-${i}`}
+                          checked={d.choice === choice}
+                          onChange={() =>
+                            setFloorDecisions((prev) => prev.map((x, j) => (j === i ? { ...x, choice } : x)))
+                          }
+                        />
+                        {choice === 'create'
+                          ? t('boqImportProposalCreate')
+                          : choice === 'map'
+                            ? t('boqImportProposalMap')
+                            : t('boqImportProposalSkip')}
+                      </label>
+                    ),
+                  )}
                   {d.choice === 'map' && (
                     <select
                       className="wf-form-row__input"
@@ -403,6 +421,13 @@ function PreviewCard({
                         </option>
                       ))}
                     </select>
+                  )}
+                  {!canCreateSetup && (
+                    <span className="boq-import__cannot-create">
+                      {t('boqImportProposalCannotCreatePrefix')} “{d.label}”,{' '}
+                      {t('boqImportProposalCannotCreateFloorSuffix')} {picLabel}
+                      {t('boqImportProposalCannotCreateEnd')}
+                    </span>
                   )}
                 </span>
               </div>
@@ -431,6 +456,7 @@ function PreviewCard({
                   className="wf-form-row__input"
                   value={s.cadCode ?? ''}
                   aria-label={t('boqImportProposedColCadCode')}
+                  hidden={!canCreateSetup}
                   onChange={(e) =>
                     setSystemDecisions((prev) =>
                       prev.map((x, j) => (j === i ? { ...x, cadCode: e.target.value || null } : x)),
@@ -444,18 +470,26 @@ function PreviewCard({
                     </option>
                   ))}
                 </select>
-                <label className="boq-import__choice">
-                  <input
-                    type="checkbox"
-                    checked={s.include}
-                    onChange={(e) =>
-                      setSystemDecisions((prev) =>
-                        prev.map((x, j) => (j === i ? { ...x, include: e.target.checked } : x)),
-                      )
-                    }
-                  />
-                  {s.include ? t('boqImportProposalCreate') : t('boqImportProposalSkip')}
-                </label>
+                {canCreateSetup ? (
+                  <label className="boq-import__choice">
+                    <input
+                      type="checkbox"
+                      checked={s.include}
+                      onChange={(e) =>
+                        setSystemDecisions((prev) =>
+                          prev.map((x, j) => (j === i ? { ...x, include: e.target.checked } : x)),
+                        )
+                      }
+                    />
+                    {s.include ? t('boqImportProposalCreate') : t('boqImportProposalSkip')}
+                  </label>
+                ) : (
+                  <span className="boq-import__cannot-create">
+                    {t('boqImportProposalCannotCreatePrefix')} “{s.name}”,{' '}
+                    {t('boqImportProposalCannotCreateSystemSuffix')} {picLabel}
+                    {t('boqImportProposalCannotCreateEnd')}
+                  </span>
+                )}
               </div>
             ))}
           </div>

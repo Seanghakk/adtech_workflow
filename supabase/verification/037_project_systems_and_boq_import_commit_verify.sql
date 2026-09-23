@@ -3,7 +3,8 @@
 -- Brief: ADTECH_WF_Brief_098_BOQ_Import_Preview_And_Project_Systems §2, §4
 --
 -- One row per check, expected vs actual, PASS/FAIL — this repo's own
--- Brief 088 style. Run AFTER applying migration 037. Every row must PASS.
+-- Brief 088 style. Run AFTER applying migration 037 (as amended by
+-- Brief 099). All 14 rows must PASS.
 -- =============================================================================
 
 with checks as (
@@ -111,6 +112,27 @@ with checks as (
       where schemaname = 'workflow' and tablename = 'tender_boq_lines'
         and cmd = 'INSERT'), 'MISSING')
 
+  union all
+  -- Brief 099 §1 — the import now follows each tier's OWNER. These two
+  -- assert the other half of "do not loosen any table policy": the
+  -- contract tier is still the PIC's, and the shop drawing tier is still
+  -- Shop Drawing's and A&A's. Together with check 12 that covers all
+  -- three tables the commit function writes.
+  select 13, 'contract_boq_lines INSERT policy still names pic_id',
+    'true',
+    coalesce((select (with_check like '%pic_id%')::text
+      from pg_policies
+      where schemaname = 'workflow' and tablename = 'contract_boq_lines'
+        and cmd = 'INSERT'), 'MISSING')
+
+  union all
+  select 14, 'shop_drawing_boq_lines INSERT policy still names the two teams',
+    'true',
+    coalesce((select (with_check like '%shop_drawing%' and with_check like '%a_and_a%')::text
+      from pg_policies
+      where schemaname = 'workflow' and tablename = 'shop_drawing_boq_lines'
+        and cmd = 'INSERT'), 'MISSING')
+
 )
 select n, check_name, expected, actual,
   case when expected = actual then 'PASS' else 'FAIL' end as verdict
@@ -127,6 +149,12 @@ order by n;
 --     and leaves lines missing from the file in place (never deleted)
 --   * a line with no item number raises, and writes nothing
 --   * an unknown tier raises
---   * the PIC CAN commit tender lines through the function, and still
---     CANNOT insert into tender_boq_lines directly (check 12 above)
---   * a non-PIC is refused by the function, and by project_systems' RLS
+--   * the import follows each tier's OWNER (Brief 099): the PIC commits
+--     contract and is refused shop drawing and tender; a Shop Drawing or
+--     A&A member commits shop drawing and is refused contract and tender;
+--     a superadmin commits all three
+--   * creating floors/systems stays with the PIC even for an importer who
+--     may legitimately write that tier — the lines still import
+--   * direct writes to all three tables behave exactly as they did before
+--     migration 037 existed (checks 12-14 above)
+--   * a non-PIC is refused by project_systems' RLS

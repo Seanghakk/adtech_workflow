@@ -13,6 +13,8 @@ import { FloorTableRow, type FloorTableRowData } from './FloorTableRow'
 import { AddFloorRow } from './AddFloorRow'
 import { AddTowerRow } from './AddTowerRow'
 import { SystemsSection, type ProjectSystemRow } from './SystemsSection'
+import { canImportTier } from '@/lib/boq/permissions'
+import { getCurrentMember } from '@/lib/auth/current-member'
 
 export const metadata: Metadata = {
   title: 'Project setup — ADTECH Workflow Tracker',
@@ -38,9 +40,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
   const supabase = await createClient()
   const t = await getServerTranslator()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, member } = await getCurrentMember()
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
@@ -58,6 +58,9 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
   }
 
   const isPic = Boolean(user && project.pic_id && project.pic_id === user.id)
+  // Brief 099 §3 — the BOQ section's own "Import a BOQ" links follow each
+  // tier's owner, exactly as the import screen itself does.
+  const who = { isPic, isSuperadmin: Boolean(member?.isSuperadmin), teamCode: member?.teamCode ?? '' }
   const client = Array.isArray(project.clients) ? project.clients[0] : project.clients
   const site = Array.isArray(project.sites) ? project.sites[0] : project.sites
 
@@ -289,7 +292,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                   every other control in this section, even on an empty
                   project: a non-PIC gets the §6.4 sentence, never an
                   inviting button for something they cannot do. */}
-              {isPic && (
+              {canImportTier('contract', who) && (
                 <div className="wf-empty-state-card__actions">
                   <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
                     {t('setupStructureEmptyImport')}
@@ -357,7 +360,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
             <div className="wf-empty-state-card">
               <p className="wf-empty-state-card__headline">{t('setupBoqEmptyHeadline')}</p>
               <p className="wf-empty-state-card__body">{t('setupBoqEmptyBody')}</p>
-              {isPic && (
+              {canImportTier('contract', who) && (
                 <div className="wf-empty-state-card__actions">
                   <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
                     {t('setupBoqEmptyImport')}
@@ -373,7 +376,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 lastImport={contractLastImport}
                 importedBy={null}
                 href={`/projects/${project.id}/contract-boq`}
-                importHref={isPic ? `/projects/${project.id}/boq-import/contract` : null}
+                importHref={canImportTier('contract', who) ? `/projects/${project.id}/boq-import/contract` : null}
                 t={t}
               />
               <BoqTierRow
@@ -382,7 +385,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 lastImport={tenderLastImport}
                 importedBy={null}
                 href={`/projects/${project.id}/tender-boq`}
-                importHref={isPic ? `/projects/${project.id}/boq-import/tender` : null}
+                importHref={canImportTier('tender', who) ? `/projects/${project.id}/boq-import/tender` : null}
                 t={t}
               />
               <BoqTierRow
@@ -391,7 +394,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 lastImport={shopDrawingLastImport}
                 importedBy={shopDrawingImporterLabel}
                 href={`/projects/${project.id}/shop-drawing-boq`}
-                importHref={isPic ? `/projects/${project.id}/boq-import/shop-drawing` : null}
+                importHref={canImportTier('shop_drawing', who) ? `/projects/${project.id}/boq-import/shop-drawing` : null}
                 t={t}
               />
             </div>

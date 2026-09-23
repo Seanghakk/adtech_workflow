@@ -6,24 +6,34 @@
 -- TWO objects, deliberately in ONE migration, because Brief 098 §4's own
 -- "Commit writes all-or-nothing per committed group... If that needs a
 -- database function, say so and write it in the same migration" is exactly
--- the case here, for a reason worth stating plainly:
+-- the case here.
 --
---   The three BOQ tiers have THREE DIFFERENT RLS write gates today —
---   checked directly on rollback-test, not assumed:
+-- AMENDED BY BRIEF 099, 23 Sep 2026 — in place, not stacked, because this
+-- migration had not been applied to production when the correction landed.
+--
+--   Brief 098 §4 said "import is PIC-gated, like the rest of setup" for all
+--   three tiers. That instruction was wrong. Each BOQ tier belongs to a
+--   different part of the company, and each table already says so:
 --     contract_boq_lines    : PIC-of-project OR superadmin
 --     shop_drawing_boq_lines: superadmin OR current_team() in
---                             ('shop_drawing','a_and_a')  — the PIC is NOT
---                             included
---     tender_boq_lines      : superadmin ONLY — the PIC cannot write a
---                             tender line at all
---   Brief 098 §4 says "Import is PIC-gated, like the rest of setup" for all
---   three. Those two statements cannot both hold through the table policies
---   as they stand, so the commit goes through one SECURITY DEFINER function
---   that applies the PIC rule itself, uniformly, for every tier. That also
---   gives the all-or-nothing guarantee for free: a plpgsql function body is
---   one transaction, so a failure anywhere rolls the whole commit back.
---   The tables' own policies are NOT loosened here — nothing about who may
---   write them directly changes.
+--                             ('shop_drawing','a_and_a')
+--     tender_boq_lines      : superadmin ONLY
+--   An import is just another way to write those lines, so it must not
+--   become a side door that widens who may write them. This function now
+--   applies, PER TIER, exactly the rule that tier's own table policy
+--   applies — no broader, no narrower.
+--
+--   Creating FLOORS and SYSTEMS is a separate question, and stays where
+--   v7.2 §6.4 puts it: the project's PIC (or a superadmin), which is
+--   precisely what project_floors' and project_systems' own INSERT
+--   policies already say. So a Shop Drawing member may import shop drawing
+--   lines but may not create floors while doing it.
+--
+-- The SECURITY DEFINER wrapper is still what gives Brief 098 §4's
+-- all-or-nothing guarantee: one plpgsql body is one transaction, so a
+-- failure anywhere rolls the whole commit back. No table policy is
+-- loosened by this migration — nothing about who may write these tables
+-- DIRECTLY changes.
 -- =============================================================================
 
 begin;
@@ -172,6 +182,11 @@ as $$
 declare
   v_pic_id uuid;
   v_uid uuid := (select auth.uid());
+  v_superadmin boolean := workflow.is_superadmin();
+  v_team text := workflow.current_team();
+  v_is_pic boolean;
+  v_may_write_tier boolean;
+  v_may_create_setup boolean;
   v_floors_created int := 0;
   v_systems_added int := 0;
   v_inserted int := 0;
@@ -194,8 +209,41 @@ begin
     raise exception 'No such project.';
   end if;
 
-  if not (workflow.is_superadmin() or v_pic_id = v_uid) then
-    raise exception 'Only this project''s PIC may import a BOQ here.';
+  v_is_pic := v_pic_id is not null and v_pic_id = v_uid;
+
+  -- Brief 099 §1 — per tier, exactly that tier's own table policy. These
+  -- three expressions are deliberately literal transcriptions of the
+  -- policies on contract_boq_lines, shop_drawing_boq_lines and
+  -- tender_boq_lines; if a policy is ever changed, change it here too.
+  v_may_write_tier := case p_tier
+    when 'contract'     then v_superadmin or v_is_pic
+    when 'shop_drawing' then v_superadmin or v_team in ('shop_drawing', 'a_and_a')
+    when 'tender'       then v_superadmin
+  end;
+
+  if not v_may_write_tier then
+    raise exception '%', case p_tier
+      when 'contract'     then 'Only this project''s PIC may import the contract BOQ.'
+      when 'shop_drawing' then 'Only the Shop Drawing and A&A teams may import the shop drawing BOQ.'
+      when 'tender'       then 'Only a superadmin may import the tender BOQ.'
+    end;
+  end if;
+
+  -- Brief 099 §2 — creating floors and systems is project setup, which
+  -- v7.2 §6.4 keeps with the PIC. Same rule project_floors' and
+  -- project_systems' own INSERT policies apply. A Shop Drawing member may
+  -- import shop drawing lines without being able to create floors, so this
+  -- is checked separately from the tier gate above, and only when the
+  -- caller actually asked to create something.
+  v_may_create_setup := v_superadmin or v_is_pic;
+
+  if not v_may_create_setup then
+    if jsonb_array_length(coalesce(p_floors, '[]'::jsonb)) > 0 then
+      raise exception 'Only this project''s PIC may add floors to it.';
+    end if;
+    if jsonb_array_length(coalesce(p_systems, '[]'::jsonb)) > 0 then
+      raise exception 'Only this project''s PIC may add systems to it.';
+    end if;
   end if;
 
   -- 2a. Proposed floors first — lines' floor locations resolve against them.
@@ -384,16 +432,24 @@ end;
 $$;
 
 comment on function workflow.commit_boq_import(uuid, text, jsonb, jsonb, jsonb) is
-  'Brief 098 §4. The one atomic write path for a BOQ import commit, all three
-   tiers. SECURITY DEFINER with an internal PIC-or-superadmin check, because
-   the three tier tables carry three DIFFERENT RLS write gates (contract:
-   PIC; shop drawing: shop_drawing/a_and_a team; tender: superadmin only)
-   and Brief 098 §4 requires one uniform PIC rule for import. Upserts on
-   (project_id, item_number) — the stable key of migration 034 — so a
-   re-import updates in place rather than duplicating (v7.2 §7.4, open item
-   13). NEVER deletes a BOQ line: lines in the app but not in the file are
-   reported by the preview and left untouched (v7.2 §7.4). One plpgsql body
-   = one transaction, which is what gives Brief 098 §4''s all-or-nothing
-   guarantee.';
+  'Brief 098 §4, amended by Brief 099 §1-§2. The one atomic write path for a
+   BOQ import commit, all three tiers.
+
+   PERMISSION FOLLOWS EACH TIER''S OWNER, not the PIC: the import applies
+   per tier exactly the rule that tier''s own table policy applies —
+   contract = PIC or superadmin; shop drawing = superadmin or
+   current_team() in (shop_drawing, a_and_a); tender = superadmin only. An
+   import is just another way to write those lines and must not widen who
+   may write them. Creating floors or systems is separate and stays with
+   the PIC (or a superadmin), matching project_floors'' and
+   project_systems'' own INSERT policies — so a Shop Drawing member can
+   import shop drawing lines but cannot create floors while doing it.
+
+   Upserts on (project_id, item_number) — the stable key of migration 034 —
+   so a re-import updates in place rather than duplicating (v7.2 §7.4, open
+   item 13). NEVER deletes a BOQ line: lines in the app but not in the file
+   are reported by the preview and left untouched (v7.2 §7.4). One plpgsql
+   body = one transaction, which is what gives Brief 098 §4''s
+   all-or-nothing guarantee. No table policy is loosened by this migration.';
 
 commit;

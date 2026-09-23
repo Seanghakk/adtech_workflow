@@ -19,6 +19,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { BOQ_TIER_BY_SLUG, type BoqTierConfig } from '@/lib/boq/tiers'
+import { canImportTier, canCreateProjectSetup } from '@/lib/boq/permissions'
+import { getCurrentMember } from '@/lib/auth/current-member'
 import { parseBoqSheet, type ParsedBoqLine } from '@/lib/boq/parse'
 import { buildFloorColumns } from '../../shop-drawing-boq/floor-columns'
 import {
@@ -31,13 +33,20 @@ import type { BoqImportState, FloorProposalDecision } from './import-shared'
 
 const fail = (error: string): BoqImportState => ({ notTemplate: null, error, preview: null, result: null })
 
+interface Gate {
+  picId: string | null
+  userId: string
+  soNumber: string | null
+  isPic: boolean
+  isSuperadmin: boolean
+  teamCode: string
+}
+
 async function loadProjectAndGate(
   supabase: Awaited<ReturnType<typeof createClient>>,
   projectId: string,
-): Promise<{ picId: string | null; userId: string; soNumber: string | null } | { error: string }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+): Promise<Gate | { error: string }> {
+  const { user, member } = await getCurrentMember()
   if (!user) return { error: 'You need to be signed in to do this.' }
 
   const { data: project, error } = await supabase
@@ -49,7 +58,21 @@ async function loadProjectAndGate(
   if (error) return { error: 'Could not read this project. Nothing was written.' }
   if (!project) return { error: 'Project not found.' }
 
-  return { picId: project.pic_id, userId: user.id, soNumber: project.so_number }
+  return {
+    picId: project.pic_id,
+    userId: user.id,
+    soNumber: project.so_number,
+    isPic: Boolean(project.pic_id && project.pic_id === user.id),
+    isSuperadmin: Boolean(member?.isSuperadmin),
+    teamCode: member?.teamCode ?? '',
+  }
+}
+
+/** Brief 099 §3 — the right refusal sentence for THIS tier. */
+function refusalFor(config: BoqTierConfig, t: (k: 'boqImportRefusedShopDrawing' | 'boqImportRefusedTender' | 'boqImportRefusedNotPic') => string): string {
+  if (config.tier === 'shop_drawing') return t('boqImportRefusedShopDrawing')
+  if (config.tier === 'tender') return t('boqImportRefusedTender')
+  return t('boqImportRefusedNotPic')
 }
 
 /** The project's current floor columns, keyed exactly as a matching
@@ -105,7 +128,7 @@ export async function previewBoqImport(
   if ('error' in gate) return fail(gate.error)
 
   const t = await getServerTranslator()
-  if (gate.picId !== gate.userId) return fail(t('boqImportRefusedNotPic'))
+  if (!canImportTier(config.tier, gate)) return fail(refusalFor(config, t))
 
   let rows2d: unknown[][]
   try {
@@ -236,14 +259,22 @@ export async function commitBoqImport(
   const supabase = await createClient()
   const gate = await loadProjectAndGate(supabase, projectId)
   if ('error' in gate) return fail(gate.error)
-  if (gate.picId !== gate.userId) return fail(t('boqImportRefusedNotPic'))
+  if (!canImportTier(config.tier, gate)) return fail(refusalFor(config, t))
+
+  // Brief 099 §2 — creating floors and systems stays with the PIC even for
+  // an importer who may legitimately write this tier. The UI does not offer
+  // Create to them, so anything arriving here is dropped rather than sent
+  // on to be refused: the lines still import, which is what §2 asks for.
+  // migration 037 raises if a non-PIC asks to create anyway.
+  const maySetUp = canCreateProjectSetup(gate)
 
   // "Map to existing" rewrites the file's own column label onto the floor
   // the user actually meant, so the committed quantity lands on that floor
   // rather than creating a near-duplicate. "Skip" drops the column's
   // quantities entirely — the user declined the proposal, and v7.2 §7.6
   // lets them import the lines anyway.
-  const floorsToCreate = floorDecisions.filter((f) => f.choice === 'create')
+  const floorsToCreate = maySetUp ? floorDecisions.filter((f) => f.choice === 'create') : []
+  const systemsToAdd = maySetUp ? systems : []
   const mapped = new Map<string, string>()
   const skipped = new Set<string>()
   const floorById = new Map<string, string>()
@@ -253,7 +284,10 @@ export async function commitBoqImport(
     if (d.choice === 'map' && d.mapToFloorId) {
       const target = floorById.get(d.mapToFloorId)
       if (target) mapped.set(d.label, target)
-    } else if (d.choice === 'skip') {
+    } else if (d.choice === 'skip' || (d.choice === 'create' && !maySetUp)) {
+      // A non-PIC has no Create control, but treat a create that cannot
+      // happen exactly like a skip rather than attaching quantities to a
+      // floor that will not exist.
       skipped.add(d.label)
     }
   }
@@ -279,7 +313,7 @@ export async function commitBoqImport(
       sortOrder: f.sortOrder,
       towerLabel: f.towerLabel,
     })),
-    p_systems: systems,
+    p_systems: systemsToAdd,
   })
 
   if (error) {

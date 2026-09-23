@@ -6531,3 +6531,17 @@ a.floor-matrix__cell {
     display: none;
   }
 }
+
+/* Brief 099 §2 — shown in place of a "Create" control for an importer who
+   may write this tier but is not the PIC. A sentence naming what is
+   missing and who can add it, never a disabled button (standing rule 3). */
+.boq-import__cannot-create {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  border-left: 5px solid var(--warning);
+  background: var(--warning-tint-bg);
+  padding: var(--space-2) var(--space-3);
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--ink);
+}
