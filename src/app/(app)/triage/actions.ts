@@ -17,6 +17,8 @@
  */
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 
 export interface RouteRequestState {
   error: string | null
@@ -43,13 +45,16 @@ export async function routeRequest(
     return { error: 'Not signed in. Nothing was changed.' }
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('requests')
     .update({ destination_team_id: teamId, destination_unsure: false })
     .eq('id', requestId)
+    .select('id')
 
-  if (error) {
-    return { error: 'Could not route this request. Nothing was changed — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'requests', 'id', requestId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not route this request. Nothing was changed — try again.') }
   }
 
   revalidatePath('/triage')

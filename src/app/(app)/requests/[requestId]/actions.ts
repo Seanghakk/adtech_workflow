@@ -9,6 +9,8 @@
  */
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 
 export interface HandOffState {
   error: string | null
@@ -75,13 +77,31 @@ export async function handOffRequest(
     return { error: 'Could not hand this on. Nothing was changed — try again.' }
   }
 
-  const { error: updateError } = await supabase
+  // Brief 094 §3.5 — this UPDATE happens AFTER the handoff row above is
+  // already committed. If it fails — including silently, zero rows, no
+  // error, exactly the case verifyWriteAffectedRow below exists to catch
+  // — the audit trail now describes a handoff that never took effect.
+  // Reported, not fixed here (making the two atomic is core logic/schema-
+  // adjacent, out of this brief's scope per §3.5's own instruction).
+  const { data, error: updateError } = await supabase
     .from('requests')
     .update({ current_owner_id: toOwnerId })
     .eq('id', requestId)
+    .select('id')
 
-  if (updateError) {
-    return { error: 'The handoff was logged, but the current owner could not be updated. Tell a manager.' }
+  const verdict = await verifyWriteAffectedRow(
+    { data, error: updateError },
+    existsByColumn(supabase, 'requests', 'id', requestId),
+  )
+  if (!verdict.ok) {
+    if (verdict.reason === 'error') {
+      return { error: 'The handoff was logged, but the current owner could not be updated. Tell a manager.' }
+    }
+    const t = await getServerTranslator()
+    // The handoff row is already committed either way (§3.5's own known
+    // gap) — say so explicitly rather than letting a generic refusal
+    // message imply nothing happened at all.
+    return { error: `${writeFailureMessage(verdict, t, '')} The handoff was still logged — tell a manager.` }
   }
 
   revalidatePath(`/requests/${requestId}`)
@@ -134,13 +154,16 @@ export async function closeRequest(
     return { error: 'Only the requester or the current owner can close this request.' }
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('requests')
     .update({ closed_at: new Date().toISOString() })
     .eq('id', requestId)
+    .select('id')
 
-  if (error) {
-    return { error: 'Could not close this request. Nothing was changed — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'requests', 'id', requestId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not close this request. Nothing was changed — try again.') }
   }
 
   revalidatePath(`/requests/${requestId}`)

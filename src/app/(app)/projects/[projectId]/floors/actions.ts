@@ -11,6 +11,8 @@
  */
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 import type { FloorZoneFormState } from './floors-shared'
 
 async function requireProjectPic(
@@ -104,16 +106,22 @@ export async function updateTower(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error, savedAt: null }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_towers')
     .update({ label, sort_order: sortOrder, updated_at: new Date().toISOString() })
     .eq('id', towerId)
+    .select('id')
 
-  if (error) {
-    if (isUniqueViolation(error)) {
-      return { error: 'A tower with this label already exists on this project.', savedAt: null }
+  if (error && isUniqueViolation(error)) {
+    return { error: 'A tower with this label already exists on this project.', savedAt: null }
+  }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'project_towers', 'id', towerId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this tower. Nothing was changed — try again.'),
+      savedAt: null,
     }
-    return { error: 'Could not save this tower. Nothing was changed — try again.', savedAt: null }
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
@@ -139,13 +147,15 @@ export async function deleteTower(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error }
 
-  const { error } = await supabase.from('project_towers').delete().eq('id', towerId)
+  const { data, error } = await supabase.from('project_towers').delete().eq('id', towerId).select('id')
 
-  if (error) {
-    if (isForeignKeyViolation(error)) {
-      return { error: 'Reassign or remove this tower’s floors first, then delete the tower.' }
-    }
-    return { error: 'Could not delete this tower — try again.' }
+  if (error && isForeignKeyViolation(error)) {
+    return { error: 'Reassign or remove this tower’s floors first, then delete the tower.' }
+  }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'project_towers', 'id', towerId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not delete this tower — try again.') }
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
@@ -227,21 +237,27 @@ export async function updateFloor(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error, savedAt: null }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_floors')
     .update({ label, sort_order: sortOrder, tower_id: towerId, updated_at: new Date().toISOString() })
     .eq('id', floorId)
+    .select('id')
 
-  if (error) {
-    if (isUniqueViolation(error)) {
-      return {
-        error: towerId
-          ? 'A floor with this label already exists under this tower.'
-          : 'A floor with this label already exists on this project.',
-        savedAt: null,
-      }
+  if (error && isUniqueViolation(error)) {
+    return {
+      error: towerId
+        ? 'A floor with this label already exists under this tower.'
+        : 'A floor with this label already exists on this project.',
+      savedAt: null,
     }
-    return { error: 'Could not save this floor. Nothing was changed — try again.', savedAt: null }
+  }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'project_floors', 'id', floorId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this floor. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath(`/projects/${projectId}/floors`)
@@ -319,6 +335,12 @@ export async function deleteFloor(
     return { error: 'This floor has recorded progress or QC inspections — it can’t be removed.' }
   }
 
+  // Brief 094 — these two are bulk cleanup-by-parent-id deletes: zero rows
+  // affected is a legitimate, unremarkable outcome (a floor can genuinely
+  // have zero shop_drawing_items rows in scope 'floor'), not a signal RLS
+  // refused anything, so they are left as plain error checks. The final
+  // delete below, by the floor's own id, is exactly the single-row case
+  // this brief targets and gets the full verified-write treatment.
   const { error: subStageError } = await supabase.from('floor_sub_stages').delete().eq('floor_id', floorId)
   if (subStageError) {
     return { error: 'Could not remove this floor — try again.' }
@@ -333,9 +355,19 @@ export async function deleteFloor(
     return { error: 'Could not remove this floor — try again.' }
   }
 
-  const { error: floorError } = await supabase.from('project_floors').delete().eq('id', floorId)
-  if (floorError) {
-    return { error: 'Could not remove this floor — try again.' }
+  const { data: deletedFloor, error: floorError } = await supabase
+    .from('project_floors')
+    .delete()
+    .eq('id', floorId)
+    .select('id')
+
+  const verdict = await verifyWriteAffectedRow(
+    { data: deletedFloor, error: floorError },
+    existsByColumn(supabase, 'project_floors', 'id', floorId),
+  )
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not remove this floor — try again.') }
   }
 
   revalidatePath(`/projects/${projectId}/floors`)

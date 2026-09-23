@@ -99,11 +99,14 @@ export default async function DependencyChainPage({
     notFound()
   }
 
-  const { data: links } = await supabase
+  // Brief 094 §3.4 — a failed read here used to render identically to
+  // "no dependency chain recorded yet."
+  const { data: links, error: linksError } = await supabase
     .from('dependency_links')
     .select('id, sequence, name, days_allowed, started_at, ended_at, created_at')
     .eq('project_id', project.id)
     .order('sequence', { ascending: true })
+  if (linksError) console.error('DependenciesPage: dependency_links read failed', linksError)
 
   const profiles = await getUserProfilesByIds(supabase, [project.pic_id])
   const teamLabels = await getTeamLabelsByUserIds(supabase, [project.pic_id])
@@ -162,7 +165,11 @@ export default async function DependencyChainPage({
         <span className="so-record__variations-count">{rows.length}</span>
       </div>
 
-      {rows.length === 0 ? (
+      {linksError ? (
+        <p className="empty-state" role="alert">
+          {t('dependencyChainLoadError')}
+        </p>
+      ) : rows.length === 0 ? (
         <p className="empty-state">{t('dependencyChainEmpty')}</p>
       ) : (
         <>

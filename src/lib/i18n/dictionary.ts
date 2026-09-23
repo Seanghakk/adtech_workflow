@@ -174,6 +174,18 @@ const en = {
   salesAssignRestrictedBody:
     'Client owners is for managers. Your account is linked and working — ask a manager if you need something changed here.',
 
+  // Brief 094 — the two honest outcomes for a write that affected zero
+  // rows with no error (an RLS USING clause silently refusing an
+  // UPDATE/DELETE/UPSERT, or a stale/deleted id — see
+  // src/lib/supabase/verified-write.ts). Two shared, generic sentences
+  // rather than one templated string per call site, same reasoning as
+  // the four *RestrictedBody keys above (no interpolation mechanism, and
+  // these two verdicts read the same everywhere they can occur).
+  writeRefusedNotFound:
+    'This could not be found — it may have already been changed or removed by someone else. Nothing was saved.',
+  writeRefusedForbidden:
+    'You don’t have permission to change this specific item. Nothing was saved — tell a manager if this seems wrong.',
+
   // Kept under its original "dashboard" name (Brief 002) even though the
   // interim placeholder it was coined for is gone as of Brief 009 —
   // still the one shared "no PIC/owner" label used across the update
@@ -675,6 +687,9 @@ const en = {
     'Each link has no owner of its own recorded in the database — the project PIC below is shown for identification only, not as who is holding this link.',
   dependencyChainSectionTitle: 'Chain',
   dependencyChainEmpty: 'No dependency chain recorded yet for this project.',
+  // Brief 094 §3.4 — distinct from dependencyChainEmpty above: a genuine
+  // read failure must never look like a project with no chain recorded.
+  dependencyChainLoadError: 'This dependency chain could not be loaded — try refreshing. If this keeps happening, tell a manager.',
   dependencyChainSequencePrefix: 'Link',
   dependencyChainNotStarted: 'Not started yet',
   dependencyChainInProgress: 'In progress',
@@ -706,6 +721,9 @@ const en = {
   catalogueIndexKicker: 'Catalogue',
   catalogueIndexTitle: 'Product catalogue',
   catalogueIndexEmpty: 'No catalogue items recorded yet.',
+  // Brief 094 §3.4 — distinct from catalogueIndexEmpty above: a genuine
+  // read failure must never look like an empty catalogue.
+  catalogueIndexLoadError: 'The catalogue could not be loaded — try refreshing.',
   catalogueIndexColManufacturer: 'Manufacturer',
   catalogueIndexColPartNumber: 'Part number',
   catalogueIndexColStatus: 'Status',
@@ -776,6 +794,9 @@ const en = {
   phoneStatusTotalAgeLabel: 'total age',
   phoneStatusRecentActivityTitle: 'Recent activity',
   phoneStatusNoLegs: 'No handoffs yet — still with the original owner.',
+  // Brief 094 §3.4 — distinct from phoneStatusNoLegs above: a genuine
+  // read failure must never look like "nothing has happened yet."
+  phoneStatusLoadError: 'Recent activity could not be loaded — try refreshing.',
   phoneStatusNudgeAction: 'Nudge',
   phoneStatusNudgeUnavailableNote:
     "Sending a Telegram nudge isn't wired up in this app yet — see Brief 029's Result.",
@@ -944,6 +965,9 @@ const en = {
   contractBoqBackToSoRecord: 'Back to SO record',
   contractBoqNotPicNote: 'Only this project’s PIC can add or change Contract BOQ lines here.',
   contractBoqEmpty: 'No Contract BOQ lines yet.',
+  // Brief 094 §3.4 — distinct from contractBoqEmpty above: a genuine read
+  // failure must never look like "this project has no lines yet."
+  contractBoqLoadError: 'These lines could not be loaded — try refreshing. If this keeps happening, tell a manager.',
   contractBoqOptional: '(optional)',
   contractBoqColSection: 'Section',
   contractBoqColDescription: 'Description',
@@ -1090,6 +1114,9 @@ const en = {
   // shopDrawingBoqImportSuccessPrefix/Suffix above).
   crossListEmptyMine: 'No projects assigned to you.',
   crossListEmptyScopePrefix: 'Nothing in',
+  // Brief 094 §3.4 — distinct from both empty-state sentences above: a
+  // genuine read failure must never look like a scope with nothing in it.
+  crossListLoadError: 'This list could not be loaded — try refreshing. If this keeps happening, tell a manager.',
 
   // Brief 082 §4 — REPLACES the removed drawn/approved/with-client
   // mapping (Brief 080's original guess was wrong: 'in_progress' means

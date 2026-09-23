@@ -189,13 +189,33 @@ export async function importShopDrawingBoqLines(
   }
 
   if (writeFailed) {
+    let cleanupFailed = false
     if (insertedLineIds.length > 0) {
       // Children before parent — shop_drawing_boq_line_locations is ON
       // DELETE RESTRICT to shop_drawing_boq_lines (migration 018).
-      await supabase.from('shop_drawing_boq_line_locations').delete().in('shop_drawing_boq_line_id', insertedLineIds)
-      await supabase.from('shop_drawing_boq_lines').delete().in('id', insertedLineIds)
+      const { error: cleanupLocationsError } = await supabase
+        .from('shop_drawing_boq_line_locations')
+        .delete()
+        .in('shop_drawing_boq_line_id', insertedLineIds)
+      const { error: cleanupLinesError } = await supabase.from('shop_drawing_boq_lines').delete().in('id', insertedLineIds)
+      // Brief 094 §3.4 — this cleanup's own errors used to be discarded
+      // entirely: if it failed, the "nothing was saved" message below
+      // would be false (this round's partial rows would still be there).
+      if (cleanupLocationsError || cleanupLinesError) {
+        console.error('importShopDrawingBoqLines: rollback cleanup failed', {
+          cleanupLocationsError,
+          cleanupLinesError,
+        })
+        cleanupFailed = true
+      }
     }
-    return { error: 'Could not import these lines. Nothing was saved — try again.', rowErrors: [], importedCount: null }
+    return {
+      error: cleanupFailed
+        ? 'Could not import these lines, and this round’s partial rows could not be fully removed. Tell a manager before importing again.'
+        : 'Could not import these lines. Nothing was saved — try again.',
+      rowErrors: [],
+      importedCount: null,
+    }
   }
 
   revalidatePath(`/projects/${projectId}/shop-drawing-boq`)

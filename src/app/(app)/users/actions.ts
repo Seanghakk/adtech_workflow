@@ -14,6 +14,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
+import { existsByColumn, verifyWriteAffectedRow } from '@/lib/supabase/verified-write'
 
 export interface LinkAccountState {
   error: string | null
@@ -54,6 +55,12 @@ export async function linkAccount(
 
 export interface DeactivateMemberState {
   error: string | null
+  /** Brief 094 — set only when the write affected zero rows with no error
+   *  (see src/lib/supabase/verified-write.ts); DeactivateMemberControl
+   *  picks the honest message from this rather than from raw error text,
+   *  matching this app's existing "component always translates, action
+   *  never leaks raw DB text" convention for this control. */
+  reason?: 'not_found' | 'forbidden'
 }
 
 export async function deactivateMember(
@@ -75,13 +82,18 @@ export async function deactivateMember(
   // §2.5 — deactivate, never delete. No delete control exists anywhere in
   // this screen; this is the only state change a departing member's row
   // ever undergoes.
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('members')
     .update({ is_active: false })
     .eq('id', memberId)
+    .select('id')
 
-  if (error) {
-    return { error: 'Could not deactivate this member. Nothing was changed — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'members', 'id', memberId))
+  if (!verdict.ok) {
+    if (verdict.reason === 'error') {
+      return { error: 'Could not deactivate this member. Nothing was changed — try again.' }
+    }
+    return { error: 'refused', reason: verdict.reason }
   }
 
   revalidatePath('/users')
@@ -91,6 +103,7 @@ export async function deactivateMember(
 
 export interface ReactivateMemberState {
   error: string | null
+  reason?: 'not_found' | 'forbidden'
 }
 
 /**
@@ -117,10 +130,14 @@ export async function reactivateMember(
 
   const supabase = await createClient()
 
-  const { error } = await supabase.from('members').update({ is_active: true }).eq('id', memberId)
+  const { data, error } = await supabase.from('members').update({ is_active: true }).eq('id', memberId).select('id')
 
-  if (error) {
-    return { error: 'Could not reactivate this member. Nothing was changed — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'members', 'id', memberId))
+  if (!verdict.ok) {
+    if (verdict.reason === 'error') {
+      return { error: 'Could not reactivate this member. Nothing was changed — try again.' }
+    }
+    return { error: 'refused', reason: verdict.reason }
   }
 
   revalidatePath('/users')
@@ -130,6 +147,7 @@ export async function reactivateMember(
 
 export interface UnlinkMemberState {
   error: string | null
+  reason?: 'not_found' | 'forbidden'
 }
 
 /**
@@ -171,10 +189,14 @@ export async function unlinkMember(
 
   const supabase = await createClient()
 
-  const { error } = await supabase.from('members').delete().eq('id', memberId)
+  const { data, error } = await supabase.from('members').delete().eq('id', memberId).select('id')
 
-  if (error) {
-    return { error: 'Could not unlink this account. Nothing was changed — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'members', 'id', memberId))
+  if (!verdict.ok) {
+    if (verdict.reason === 'error') {
+      return { error: 'Could not unlink this account. Nothing was changed — try again.' }
+    }
+    return { error: 'refused', reason: verdict.reason }
   }
 
   revalidatePath('/users')

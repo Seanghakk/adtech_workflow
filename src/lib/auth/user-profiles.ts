@@ -52,7 +52,19 @@ export async function getUserProfilesByIds(
   const uniqueIds = [...new Set(ids.filter((id): id is string => Boolean(id)))]
   if (uniqueIds.length === 0) return new Map()
 
-  const { data } = await supabase.rpc('get_user_profiles', { p_ids: uniqueIds })
+  // Brief 094 §3.4 — this used to discard `error` entirely: `data ?? []`
+  // on a failed call renders identically to "every one of these ids has no
+  // profile," which is indistinguishable from a real, working empty
+  // result to every one of this function's ~20 call sites. Logged here
+  // rather than threaded through a changed return type: this function's
+  // callers span the whole app (board, requests, sales, floors, catalogue
+  // ...) and each renders names in its own layout — deciding how each one
+  // should visibly say "names could not load" is a per-page judgment call
+  // this brief flags rather than makes unilaterally (see Result doc §7).
+  const { data, error } = await supabase.rpc('get_user_profiles', { p_ids: uniqueIds })
+  if (error) {
+    console.error('getUserProfilesByIds: workflow.get_user_profiles failed', error)
+  }
 
   const map = new Map<string, MemberProfile>()
   for (const row of data ?? []) {

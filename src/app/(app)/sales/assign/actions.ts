@@ -14,6 +14,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { canAssignClientOwners } from '@/lib/auth/sales-roles'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 
 export interface AssignClientOwnerState {
   error: string | null
@@ -46,21 +48,32 @@ export async function assignClientOwner(
   // client_owners holds CURRENT state only (migration 004's own table
   // comment). upsert on the (org_id, client_id) unique constraint covers
   // both "first assignment" and "reassignment" with one statement.
-  const { error: upsertError } = await supabase.from('client_owners').upsert(
-    {
-      client_id: clientId,
-      sales_engineer_id: salesEngineerId,
-      assigned_at: new Date().toISOString(),
-      assigned_by: user.id,
-    },
-    // Matches the actual unique constraint (org_id, client_id) — migration
-    // 004. org_id defaults, but the ON CONFLICT target must name the real
-    // constraint's full column list, not just the column that varies.
-    { onConflict: 'org_id,client_id' },
-  )
+  const { data, error: upsertError } = await supabase
+    .from('client_owners')
+    .upsert(
+      {
+        client_id: clientId,
+        sales_engineer_id: salesEngineerId,
+        assigned_at: new Date().toISOString(),
+        assigned_by: user.id,
+      },
+      // Matches the actual unique constraint (org_id, client_id) — migration
+      // 004. org_id defaults, but the ON CONFLICT target must name the real
+      // constraint's full column list, not just the column that varies.
+      { onConflict: 'org_id,client_id' },
+    )
+    .select('client_id')
 
-  if (upsertError) {
-    return { error: 'Could not save this assignment. Nothing was changed — try again.' }
+  // Checked against `clients`, not `client_owners` — a FIRST assignment
+  // legitimately has no client_owners row yet, so its absence there would
+  // misreport a working first assignment as "not found."
+  const verdict = await verifyWriteAffectedRow(
+    { data, error: upsertError },
+    existsByColumn(supabase, 'clients', 'id', clientId),
+  )
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not save this assignment. Nothing was changed — try again.') }
   }
 
   revalidatePath('/sales/assign')

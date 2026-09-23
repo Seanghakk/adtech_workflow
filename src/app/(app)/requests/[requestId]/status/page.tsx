@@ -64,12 +64,16 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
     notFound()
   }
 
-  const { data: handoffs } = await supabase
+  // Brief 094 §3.4 — a failed read here used to render identically to
+  // "no recent activity," on a phone-facing status screen a requester
+  // reads to judge whether their request is progressing at all.
+  const { data: handoffs, error: handoffsError } = await supabase
     .from('request_handoffs')
     .select('id, from_owner_id, to_owner_id, started_at')
     .eq('request_id', request.id)
     .order('started_at', { ascending: false })
     .limit(4)
+  if (handoffsError) console.error('RequestStatusPage: request_handoffs read failed', handoffsError)
 
   const legs = handoffs ?? []
 
@@ -130,7 +134,11 @@ export default async function RequestStatusPage({ params }: PageProps<'/requests
 
       <div className="phone-status__panel">
         <div className="phone-status__panel-title">{t('phoneStatusRecentActivityTitle')}</div>
-        {legs.length === 0 ? (
+        {handoffsError ? (
+          <p className="phone-status__empty" role="alert">
+            {t('phoneStatusLoadError')}
+          </p>
+        ) : legs.length === 0 ? (
           <p className="phone-status__empty">{t('phoneStatusNoLegs')}</p>
         ) : (
           <div className="phone-status__legs">

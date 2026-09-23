@@ -23,11 +23,14 @@ export default async function CatalogueIndexPage() {
   const supabase = await createClient()
   const t = await getServerTranslator()
 
-  const { data: items } = await supabase
+  // Brief 094 §3.4 — a failed read here used to render identically to
+  // "the catalogue is empty."
+  const { data: items, error: itemsError } = await supabase
     .from('catalogue_items')
     .select('id, manufacturer, part_number, lifecycle_step')
     .order('manufacturer', { ascending: true })
     .order('part_number', { ascending: true })
+  if (itemsError) console.error('CatalogueIndexPage: catalogue_items read failed', itemsError)
 
   const rows = items ?? []
 
@@ -40,7 +43,11 @@ export default async function CatalogueIndexPage() {
         <h1 className="catalogue-index__title">{t('catalogueIndexTitle')}</h1>
       </div>
 
-      {rows.length === 0 ? (
+      {itemsError ? (
+        <p className="empty-state" role="alert">
+          {t('catalogueIndexLoadError')}
+        </p>
+      ) : rows.length === 0 ? (
         <p className="empty-state">{t('catalogueIndexEmpty')}</p>
       ) : (
         <table className="catalogue-index-table">

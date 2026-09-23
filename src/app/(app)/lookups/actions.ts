@@ -29,6 +29,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { isManagerOrAdmin } from '@/lib/auth/roles'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 import type { LookupFormState } from './lookup-shared'
 
 // Next.js rule: a 'use server' file may only export async functions —
@@ -129,13 +131,19 @@ export async function updateReasonCode(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('reason_codes')
     .update({ label_en: labelEn, label_km: labelKm, sort_order: sortOrder, is_active: isActive })
     .eq('code', code)
+    .select('code')
 
-  if (error) {
-    return { error: 'Could not save this reason code. Nothing was changed — try again.', savedAt: null }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'reason_codes', 'code', code))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this reason code. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath('/lookups')
@@ -214,13 +222,19 @@ export async function updateScopeType(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('scope_types')
     .update({ label_en: labelEn, label_km: labelKm, sort_order: sortOrder, is_active: isActive })
     .eq('code', code)
+    .select('code')
 
-  if (error) {
-    return { error: 'Could not save this scope type. Nothing was changed — try again.', savedAt: null }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'scope_types', 'code', code))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this scope type. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath('/lookups')
@@ -309,7 +323,7 @@ export async function updateStage(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('stages')
     .update({
       label_en: labelEn,
@@ -320,9 +334,15 @@ export async function updateStage(
       is_active: isActive,
     })
     .eq('id', id)
+    .select('id')
 
-  if (error) {
-    return { error: 'Could not save this stage. Nothing was changed — try again.', savedAt: null }
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'stages', 'id', id))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this stage. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath('/lookups')
