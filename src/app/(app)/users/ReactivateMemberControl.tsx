@@ -21,7 +21,15 @@ export function ReactivateMemberControl({ memberId }: { memberId: string }) {
       <button type="submit" className="wf-admin-row__reactivate" disabled={pending}>
         {pending ? t('usersReactivatePending') : t('usersReactivate')}
       </button>
-      {state.error && <span className="wf-admin-row__confirm-error">{t('usersReactivateError')}</span>}
+      {state.error && (
+        <span className="wf-admin-row__confirm-error">
+          {state.reason === 'not_found'
+            ? t('writeRefusedNotFound')
+            : state.reason === 'forbidden'
+              ? t('writeRefusedForbidden')
+              : t('usersReactivateError')}
+        </span>
+      )}
     </form>
   )
 }

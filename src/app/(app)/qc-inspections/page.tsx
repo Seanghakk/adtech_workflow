@@ -61,10 +61,14 @@ export default async function QcInspectionsPage({
         ? persistedScope
         : defaultScopeForRole(member.role)
 
-  const { data: projectRows } = await supabase
+  // Brief 094 §3.4 — a failed read here used to render identically to
+  // "no projects assigned to you" (see CrossProjectListRows's own
+  // loadError prop): both discarded their error and fell back to `?? []`.
+  const { data: projectRows, error: projectRowsError } = await supabase
     .from('projects')
     .select('id, name, so_number, pic_id')
     .eq('status', 'open')
+  if (projectRowsError) console.error('QcInspectionsPage: projects read failed', projectRowsError)
 
   const allProjects = (projectRows ?? []).map((p) => ({
     id: p.id,
@@ -73,8 +77,13 @@ export default async function QcInspectionsPage({
     picId: p.pic_id as string | null,
   }))
 
-  const { data: memberRows } = await supabase.from('members').select('user_id, team_id').eq('is_active', true)
+  const { data: memberRows, error: memberRowsError } = await supabase
+    .from('members')
+    .select('user_id, team_id')
+    .eq('is_active', true)
+  if (memberRowsError) console.error('QcInspectionsPage: members read failed', memberRowsError)
   const teamIdByUserId = new Map((memberRows ?? []).map((m) => [m.user_id, m.team_id]))
+  const loadError = Boolean(projectRowsError) || Boolean(memberRowsError)
 
   const scopedProjects = filterProjectsByScope(allProjects, scope, member, teamIdByUserId)
   const trackData = await fetchFloorTrackData(
@@ -145,8 +154,8 @@ export default async function QcInspectionsPage({
       <ScopeSync scope={scope} />
       <div className="cross-list">
         <CrossProjectListHeader titleKey="navExecQcInspections" scope={scope} basePath="/qc-inspections" t={t} />
-        {rows.length === 0 ? (
-          <CrossProjectListRows scope={scope} rows={[]} t={t} />
+        {loadError || rows.length === 0 ? (
+          <CrossProjectListRows scope={scope} rows={[]} t={t} loadError={loadError} />
         ) : (
           <>
             <h2 className="cross-list__group-heading">{t('crossListQcWaitingHeading')}</h2>

@@ -15,6 +15,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 
 /** Brief 050 §C — team-keyed gate, app-layer belt-and-suspenders matching
  *  migration 022's own RLS shape (workflow.current_team() there, this
@@ -126,7 +128,7 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
   // feeds the matrix and fixing them is not this brief's scope.
   const nowIso = new Date().toISOString()
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('floor_sub_stages')
     .update(
       status === 'done'
@@ -134,8 +136,19 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
         : { status, updated_by: gate.userId, updated_at: nowIso },
     )
     .eq('id', subStageId)
-  if (error) {
-    return { error: 'Could not save this status.' }
+    .select('id')
+
+  // Brief 094 — requireTeam above only confirmed team membership, never
+  // that this specific row's own stage matches the claimed `stage`; RLS
+  // re-checks the real row and refuses silently (zero rows, no error) on
+  // a mismatch, exactly the failure mode this brief exists to fix.
+  const verdict = await verifyWriteAffectedRow(
+    { data, error },
+    existsByColumn(supabase, 'floor_sub_stages', 'id', subStageId),
+  )
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not save this status.') }
   }
 
   revalidatePath(`/projects/${projectId}/update`)
@@ -157,9 +170,11 @@ export async function updateShopDrawingStatus(formData: FormData): Promise<{ err
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return gate
 
-  const { error } = await supabase.from('shop_drawing_items').update({ status }).eq('id', itemId)
-  if (error) {
-    return { error: 'Could not save this status.' }
+  const { data, error } = await supabase.from('shop_drawing_items').update({ status }).eq('id', itemId).select('id')
+  const verdict = await verifyWriteAffectedRow({ data, error }, existsByColumn(supabase, 'shop_drawing_items', 'id', itemId))
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not save this status.') }
   }
 
   revalidatePath(`/projects/${projectId}/update`)
@@ -206,7 +221,7 @@ export async function upsertHandoverItem(formData: FormData): Promise<{ error: s
   if ('error' in gate) return gate
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_handover_items')
     .upsert(
       {
@@ -218,9 +233,15 @@ export async function upsertHandoverItem(formData: FormData): Promise<{ error: s
       },
       { onConflict: 'project_id,deliverable' },
     )
+    .select('project_id')
 
-  if (error) {
-    return { error: 'Could not save this deliverable.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, async () => {
+    const { data: project } = await supabase.from('projects').select('id').eq('id', projectId).maybeSingle()
+    return Boolean(project)
+  })
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not save this deliverable.') }
   }
 
   revalidatePath(`/projects/${projectId}/update`)

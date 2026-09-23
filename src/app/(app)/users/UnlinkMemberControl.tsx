@@ -50,7 +50,15 @@ export function UnlinkMemberControl({
           {t('usersUnlinkCancel')}
         </button>
       </div>
-      {state.error && <span className="wf-admin-row__confirm-error">{t('usersUnlinkError')}</span>}
+      {state.error && (
+        <span className="wf-admin-row__confirm-error">
+          {state.reason === 'not_found'
+            ? t('writeRefusedNotFound')
+            : state.reason === 'forbidden'
+              ? t('writeRefusedForbidden')
+              : t('usersUnlinkError')}
+        </span>
+      )}
     </form>
   )
 }

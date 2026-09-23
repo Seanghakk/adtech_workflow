@@ -59,7 +59,14 @@ export default async function InstallationPage({
         ? persistedScope
         : defaultScopeForRole(member.role)
 
-  const { data: projectRows } = await supabase.from('projects').select('id, name, so_number, pic_id').eq('status', 'open')
+  // Brief 094 §3.4 — a failed read here used to render identically to
+  // "no projects assigned to you" (see CrossProjectListRows's own
+  // loadError prop): both discarded their error and fell back to `?? []`.
+  const { data: projectRows, error: projectRowsError } = await supabase
+    .from('projects')
+    .select('id, name, so_number, pic_id')
+    .eq('status', 'open')
+  if (projectRowsError) console.error('InstallationPage: projects read failed', projectRowsError)
   const allProjects = (projectRows ?? []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -67,8 +74,13 @@ export default async function InstallationPage({
     picId: p.pic_id as string | null,
   }))
 
-  const { data: memberRows } = await supabase.from('members').select('user_id, team_id').eq('is_active', true)
+  const { data: memberRows, error: memberRowsError } = await supabase
+    .from('members')
+    .select('user_id, team_id')
+    .eq('is_active', true)
+  if (memberRowsError) console.error('InstallationPage: members read failed', memberRowsError)
   const teamIdByUserId = new Map((memberRows ?? []).map((m) => [m.user_id, m.team_id]))
+  const loadError = Boolean(projectRowsError) || Boolean(memberRowsError)
 
   const scopedProjects = filterProjectsByScope(allProjects, scope, member, teamIdByUserId)
   const trackData = await fetchFloorTrackData(
@@ -123,7 +135,14 @@ export default async function InstallationPage({
         current={t('navExecInstallation')}
       />
       <ScopeSync scope={scope} />
-      <CrossProjectList titleKey="navExecInstallation" scope={scope} basePath="/installation" rows={sortByAgeDescending(rows)} t={t} />
+      <CrossProjectList
+        titleKey="navExecInstallation"
+        scope={scope}
+        basePath="/installation"
+        rows={sortByAgeDescending(rows)}
+        t={t}
+        loadError={loadError}
+      />
     </>
   )
 }

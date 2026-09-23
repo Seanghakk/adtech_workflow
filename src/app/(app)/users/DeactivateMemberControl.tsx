@@ -51,7 +51,15 @@ export function DeactivateMemberControl({
           {t('usersDeactivateCancel')}
         </button>
       </div>
-      {state.error && <span className="wf-admin-row__confirm-error">{t('usersDeactivateError')}</span>}
+      {state.error && (
+        <span className="wf-admin-row__confirm-error">
+          {state.reason === 'not_found'
+            ? t('writeRefusedNotFound')
+            : state.reason === 'forbidden'
+              ? t('writeRefusedForbidden')
+              : t('usersDeactivateError')}
+        </span>
+      )}
     </form>
   )
 }

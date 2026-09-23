@@ -13,6 +13,8 @@
  */
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTranslator } from '@/lib/i18n/server'
+import { existsByColumn, verifyWriteAffectedRow, writeFailureMessage } from '@/lib/supabase/verified-write'
 import type { ContractBoqFormState } from './contract-boq-shared'
 
 async function requireProjectPic(
@@ -110,7 +112,11 @@ export async function updateContractBoqLine(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error, savedAt: null }
 
-  const { error } = await supabase
+  // Brief 094 — requireProjectPic above only confirmed the caller is PIC
+  // of `projectId`; it never confirmed lineId actually belongs to that
+  // project. If it doesn't, RLS refuses this UPDATE silently (zero rows,
+  // no error) — exactly the bug this brief exists to fix.
+  const { data, error } = await supabase
     .from('contract_boq_lines')
     .update({
       section_label: sectionLabel || null,
@@ -121,9 +127,18 @@ export async function updateContractBoqLine(
       updated_at: new Date().toISOString(),
     })
     .eq('id', lineId)
+    .select('id')
 
-  if (error) {
-    return { error: 'Could not save this line. Nothing was changed — try again.', savedAt: null }
+  const verdict = await verifyWriteAffectedRow(
+    { data, error },
+    existsByColumn(supabase, 'contract_boq_lines', 'id', lineId),
+  )
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this line. Nothing was changed — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath(`/projects/${projectId}/contract-boq`)
@@ -156,13 +171,18 @@ export async function deleteContractBoqLine(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error }
 
-  const { error } = await supabase.from('contract_boq_lines').delete().eq('id', lineId)
+  const { data, error } = await supabase.from('contract_boq_lines').delete().eq('id', lineId).select('id')
 
-  if (error) {
-    if (isForeignKeyViolation(error)) {
-      return { error: 'Remove this line’s location breakdown first, then delete the line.' }
-    }
-    return { error: 'Could not delete this line — try again.' }
+  if (error && isForeignKeyViolation(error)) {
+    return { error: 'Remove this line’s location breakdown first, then delete the line.' }
+  }
+  const verdict = await verifyWriteAffectedRow(
+    { data, error },
+    existsByColumn(supabase, 'contract_boq_lines', 'id', lineId),
+  )
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not delete this line — try again.') }
   }
 
   revalidatePath(`/projects/${projectId}/contract-boq`)
@@ -193,17 +213,30 @@ export async function upsertContractBoqLineLocation(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error, savedAt: null }
 
-  const { error } = await supabase.from('contract_boq_line_locations').upsert(
-    {
-      contract_boq_line_id: lineId,
-      location_label: locationLabel,
-      quantity,
-    },
-    { onConflict: 'contract_boq_line_id,location_label' },
-  )
+  // Brief 094 — same requireProjectPic gap as updateContractBoqLine above:
+  // lineId is never confirmed to belong to projectId before this upsert.
+  const { data, error } = await supabase
+    .from('contract_boq_line_locations')
+    .upsert(
+      {
+        contract_boq_line_id: lineId,
+        location_label: locationLabel,
+        quantity,
+      },
+      { onConflict: 'contract_boq_line_id,location_label' },
+    )
+    .select('contract_boq_line_id')
 
-  if (error) {
-    return { error: 'Could not save this location. Nothing was recorded — try again.', savedAt: null }
+  const verdict = await verifyWriteAffectedRow({ data, error }, async () => {
+    const { data: line } = await supabase.from('contract_boq_lines').select('id').eq('id', lineId).maybeSingle()
+    return Boolean(line)
+  })
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return {
+      error: writeFailureMessage(verdict, t, 'Could not save this location. Nothing was recorded — try again.'),
+      savedAt: null,
+    }
   }
 
   revalidatePath(`/projects/${projectId}/contract-boq`)
@@ -226,14 +259,25 @@ export async function deleteContractBoqLineLocation(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('contract_boq_line_locations')
     .delete()
     .eq('contract_boq_line_id', lineId)
     .eq('location_label', locationLabel)
+    .select('contract_boq_line_id')
 
-  if (error) {
-    return { error: 'Could not remove this location — try again.' }
+  const verdict = await verifyWriteAffectedRow({ data, error }, async () => {
+    const { data: loc } = await supabase
+      .from('contract_boq_line_locations')
+      .select('contract_boq_line_id')
+      .eq('contract_boq_line_id', lineId)
+      .eq('location_label', locationLabel)
+      .maybeSingle()
+    return Boolean(loc)
+  })
+  if (!verdict.ok) {
+    const t = await getServerTranslator()
+    return { error: writeFailureMessage(verdict, t, 'Could not remove this location — try again.') }
   }
 
   revalidatePath(`/projects/${projectId}/contract-boq`)

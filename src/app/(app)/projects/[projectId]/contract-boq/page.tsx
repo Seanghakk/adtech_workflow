@@ -46,20 +46,33 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
 
   const isPic = Boolean(user && project.pic_id && project.pic_id === user.id)
 
-  const { data: lineRows } = await supabase
+  // Brief 094 §3.4 — the KNOWN case: on production, contract_boq_line_
+  // locations didn't exist yet, this read's error was discarded, and the
+  // location breakdown rendered as "no locations" — indistinguishable
+  // from a project that genuinely has none. Both reads below now capture
+  // their error and the page says so explicitly rather than falling
+  // through to the ordinary empty-state copy.
+  const { data: lineRows, error: lineRowsError } = await supabase
     .from('contract_boq_lines')
     .select('id, section_label, description, brand, unit, quantity, requested_quantity')
     .eq('project_id', project.id)
     .order('created_at')
+  if (lineRowsError) {
+    console.error('ContractBoqPage: contract_boq_lines read failed', lineRowsError)
+  }
 
   const lineIds = (lineRows ?? []).map((l) => l.id)
 
-  const { data: locationRows } = lineIds.length
+  const { data: locationRows, error: locationRowsError } = lineIds.length
     ? await supabase
         .from('contract_boq_line_locations')
         .select('contract_boq_line_id, location_label, quantity')
         .in('contract_boq_line_id', lineIds)
-    : { data: [] }
+    : { data: [], error: null }
+  if (locationRowsError) {
+    console.error('ContractBoqPage: contract_boq_line_locations read failed', locationRowsError)
+  }
+  const loadFailed = Boolean(lineRowsError) || Boolean(locationRowsError)
 
   const lines: ContractBoqLineData[] = (lineRows ?? []).map((l) => ({
     id: l.id,
@@ -101,7 +114,11 @@ export default async function ContractBoqPage({ params }: PageProps<'/projects/[
 
       {!isPic && <p className="contract-boq__note">{t('contractBoqNotPicNote')}</p>}
 
-      {lines.length === 0 ? (
+      {loadFailed ? (
+        <p className="contract-boq__error" role="alert">
+          {t('contractBoqLoadError')}
+        </p>
+      ) : lines.length === 0 ? (
         <p className="empty-state">{t('contractBoqEmpty')}</p>
       ) : (
         <table className="wf-admin-table">

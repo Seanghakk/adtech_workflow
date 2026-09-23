@@ -90,13 +90,31 @@ export function CrossProjectListRows({
   rows,
   t,
   emptyMineKey = 'crossListEmptyMine',
+  loadError = false,
 }: {
   scope: Scope
   rows: CrossListRow[]
   t: (key: DictionaryKey) => string
   emptyMineKey?: DictionaryKey
+  /** Brief 094 §3.4 — set when the projects/members read behind `rows`
+   *  failed. Without this, a failed read and a genuinely empty scope both
+   *  render the exact same "No projects assigned to you" copy below —
+   *  indistinguishable to whoever's looking at it. */
+  loadError?: boolean
 }) {
   const scopeLabel = scopeLabelFor(scope, t)
+
+  if (loadError) {
+    return (
+      <div className="wf-empty-state-page">
+        <div className="wf-empty-state">
+          <p className="wf-empty-state__body" role="alert">
+            {t('crossListLoadError')}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (rows.length === 0) {
     return (
@@ -139,17 +157,19 @@ export function CrossProjectList({
   basePath,
   rows,
   t,
+  loadError = false,
 }: {
   titleKey: DictionaryKey
   scope: Scope
   basePath: string
   rows: CrossListRow[]
   t: (key: DictionaryKey) => string
+  loadError?: boolean
 }) {
   return (
     <div className="cross-list">
       <CrossProjectListHeader titleKey={titleKey} scope={scope} basePath={basePath} t={t} />
-      <CrossProjectListRows scope={scope} rows={rows} t={t} />
+      <CrossProjectListRows scope={scope} rows={rows} t={t} loadError={loadError} />
     </div>
   )
 }
