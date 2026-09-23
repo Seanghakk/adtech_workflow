@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -14,12 +15,21 @@ import { defaultScopeForRole, type Scope } from '@/lib/reporting/board'
 import { filterProjectsByScope, sortByAgeDescending } from '@/lib/reporting/crossProjectLists'
 import { fetchFloorTrackData } from '@/lib/reporting/floorTrackData'
 import { bucketFloorsByStage } from '@/lib/reporting/floorStageBuckets'
+import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
 export const metadata: Metadata = {
   title: 'Testing & commissioning — ADTECH Workflow Tracker',
 }
 
 const TNC_ORDER = ['pre_commissioning', 'commissioning']
+
+// Same convention as installation/page.tsx's own local copy — see that
+// file's own comment for why this is duplicated per file rather than
+// shared.
+const SUB_STAGE_KEYS: Record<string, DictionaryKey> = {
+  pre_commissioning: 'subStagePreCommissioning',
+  commissioning: 'subStageCommissioning',
+}
 
 /**
  * Brief 080 / Handoff Addendum v6.1 §2 — Testing & commissioning
@@ -96,6 +106,12 @@ export default async function TestingCommissioningPage({
     scopedProjects.map((p) => p.id),
   )
 
+  // Brief 095 §4.3 — see installation/page.tsx's own identical comment.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const rows: CrossListRow[] = scopedProjects
     .filter((p) => (trackData.get(p.id)?.floors.length ?? 0) > 0)
     .map((project) => {
@@ -108,7 +124,12 @@ export default async function TestingCommissioningPage({
       // case (see this file's own header).
       const counts = { pre_commissioning: 0, commissioning: 0, complete: 0 }
       let awaitingQc = 0
+      // Brief 095 §4.1/§3 — see installation/page.tsx's own identical
+      // comment on why oldestFloorId/oldestBucketKey are tracked
+      // separately from oldestAge itself.
       let oldestAge = 0
+      let oldestFloorId: string | null = null
+      let oldestBucketKey: string | null = null
       for (const b of buckets) {
         counts[b.bucket as keyof typeof counts]++
         if (b.bucket === 'complete') {
@@ -123,9 +144,21 @@ export default async function TestingCommissioningPage({
         } else {
           // A complete floor has nothing stuck — excluded from the age
           // key (floorStageBuckets.ts's own header, Brief 082 §2).
-          oldestAge = Math.max(oldestAge, daysSinceICT(b.stuckSince))
+          const age = daysSinceICT(b.stuckSince)
+          if (oldestFloorId === null || age > oldestAge) {
+            oldestAge = age
+            oldestFloorId = b.floorId
+            oldestBucketKey = b.bucket
+          }
         }
       }
+      const oldestFloorLabel = oldestFloorId ? (data.floors.find((f) => f.id === oldestFloorId)?.label ?? oldestFloorId) : null
+      const ageContext =
+        oldestFloorId === null
+          ? t('crossListAgeNothingWaiting')
+          : oldestBucketKey === 'not_started'
+            ? `${oldestFloorLabel} · ${t('statusNotStarted')}`
+            : `${oldestFloorLabel} · ${t(SUB_STAGE_KEYS[oldestBucketKey!] ?? 'subStageFirstFix')}`
 
       return {
         projectId: project.id,
@@ -134,6 +167,8 @@ export default async function TestingCommissioningPage({
         soIsPending: !project.soNumber,
         ageDays: oldestAge,
         ageBand: getAgeLabelBand(oldestAge),
+        holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+        ageContext,
         href: `/projects/${project.id}?view=matrix`,
         summary: (
           <div className="cross-list__row-summary-line">

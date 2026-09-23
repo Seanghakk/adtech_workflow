@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
+import { getUserProfilesByIds, formatMemberName } from '@/lib/auth/user-profiles'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getAgeLabelBand } from '@/lib/age'
 import { daysSinceICT } from '@/lib/format/datetime'
@@ -91,25 +92,39 @@ export default async function QcInspectionsPage({
     scopedProjects.map((p) => p.id),
   )
 
+  // Brief 095 §4.3 — see installation/page.tsx's own identical comment.
+  const picProfiles = await getUserProfilesByIds(
+    supabase,
+    scopedProjects.map((p) => p.picId),
+  )
+
   const rows: (CrossListRow & QcListRow)[] = scopedProjects.map((project) => {
     const data = trackData.get(project.id)
     const doneSubStages = (data?.subStages ?? []).filter((s) => s.status === 'done')
 
-    const waiting: { subStage: string; date: string }[] = []
-    const failed: { subStage: string; date: string }[] = []
+    const waiting: { subStage: string; floorId: string; date: string }[] = []
+    const failed: { subStage: string; floorId: string; date: string }[] = []
     for (const s of doneSubStages) {
       const latest = data?.latestInspectionBySubStageId.get(s.id) ?? null
-      if (!latest) waiting.push({ subStage: s.subStage, date: s.updatedAt })
-      else if (latest.result === 'fail') failed.push({ subStage: s.subStage, date: latest.date })
+      if (!latest) waiting.push({ subStage: s.subStage, floorId: s.floorId, date: s.updatedAt })
+      else if (latest.result === 'fail') failed.push({ subStage: s.subStage, floorId: s.floorId, date: latest.date })
     }
 
     // Age key (addendum §2): "oldest wait of either kind." For a failed
     // item the clock runs from the failed inspection's own date (§7.3 /
     // Brief 078), not the status date — same convention every other
     // reader of qc_inspections in this app now uses.
-    const allDates = [...waiting.map((w) => w.date), ...failed.map((f) => f.date)]
-    const oldestDate = allDates.length > 0 ? allDates.reduce((a, b) => (a < b ? a : b)) : null
-    const ageDays = oldestDate ? daysSinceICT(oldestDate) : 0
+    const allEntries = [...waiting, ...failed]
+    const oldestEntry =
+      allEntries.length > 0 ? allEntries.reduce((a, b) => (a.date < b.date ? a : b)) : null
+    const ageDays = oldestEntry ? daysSinceICT(oldestEntry.date) : 0
+    // Brief 095 §4.1/§3 — names the specific floor/sub-stage the age is
+    // of; a "quiet" row (no waiting, no failed entries — split out into
+    // its own group below) has genuinely nothing to clock.
+    const oldestFloorLabel = oldestEntry ? (data?.floors.find((f) => f.id === oldestEntry.floorId)?.label ?? oldestEntry.floorId) : null
+    const ageContext = oldestEntry
+      ? `${oldestFloorLabel} · ${t(SUB_STAGE_KEYS[oldestEntry.subStage] ?? 'subStageFirstFix')}`
+      : t('crossListAgeNothingWaiting')
 
     const namedWaiting = waiting.slice(0, 2).map((w) => t(SUB_STAGE_KEYS[w.subStage] ?? 'subStageFirstFix'))
     const extraWaiting = waiting.length - namedWaiting.length
@@ -121,6 +136,8 @@ export default async function QcInspectionsPage({
       soIsPending: !project.soNumber,
       ageDays,
       ageBand: getAgeLabelBand(ageDays),
+      holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
+      ageContext,
       href: `/projects/${project.id}/update`,
       waitingCount: waiting.length,
       failedCount: failed.length,
