@@ -646,19 +646,11 @@ const en = {
   soRecordDependencyChainSlipped: 'Slip carried to chain end',
   soRecordDependencyChainOnTrack: 'No slip accumulated',
   soRecordViewDependencyChain: 'View dependency chain',
-  // Brief 046 / Amendment A — the fourth so-record panel, added once a
-  // real Contract BOQ entry screen existed to link to.
-  soRecordLinkedContractBoqTitle: 'Contract BOQ',
-  soRecordLinkedContractBoqEmpty: 'No Contract BOQ lines recorded yet.',
-  soRecordViewContractBoq: 'View Contract BOQ',
-  // Brief 047 — the fifth so-record panel.
-  soRecordLinkedFloorsTitle: 'Floors',
-  soRecordLinkedFloorsEmpty: 'No floors configured yet.',
-  soRecordViewFloors: 'Configure floors',
-  // Brief 055 — the sixth so-record panel.
-  soRecordLinkedShopDrawingBoqTitle: 'Shop Drawing BOQ',
-  soRecordLinkedShopDrawingBoqEmpty: 'No Shop Drawing BOQ lines recorded yet.',
-  soRecordViewShopDrawingBoq: 'View Shop Drawing BOQ',
+  // Briefs 046/047/055's own three so-record panels (Contract BOQ /
+  // Floors / Shop Drawing BOQ) were replaced by Brief 097 §2 with the
+  // single Project setup link below (v7.2 §5) — their own dictionary
+  // keys retired with them, not left as dead entries.
+  soRecordSetupSectionsDoneSuffix: 'of 6 sections done',
   // Brief 056 — the floor x sub-stage colour matrix, ?view=matrix on 2a.
   soRecordViewMatrix: 'View matrix',
   floorMatrixKicker: 'Floor x sub-stage matrix',
@@ -1156,6 +1148,112 @@ const en = {
   crossListFloorProgressQcPassed: 'QC passed',
   crossListFloorProgressQcFailed: 'QC failed',
   crossListFloorProgressStalled: 'Stalled',
+
+  // Brief 097 — Project Setup page (v7.2 §6, §21.1). Exact copy, taken
+  // directly from v7.2, not paraphrased — per this brief's own explicit
+  // instruction. Where v7.2 gives a pattern with a placeholder (e.g.
+  // "Done · <count>"), the fixed words are their own key and the dynamic
+  // part is built in TS, matching this dictionary's own no-interpolation
+  // convention (see crossListEmptyScopePrefix for the same pattern).
+  setupKicker: 'Project setup',
+  setupSublineNothingConfigured: 'Nothing is configured yet. The fastest way in is an import.',
+  setupLegend: 'Not started · Partly done · Done',
+  setupStateNotStarted: 'Not started',
+  setupStatePartlyPrefix: 'Partly ·',
+  setupStateDonePrefix: 'Done ·',
+  setupNeedsFloorsFirst: 'Needs floors first',
+  setupNeedsDrawingsFirst: 'Needs drawings first',
+
+  // Strip section names, exact (§21.1 "Strip labels, exact").
+  setupSection1Name: 'Project identity',
+  setupSection2Name: 'Building structure',
+  setupSection3Name: 'Systems in this project',
+  setupSection4Name: 'BOQ',
+  setupSection5Name: 'Drawings',
+  setupSection6Name: 'Exports',
+
+  // §1 Identity — exact field labels.
+  setupIdentitySoNumber: 'SO number',
+  setupIdentityProjectName: 'Project name',
+  setupIdentityMainContractor: 'Main contractor',
+  setupIdentityOwner: 'Owner',
+  setupIdentityConsultant: 'Consultant',
+  setupIdentitySite: 'Site',
+  setupIdentityScopeType: 'Scope type',
+  setupIdentityPic: 'PIC',
+  setupIdentityNotSet: 'Not set — used in every title block',
+  setupIdentitySave: 'Save',
+
+  // §2 Building structure — exact column labels and row copy.
+  setupStructureColTower: 'Tower',
+  setupStructureColFloor: 'Floor',
+  setupStructureColDrawingCode: 'Drawing code',
+  setupStructureColOrder: 'Order',
+  setupStructureColUsedBy: 'Used by',
+  setupStructureEdit: 'Edit',
+  setupStructureDeactivate: 'Deactivate',
+  setupStructureAddFloor: 'Add a floor',
+  setupStructureAddTower: 'Add a tower',
+  setupStructureTowersWord: 'towers',
+  setupStructureFloorsWord: 'floors',
+  setupStructureNoDrawingCode: 'No drawing code — its drawings cannot be numbered',
+  setupStructureUsedByProgress: 'Progress recorded — can’t be removed',
+  setupStructureUsedByNothing: 'Nothing yet',
+  setupStructureEmptyHeadline: 'No floors are set up for this project',
+  setupStructureEmptyBody:
+    'You can add them by hand below, or import a shop drawing BOQ and let the file propose them — it already names the floors it costs. Nothing is written until you commit the preview.',
+  setupStructureEmptyImport: 'Import a BOQ',
+  setupStructureEmptyAddByHand: 'Add a floor by hand',
+
+  // §3 Systems — exact.
+  setupSystemsEmptyHeadline: 'No systems on this project yet',
+  setupSystemsEmptyBody: 'A BOQ import usually adds them. Each system needs a CAD code before its drawings can be numbered.',
+  setupSystemsAdd: '+ Add a system',
+  setupSystemsColSystem: 'System',
+  setupSystemsColCadCode: 'CAD code',
+  setupSystemsNoCadCode: 'No CAD code — its drawings cannot be numbered',
+
+  // §4 BOQ — exact.
+  setupBoqEmptyHeadline: 'No BOQ lines on this project yet',
+  setupBoqEmptyBody:
+    'The building is ready. Import the Contract BOQ first — it is the simpler template. A shop drawing BOQ can add the systems it names. Nothing is written until you commit the preview.',
+  setupBoqEmptyImport: 'Import a BOQ',
+  setupBoqEmptyDownloadTemplate: 'Download the template',
+  setupBoqTierContract: 'Contract BOQ',
+  setupBoqTierTender: 'Tender BOQ',
+  setupBoqTierShopDrawing: 'Shop drawing BOQ',
+  setupBoqLineCount: 'lines',
+  setupBoqLastImport: 'Last import',
+  setupBoqOpenFullList: 'Open full list',
+
+  // §5 Drawings — exact.
+  setupDrawingsEmptyHeadline: 'No drawings registered yet',
+  setupDrawingsReadyPrefix: 'floors and',
+  setupDrawingsReadySuffix: 'systems are ready for drawings. Drawings are added in the shop drawing screens; this count fills in as they are.',
+  setupDrawingsOpenShopDrawings: 'Open shop drawings',
+  setupDrawingsNumberingLabel: 'Numbering for this project:',
+  setupDrawingsNumberingAdtech: 'ADTECH format',
+  setupDrawingsNumberingClient: 'Client format — numbers entered by hand',
+  setupDrawingsNumberingConsequence: 'Switching changes how every drawing number on this project is made. Existing numbers are kept.',
+  setupDrawingsCount: 'drawings registered',
+  setupDrawingsFloorsWithLayouts: 'floors with layouts',
+
+  // §6 Exports — exact.
+  setupExportsEmptyHeadline: 'Not exported yet',
+  setupExportsReadyPrefix: 'drawings are ready to send to the Sheet Set. The first export sends every sheet; after that, this section shows what changed since the last one.',
+  setupExportsOpenPanel: 'Open the export panel',
+
+  // Phone, desk-work note (§15/§21.1, exact).
+  setupDeskWorkNote: 'Importing and exporting are desk work — open this project on a computer.',
+
+  // Refused / failed-to-load (§21.0/§6.4, exact templates).
+  setupRefusedPrefix: 'Only the PIC,',
+  setupRefusedSuffix: ', can change',
+  setupRefusedOnThisProject: 'on this project. You can read everything here.',
+  setupRefusedNotPic: 'Only this project’s PIC can change this. Nothing was saved.',
+  setupLoadFailedHeadline: 'Project setup did not load',
+  setupLoadFailedBody: 'Nothing on this project has changed. Try again; if it keeps failing, tell a project manager.',
+  setupLoadFailedRetry: 'Try again',
 } as const
  
 export type DictionaryKey = keyof typeof en

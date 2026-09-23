@@ -15,6 +15,7 @@ import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { buildMatrixRows } from './floor-matrix'
 import { resolveLatestInspection, type LatestInspection } from '@/lib/subStageDisplayState'
 import { FloorMatrix } from './FloorMatrix'
+import { getSetupSectionsStatus } from './setup/setup-status'
 
 export const metadata: Metadata = {
   title: 'SO record — ADTECH Workflow Tracker',
@@ -66,7 +67,7 @@ export default async function SoRecordPage({
   const { data: project } = await supabase
     .from('projects')
     .select(
-      'id, name, stream, scope_type, so_number, status, pic_id, opened_at, current_stage_id, clients(name), sites(name), so_registers(label_en, label_km)',
+      'id, name, stream, scope_type, so_number, status, pic_id, opened_at, current_stage_id, cad_owner_name, cad_consultant_name, clients(name), sites(name), so_registers(label_en, label_km)',
     )
     .eq('id', projectId)
     .maybeSingle()
@@ -190,9 +191,6 @@ export default async function SoRecordPage({
     { data: linkedRequests },
     { data: procurementLines },
     { data: dependencyLinks },
-    { count: contractBoqLineCount },
-    { count: floorCount },
-    { count: shopDrawingBoqLineCount },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -222,18 +220,6 @@ export default async function SoRecordPage({
       .select('id, sequence, name, days_allowed, started_at, ended_at, created_at')
       .eq('project_id', project.id)
       .order('sequence', { ascending: true }),
-    supabase
-      .from('contract_boq_lines')
-      .select('id', { count: 'exact', head: true })
-      .eq('project_id', project.id),
-    supabase
-      .from('project_floors')
-      .select('id', { count: 'exact', head: true })
-      .eq('project_id', project.id),
-    supabase
-      .from('shop_drawing_boq_lines')
-      .select('id', { count: 'exact', head: true })
-      .eq('project_id', project.id),
   ])
 
   const profiles = await getUserProfilesByIds(supabase, [
@@ -260,6 +246,12 @@ export default async function SoRecordPage({
   const site = Array.isArray(project.sites) ? project.sites[0] : project.sites
   const soRegister = Array.isArray(project.so_registers) ? project.so_registers[0] : project.so_registers
   const soRegisterLabel = soRegister ? localizedLabel(soRegister.label_en, soRegister.label_km, lang) : null
+
+  // Brief 097 §2 — the single "Project setup — n of 6 sections done" link
+  // replaces the three stacked panels (Contract BOQ / Floors / Shop
+  // drawing BOQ) below. Same shared computation the setup page itself
+  // uses (setup/setup-status.ts) so the two can never disagree.
+  const setupStatus = await getSetupSectionsStatus(supabase, project.id, project, client?.name)
 
   const approvedVariations = (variations ?? []).filter((v) => v.is_approved)
   const unapprovedVariations = (variations ?? []).filter((v) => !v.is_approved)
@@ -478,57 +470,31 @@ export default async function SoRecordPage({
           </Link>
         </div>
 
-        {/* Brief 046 / Amendment A — same panel shape as procurement/
-            dependencies above, added once a real entry screen for
-            Contract BOQ existed to link to (Result 046 confirmed no such
-            screen existed before this round). */}
+        {/* Brief 097 §2 / v7.2 §5 — replaces the three stacked panels
+            above (Contract BOQ / Floors / Shop drawing BOQ, Briefs 046/
+            047/055) with the one link Project Setup's own strip now
+            covers in full, including the Tender BOQ tile those three
+            panels never had. Exact link text, v7.2 §5's own words. */}
         <div className="so-record__panel">
           <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedContractBoqTitle')}</span>
-            <span className="so-record__panel-count">{contractBoqLineCount ?? 0}</span>
+            <span className="so-record__panel-title">{t('setupKicker')}</span>
           </div>
-          {!contractBoqLineCount ? (
-            <p className="empty-state">{t('soRecordLinkedContractBoqEmpty')}</p>
-          ) : null}
-          <Link href={`/projects/${project.id}/contract-boq`} className="awaiting-so-card__link">
-            {t('soRecordViewContractBoq')}
+          <Link href={`/projects/${project.id}/setup`} className="awaiting-so-card__link">
+            {t('setupKicker')} — {setupStatus.doneCount} {t('soRecordSetupSectionsDoneSuffix')}
           </Link>
         </div>
-
-        {/* Brief 047 — same panel shape as the panels above. */}
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedFloorsTitle')}</span>
-            <span className="so-record__panel-count">{floorCount ?? 0}</span>
-          </div>
-          {!floorCount ? <p className="empty-state">{t('soRecordLinkedFloorsEmpty')}</p> : null}
-          <Link href={`/projects/${project.id}/floors`} className="awaiting-so-card__link">
-            {t('soRecordViewFloors')}
-          </Link>
-          {/* Brief 056 §7 — the matrix's second entry point (the first is
-              the board card, Brief 056 §7 too). Only shown once floors
-              actually exist — a matrix over zero floors is just the empty
-              state above, not a second reachable link to it. */}
-          {Boolean(floorCount) && (
+        {/* Brief 056 §7 — the matrix's second entry point (the first is
+            the board card). Only shown once floors actually exist — a
+            matrix over zero floors is just an empty grid. Kept as its
+            own link, unchanged by Brief 097 (the matrix is not one of
+            the six setup sections). */}
+        {setupStatus.structureDone && (
+          <div className="so-record__panel">
             <Link href={`/projects/${project.id}?view=matrix`} className="awaiting-so-card__link">
               {t('soRecordViewMatrix')}
             </Link>
-          )}
-        </div>
-
-        {/* Brief 055 — same panel shape as the panels above. */}
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedShopDrawingBoqTitle')}</span>
-            <span className="so-record__panel-count">{shopDrawingBoqLineCount ?? 0}</span>
           </div>
-          {!shopDrawingBoqLineCount ? (
-            <p className="empty-state">{t('soRecordLinkedShopDrawingBoqEmpty')}</p>
-          ) : null}
-          <Link href={`/projects/${project.id}/shop-drawing-boq`} className="awaiting-so-card__link">
-            {t('soRecordViewShopDrawingBoq')}
-          </Link>
-        </div>
+        )}
       </div>
     </div>
     </>
