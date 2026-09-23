@@ -145,7 +145,7 @@ export default async function ShopDrawingBoqPage({
 
       {canWrite && (
         <p>
-          <Link href={`/projects/${project.id}/shop-drawing-boq/import`}>{t('shopDrawingBoqGoToImport')}</Link>
+          <Link href={`/projects/${project.id}/boq-import/shop-drawing`}>{t('shopDrawingBoqGoToImport')}</Link>
         </p>
       )}
 

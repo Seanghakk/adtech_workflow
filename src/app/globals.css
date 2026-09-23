@@ -6383,3 +6383,165 @@ a.floor-matrix__cell {
     background: var(--surface) !important;
   }
 }
+
+/* ===================================================================
+   Brief 098 — BOQ import (v7.2 §7, §21.2) and the writable Systems
+   section (§2).
+
+   NO SIXTH SHARED PART AND NO NEW TOKEN, per this brief's own §4. The
+   screen is assembled from the five parts Brief 097 built: 4.4 import
+   block (the step strip), 4.2 data table (changed / missing / refused /
+   proposal tables), 4.3 tags, 4.5 empty state, 4.1 form row. The one
+   addition to a part is a MODIFIER on 4.4 for §7.1's "current cell
+   filled ink" — a state of an existing part, not a new part. Everything
+   else below is screen-local composition, the same convention every
+   other screen in this file already follows.
+   =================================================================== */
+
+/* §7.1 — the three-cell step strip, current cell filled ink. */
+.wf-import-block__cell--current {
+  background: var(--ink);
+}
+.wf-import-block__cell--current .wf-import-block__cell-label {
+  color: var(--surface);
+}
+
+/* §7.4 — the four figures, Almarai 800. */
+.boq-import__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: var(--space-5) 0 var(--space-3);
+}
+.boq-import__figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 120px;
+}
+.boq-import__figure-n {
+  font: 800 var(--wf-t-figure) / 1 var(--font-heading);
+  color: var(--ink);
+}
+.boq-import__figure-label {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.boq-import__figures-headline {
+  font: 800 17px/1.4 var(--font-heading);
+  color: var(--ink);
+  margin: var(--space-5) 0 0;
+}
+.boq-import__note {
+  font: 400 13.5px/1.75 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* §7.6 — proposals carry the amber hatch until they are committed. The
+   hatch is a drawing convention for "not settled yet", never a colour
+   signal, so it sits behind the rows rather than tinting them. */
+.boq-import__proposal .wf-data-table__row--body {
+  background: var(--wf-hatch-amber);
+}
+
+/* §7.5 — a refused row: red is confined to the 5px rule and the reason
+   text. Never a filled row background — three failures must not
+   out-shout twelve hundred successes. */
+.boq-import__refused-row {
+  border-left: 5px solid var(--danger);
+  color: var(--danger-tint-deep);
+  padding-left: var(--space-3);
+}
+
+.boq-import__choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.boq-import__choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: 400 13px/1.3 var(--font-body);
+  color: var(--ink);
+}
+
+/* §7.7 — the result is a result: blue field, large blue numeral, what was
+   written and by whom. Not a toast. Reuses the existing blue result field
+   (.empty-state--result). */
+.boq-import__result-n {
+  font: 800 44px/1 var(--font-heading);
+  color: var(--navy);
+  margin: 0;
+}
+.boq-import__result-label {
+  font: 800 17px/1.3 var(--font-heading);
+  color: var(--navy);
+  margin: 0 0 var(--space-3);
+}
+.boq-import__result-detail {
+  font: 400 13.5px/1.75 var(--font-body);
+  color: var(--text);
+  margin: 0 0 var(--space-2);
+}
+.empty-state--result.boq-import__result,
+.boq-import__desk .empty-state--result {
+  display: block;
+}
+
+/* The upload card when this is NOT the first import — the 4.5 empty state
+   is specifically a "not yet" container, so a project that already has
+   lines gets a plain white card instead of a dashed one. */
+.wf-form-row-card {
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-4);
+}
+
+/* A second 4.1 form row sitting inside a 4.2 table cell: no container
+   chrome of its own, since the row around it already provides it. */
+.wf-form-row--inline {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* v7.2 §6.2 item 3 — the "+ Add a system" dashed chip. */
+.wf-setup-add-chip {
+  margin-top: var(--space-4);
+  background: var(--surface);
+  border: 1px dashed rgba(32, 30, 29, 0.35);
+  padding: var(--space-2) var(--space-4);
+  font: 600 13.5px/1 var(--font-body);
+  color: var(--navy);
+  cursor: pointer;
+}
+.wf-setup-add-chip:hover {
+  border-color: var(--navy);
+}
+
+/* §21.2 — "390px: not available; the section shows the desk-work
+   sentence." The import flow is desk work, so the whole thing is replaced
+   by that sentence at phone widths rather than reflowed into something
+   unusable. .wf-setup-desk-work-note is hidden above 640px already. */
+@media (max-width: 640px) {
+  .boq-import__desk {
+    display: none;
+  }
+}
+
+/* Brief 099 §2 — shown in place of a "Create" control for an importer who
+   may write this tier but is not the PIC. A sentence naming what is
+   missing and who can add it, never a disabled button (standing rule 3). */
+.boq-import__cannot-create {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  border-left: 5px solid var(--warning);
+  background: var(--warning-tint-bg);
+  padding: var(--space-2) var(--space-3);
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--ink);
+}

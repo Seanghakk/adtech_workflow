@@ -20,6 +20,11 @@ export interface CurrentMember {
   username: string | null
   memberId: string
   role: 'member' | 'manager' | 'admin'
+  /** workflow.members.is_superadmin — a column of its own, NOT the `role`
+   *  enum above. This is what workflow.is_superadmin() reads, so anything
+   *  mirroring a SQL policy in app code must compare against this and not
+   *  against role === 'admin' (Brief 099). */
+  isSuperadmin: boolean
   teamId: string
   /** Stable team code (workflow.teams.code, e.g. 'sales') — compare
    *  against this, never teamLabelEn, which is a display string
@@ -69,7 +74,7 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
   // CURRENT user only), not from this table.
   const { data: memberRow } = await supabase
     .from('members')
-    .select('id, role, team_id, teams(code, label_en)')
+    .select('id, role, is_superadmin, team_id, teams(code, label_en)')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .maybeSingle()
@@ -96,6 +101,7 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
       username: profile?.username ?? null,
       memberId: memberRow.id,
       role: memberRow.role as CurrentMember['role'],
+      isSuperadmin: Boolean(memberRow.is_superadmin),
       teamId: memberRow.team_id,
       teamCode: team?.code ?? '',
       teamLabelEn: team?.label_en ?? '',
