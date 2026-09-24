@@ -4,7 +4,7 @@
 --
 -- One row per check, expected vs actual, PASS/FAIL — this repo's own
 -- Brief 088 style. Run AFTER applying migration 037 (as amended by
--- Brief 099). All 14 rows must PASS.
+-- Brief 099). All 16 rows must PASS.
 -- =============================================================================
 
 with checks as (
@@ -132,6 +132,29 @@ with checks as (
       from pg_policies
       where schemaname = 'workflow' and tablename = 'shop_drawing_boq_lines'
         and cmd = 'INSERT'), 'MISSING')
+
+  union all
+  -- Checks 9 and 10 say the function EXISTS and is SECURITY DEFINER. Both
+  -- were equally true of the superseded Brief 098 body, which is how the
+  -- wrong version sat on production unnoticed through a merge: 14/14 PASS
+  -- against a function carrying the wrong permission rule. A migration
+  -- that REPLACES a function body has to assert something only the new
+  -- body contains. v_may_write_tier is Brief 099's own per-tier case
+  -- expression and appears nowhere in the Brief 098 version.
+  select 15, 'commit_boq_import carries Brief 099''s per-tier rule, not Brief 098''s',
+    'true',
+    coalesce((select (prosrc like '%v_may_write_tier%')::text
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'workflow' and p.proname = 'commit_boq_import'), 'MISSING')
+
+  union all
+  select 16, 'commit_boq_import gates floors/systems separately (Brief 099 §2)',
+    'true',
+    coalesce((select (prosrc like '%v_may_create_setup%')::text
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'workflow' and p.proname = 'commit_boq_import'), 'MISSING')
 
 )
 select n, check_name, expected, actual,
