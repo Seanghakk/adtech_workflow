@@ -64,13 +64,20 @@ export default async function SoRecordPage({
   const viewParam = Array.isArray(sp.view) ? sp.view[0] : sp.view
   const isMatrixView = viewParam === 'matrix'
 
-  const { data: project } = await supabase
+  const { data: project, error: projectError } = await supabase
     .from('projects')
     .select(
-      'id, name, stream, scope_type, so_number, status, pic_id, opened_at, current_stage_id, cad_owner_name, cad_consultant_name, clients(name), sites(name), so_registers(label_en, label_km)',
+      'id, name, stream, scope_type, so_number, status, pic_id, opened_at, so_assigned_at, current_stage_id, cad_owner_name, cad_consultant_name, clients(name), sites(name), so_registers(label_en, label_km)',
     )
     .eq('id', projectId)
     .maybeSingle()
+
+  // Brief 100 Part C / v7.2 §21.0 — a read that FAILED is not the same as
+  // a row that is not there. The second is notFound() below; the first
+  // gets the failed state, never a blank page.
+  if (projectError) {
+    return <SoRecordLoadFailed t={t} />
+  }
 
   // Same "not found or not visible" convention as /projects/[projectId]/update
   // (Brief 002) — RLS (workflow.can_view_project for a sales-restricted
@@ -188,9 +195,9 @@ export default async function SoRecordPage({
     { data: variations },
     { data: scopeTypes },
     { data: stages },
-    { data: linkedRequests },
-    { data: procurementLines },
-    { data: dependencyLinks },
+    { data: linkedRequests, error: requestsError },
+    { data: procurementLines, error: procurementError },
+    { data: dependencyLinks, error: dependencyError },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -253,6 +260,28 @@ export default async function SoRecordPage({
   // uses (setup/setup-status.ts) so the two can never disagree.
   const setupStatus = await getSetupSectionsStatus(supabase, project.id, project, client?.name)
 
+  // Brief 100 Part C — §21.5's "recent" strand. progress_updates is this
+  // app's own record of who moved what and when; the SO record had no
+  // recent list before.
+  const { data: recentRows, error: recentError } = await supabase
+    .from('progress_updates')
+    .select('id, author_id, recorded_at, old_percent, new_percent')
+    .eq('subject_type', 'project')
+    .eq('subject_id', project.id)
+    .order('recorded_at', { ascending: false })
+    .limit(4)
+
+  const recentAuthorIds = [...new Set((recentRows ?? []).map((r) => r.author_id).filter(Boolean))] as string[]
+  const recentProfiles = recentAuthorIds.length
+    ? await getUserProfilesByIds(supabase, recentAuthorIds)
+    : new Map()
+  const recent = (recentRows ?? []).map((r) => ({
+    id: r.id,
+    at: r.recorded_at,
+    by: r.author_id ? formatMemberName(recentProfiles.get(r.author_id), t('membersNoProfile')) : null,
+    newPercent: r.new_percent,
+  }))
+
   const approvedVariations = (variations ?? []).filter((v) => v.is_approved)
   const unapprovedVariations = (variations ?? []).filter((v) => !v.is_approved)
   const atRiskTotal = unapprovedVariations.reduce((sum, v) => sum + (v.committed_amount ?? 0), 0)
@@ -282,6 +311,42 @@ export default async function SoRecordPage({
   }
 
   const { rows: dependencyRows, totalSlip: dependencySlip } = computeDependencyChain(dependencyLinks ?? [])
+
+  // Brief 100 Part C review item 1 / Brief 100 §4: "Every failed read shows
+  // the 21.0 failed state, never an empty table." Wiring only the project
+  // read was not enough — every source behind this page is checked, because
+  // a failed read that falls back to an empty list or a zero count is
+  // indistinguishable on screen from a project that genuinely has nothing.
+  if (setupStatus.readFailed || recentError || requestsError || procurementError || dependencyError) {
+    return <SoRecordLoadFailed t={t} />
+  }
+
+  // §21.5 "Nothing in any tile" — the live column's empty state fires when
+  // there is genuinely nothing moving, not merely when one strand is bare.
+  const nothingMoving =
+    requestRows.length === 0 && procurementSummary.total === 0 && dependencyRows.length === 0
+
+  // §21.5 — the register's subline names the section that comes next.
+  const NEXT_SECTION_KEYS = [
+    'soHubNextIdentity',
+    'soHubNextFloors',
+    'soHubNextSystems',
+    'soHubNextBoq',
+    'soHubNextDrawings',
+    'soHubNextExports',
+  ] as const
+  // Zero towers is a valid project shape (v7.2 §6.2 item 2), so the tile
+  // has to read properly at 0 and 1, not just at "many".
+  const towerDetail =
+    setupStatus.towerCount === 0
+      ? t('soHubTowersNone')
+      : setupStatus.towerCount === 1
+        ? `1 ${t('soHubTowerSingular')}`
+        : `${setupStatus.towerCount} ${t('soHubTowersSuffix')}`
+
+  const nextSectionLabel = setupStatus.nextSection
+    ? t(NEXT_SECTION_KEYS[setupStatus.nextSection - 1])
+    : t('soHubAllSectionsDone')
 
   return (
     <>
@@ -391,110 +456,203 @@ export default async function SoRecordPage({
         )}
       </div>
 
-      <div className="so-record__panels">
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedRequestsTitle')}</span>
-            <span className="so-record__panel-count">{requestRows.length}</span>
-          </div>
-          {requestRows.length === 0 ? (
-            <p className="empty-state">{t('soRecordLinkedRequestsEmpty')}</p>
+      {/* Brief 100 Part C — v7.2 §21.5 / mockup 6f. Two columns on the
+          2px rule: the live work on the left, the register on the right.
+          The register replaces the Floors & zones, Contract BOQ, Shop
+          drawing BOQ and Tender BOQ panels; Brief 097's "Project setup —
+          n of 6 sections done" link stays exactly as it is, now with the
+          strip's own mark and a subline naming what comes next. */}
+      <div className="so-hub">
+        <div className="so-hub__live">
+          <h2 className="so-record__section-title">{t('soHubLiveTitle')}</h2>
+
+          {nothingMoving ? (
+            /* §21.5 "Nothing in any tile" — the 4.5 empty part. */
+            <div className="wf-empty-state-card">
+              <p className="wf-empty-state-card__headline">{t('soHubNothingMovingHeadline')}</p>
+              <p className="wf-empty-state-card__body">{t('soHubNothingMovingBody')}</p>
+              <div className="wf-empty-state-card__actions">
+                <Link href={`/projects/${project.id}/setup`} className="btn btn--primary">
+                  {t('soHubOpenProjectSetup')}
+                </Link>
+              </div>
+            </div>
           ) : (
-            <div className="so-record__panel-list">
-              {requestRows.map((r) => (
-                <div key={r.id} className="so-record__panel-row">
-                  <span className="so-record__panel-row-body">{r.body}</span>
-                  <span className="so-record__panel-row-owner">{r.ownerLabel}</span>
-                  <span className="so-record__panel-row-age">{r.ageDays}d</span>
+            <>
+              <div className="so-record__panel">
+                <div className="so-record__panel-head">
+                  <span className="so-record__panel-title">{t('soRecordLinkedRequestsTitle')}</span>
+                  <span className="so-record__panel-count">{requestRows.length}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                {requestRows.length === 0 ? (
+                  <p className="empty-state">{t('soRecordLinkedRequestsEmpty')}</p>
+                ) : (
+                  <div className="so-record__panel-list">
+                    {requestRows.map((r) => (
+                      <div key={r.id} className="so-record__panel-row">
+                        <span className="so-record__panel-row-body">{r.body}</span>
+                        <span className="so-record__panel-row-owner">{r.ownerLabel}</span>
+                        <span className="so-record__panel-row-age">{r.ageDays}d</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedProcurementTitle')}</span>
-            <span className="so-record__panel-count">{procurementSummary.total}</span>
-          </div>
-          {procurementSummary.total === 0 ? (
-            <p className="empty-state">{t('soRecordLinkedProcurementEmpty')}</p>
-          ) : (
-            <div className="so-record__panel-list">
-              <div className="so-record__panel-row">
-                <span className="so-record__panel-row-body">{t('soRecordProcurementPoIssued')}</span>
-                <span className="so-record__panel-row-age">{procurementSummary.poIssued}</span>
+              <div className="so-record__panel">
+                <div className="so-record__panel-head">
+                  <span className="so-record__panel-title">{t('soRecordLinkedProcurementTitle')}</span>
+                  <span className="so-record__panel-count">{procurementSummary.total}</span>
+                </div>
+                {procurementSummary.total === 0 ? (
+                  <p className="empty-state">{t('soRecordLinkedProcurementEmpty')}</p>
+                ) : (
+                  <div className="so-record__panel-list">
+                    <div className="so-record__panel-row">
+                      <span className="so-record__panel-row-body">{t('soRecordProcurementPoIssued')}</span>
+                      <span className="so-record__panel-row-age">{procurementSummary.poIssued}</span>
+                    </div>
+                    <div className="so-record__panel-row">
+                      <span className="so-record__panel-row-body">{t('soRecordProcurementDelivered')}</span>
+                      <span className="so-record__panel-row-age">{procurementSummary.deliveredInFull}</span>
+                    </div>
+                    <div className="so-record__panel-row">
+                      <span className="so-record__panel-row-body">{t('soRecordProcurementSourcing')}</span>
+                      <span className="so-record__panel-row-age">{procurementSummary.sourcingNoPoYet}</span>
+                    </div>
+                  </div>
+                )}
+                <Link href={`/projects/${project.id}/procurement`} className="awaiting-so-card__link">
+                  {t('soRecordViewProcurement')}
+                </Link>
               </div>
-              <div className="so-record__panel-row">
-                <span className="so-record__panel-row-body">{t('soRecordProcurementDelivered')}</span>
-                <span className="so-record__panel-row-age">{procurementSummary.deliveredInFull}</span>
-              </div>
-              <div className="so-record__panel-row">
-                <span className="so-record__panel-row-body">{t('soRecordProcurementSourcing')}</span>
-                <span className="so-record__panel-row-age">{procurementSummary.sourcingNoPoYet}</span>
-              </div>
-            </div>
-          )}
-          <Link href={`/projects/${project.id}/procurement`} className="awaiting-so-card__link">
-            {t('soRecordViewProcurement')}
-          </Link>
-        </div>
 
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('soRecordLinkedDependencyChainTitle')}</span>
-            <span className="so-record__panel-count">{dependencyRows.length}</span>
-          </div>
-          {dependencyRows.length === 0 ? (
-            <p className="empty-state">{t('soRecordLinkedDependencyChainEmpty')}</p>
-          ) : (
-            <div className="so-record__panel-list">
-              <div className="so-record__panel-row">
-                <span className="so-record__panel-row-body">
-                  {dependencySlip > 0 ? t('soRecordDependencyChainSlipped') : t('soRecordDependencyChainOnTrack')}
-                </span>
-                <span
-                  className={
-                    dependencySlip > 0
-                      ? 'so-record__panel-row-age so-record__panel-row-age--danger'
-                      : 'so-record__panel-row-age'
-                  }
-                >
-                  {dependencySlip > 0 ? `+${dependencySlip}d` : '—'}
-                </span>
+              <div className="so-record__panel">
+                <div className="so-record__panel-head">
+                  <span className="so-record__panel-title">{t('soRecordLinkedDependencyChainTitle')}</span>
+                  <span className="so-record__panel-count">{dependencyRows.length}</span>
+                </div>
+                {dependencyRows.length === 0 ? (
+                  <p className="empty-state">{t('soRecordLinkedDependencyChainEmpty')}</p>
+                ) : (
+                  <div className="so-record__panel-list">
+                    <div className="so-record__panel-row">
+                      <span className="so-record__panel-row-body">
+                        {dependencySlip > 0 ? t('soRecordDependencyChainSlipped') : t('soRecordDependencyChainOnTrack')}
+                      </span>
+                      <span
+                        className={
+                          dependencySlip > 0
+                            ? 'so-record__panel-row-age so-record__panel-row-age--danger'
+                            : 'so-record__panel-row-age'
+                        }
+                      >
+                        {dependencySlip > 0 ? `+${dependencySlip}d` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <Link href={`/projects/${project.id}/dependencies`} className="awaiting-so-card__link">
+                  {t('soRecordViewDependencyChain')}
+                </Link>
               </div>
-            </div>
+            </>
           )}
-          <Link href={`/projects/${project.id}/dependencies`} className="awaiting-so-card__link">
-            {t('soRecordViewDependencyChain')}
-          </Link>
-        </div>
 
-        {/* Brief 097 §2 / v7.2 §5 — replaces the three stacked panels
-            above (Contract BOQ / Floors / Shop drawing BOQ, Briefs 046/
-            047/055) with the one link Project Setup's own strip now
-            covers in full, including the Tender BOQ tile those three
-            panels never had. Exact link text, v7.2 §5's own words. */}
-        <div className="so-record__panel">
-          <div className="so-record__panel-head">
-            <span className="so-record__panel-title">{t('setupKicker')}</span>
-          </div>
-          <Link href={`/projects/${project.id}/setup`} className="awaiting-so-card__link">
-            {t('setupKicker')} — {setupStatus.doneCount} {t('soRecordSetupSectionsDoneSuffix')}
-          </Link>
-        </div>
-        {/* Brief 056 §7 — the matrix's second entry point (the first is
-            the board card). Only shown once floors actually exist — a
-            matrix over zero floors is just an empty grid. Kept as its
-            own link, unchanged by Brief 097 (the matrix is not one of
-            the six setup sections). */}
-        {setupStatus.structureDone && (
+          {/* §21.5 — Recent. */}
           <div className="so-record__panel">
+            <div className="so-record__panel-head">
+              <span className="so-record__panel-title">{t('soHubRecentTitle')}</span>
+            </div>
+            {recent.length === 0 ? (
+              <p className="empty-state">
+                {project.so_assigned_at
+                  ? `${t('soHubSoAssignedPrefix')} ${formatDateICT(project.so_assigned_at)}. `
+                  : ''}
+                {t('soHubNothingRecordedSince')}
+              </p>
+            ) : (
+              <div className="so-record__panel-list">
+                {recent.map((r) => (
+                  <div key={r.id} className="so-record__panel-row">
+                    <span className="so-record__panel-row-body">
+                      {t('soHubRecentPercentPrefix')} {r.newPercent}%
+                      {r.by ? ` ${t('soHubRecentBy')} ${r.by}` : ''}
+                    </span>
+                    <span className="so-record__panel-row-age">{formatDateICT(r.at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="so-hub__register">
+          <h2 className="so-record__section-title">{t('soHubRegisterTitle')}</h2>
+
+          {/* §21.5 — ONE link row, with the strip's mark for the overall
+              state and a subline naming the next section. */}
+          <Link href={`/projects/${project.id}/setup`} className="so-hub__setup-row">
+            <span
+              className={
+                setupStatus.doneCount === 6
+                  ? 'wf-setup-strip__mark wf-setup-strip__mark--done'
+                  : setupStatus.doneCount > 0
+                    ? 'wf-setup-strip__mark wf-setup-strip__mark--partly'
+                    : 'wf-setup-strip__mark'
+              }
+              aria-hidden="true"
+            />
+            <span className="so-hub__setup-text">
+              <span className="so-hub__setup-title">
+                {t('setupKicker')} — {setupStatus.doneCount} {t('soRecordSetupSectionsDoneSuffix')}
+              </span>
+              <span className="so-hub__setup-subline">{nextSectionLabel}</span>
+            </span>
+          </Link>
+
+          {/* §21.5 — four read-out tiles. Counts, not results; links,
+              never edit controls. */}
+          <div className="so-hub__tiles">
+            <HubTile
+              label={t('soHubTileFloors')}
+              value={String(setupStatus.floorCount)}
+              detail={towerDetail}
+              href={`/projects/${project.id}/setup#structure`}
+              linkText={setupStatus.floorCount === 0 ? t('soHubSetUpFloors') : t('soHubOpen')}
+            />
+            <HubTile
+              label={t('soHubTileBoq')}
+              value={String(setupStatus.boqLineCount)}
+              detail={`${setupStatus.boqTiersFilled} ${t('soHubTiersImportedSuffix')}`}
+              href={`/projects/${project.id}/setup#boq`}
+              linkText={setupStatus.boqLineCount === 0 ? t('soHubImportABoq') : t('soHubOpen')}
+            />
+            <HubTile
+              label={t('soHubTileDrawings')}
+              value={String(setupStatus.drawingCount)}
+              detail={t('soHubRegisteredSuffix')}
+              href={`/projects/${project.id}/setup#drawings`}
+              linkText={setupStatus.drawingCount === 0 ? t('soHubOpenShopDrawings') : t('soHubOpen')}
+            />
+            <HubTile
+              label={t('soHubTileLastExport')}
+              value={setupStatus.lastExportAt ? formatDateICT(setupStatus.lastExportAt) : '\u2014'}
+              detail={setupStatus.lastExportAt ? '' : t('soHubNeverExported')}
+              href={`/projects/${project.id}/export`}
+              linkText={setupStatus.lastExportAt ? t('soHubOpen') : t('soHubOpenExportPanel')}
+            />
+          </div>
+
+          {/* Brief 056 §7 — the matrix's second entry point. Only once
+              floors exist; a matrix over zero floors is an empty grid.
+              Not one of the six setup sections, so it keeps its own row. */}
+          {setupStatus.structureDone && (
             <Link href={`/projects/${project.id}?view=matrix`} className="awaiting-so-card__link">
               {t('soRecordViewMatrix')}
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
     </>
@@ -545,6 +703,48 @@ function VariationRow({
             {t('soRecordNotApproved')}
           </span>
         )}
+      </div>
+    </div>
+  )
+}
+
+/** v7.2 §21.5 — a read-out tile: a count, what it counts, and a link to
+ *  its own section of the setup page. Page chrome, not a new shared part,
+ *  and never an edit control. */
+function HubTile({
+  label,
+  value,
+  detail,
+  href,
+  linkText,
+}: {
+  label: string
+  value: string
+  detail: string
+  href: string
+  linkText: string
+}) {
+  return (
+    <div className="so-hub__tile">
+      <span className="so-hub__tile-label">{label}</span>
+      <span className="so-hub__tile-value">{value}</span>
+      {detail && <span className="so-hub__tile-detail">{detail}</span>}
+      <Link href={href} className="so-hub__tile-link">
+        {linkText}
+      </Link>
+    </div>
+  )
+}
+
+/** v7.2 §21.0 — the failed state, for any read this page depends on.
+ *  Shared so the project row and the hub's own sources cannot drift into
+ *  showing different things for the same kind of failure. */
+function SoRecordLoadFailed({ t }: { t: (key: import('@/lib/i18n/dictionary').DictionaryKey) => string }) {
+  return (
+    <div className="so-record">
+      <div className="wf-load-failed-card" role="alert">
+        <p style={{ margin: 0, fontWeight: 700 }}>{t('soHubLoadFailedHeadline')}</p>
+        <p style={{ margin: 'var(--space-2) 0 0' }}>{t('setupLoadFailedBody')}</p>
       </div>
     </div>
   )
