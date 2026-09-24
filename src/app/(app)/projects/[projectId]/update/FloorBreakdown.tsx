@@ -25,6 +25,10 @@ import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
+import { ShopDrawingDrawer, type DrawerDrawing } from './ShopDrawingDrawer'
+import { deriveLifecycle } from '@/lib/shopDrawing/lifecycle'
+import type { DrawingActor } from '@/lib/shopDrawing/permissions'
+import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
 import type { SubStageDisplayState } from '@/lib/subStageDisplayState'
 
@@ -34,12 +38,6 @@ const STATUS_KEYS: Record<string, DictionaryKey> = {
   done: 'statusDone',
 }
 
-const DRAWING_TYPE_KEYS: Record<string, DictionaryKey> = {
-  schematic: 'drawingTypeSchematic',
-  typical_section: 'drawingTypeTypicalSection',
-  layout: 'drawingTypeLayout',
-  detail_connection: 'drawingTypeDetailConnection',
-}
 
 const SUB_STAGE_KEYS: Record<string, DictionaryKey> = {
   first_fix: 'subStageFirstFix',
@@ -94,6 +92,8 @@ export interface DrawingRow {
   id: string
   drawingType: string
   status: string
+  /** Brief 100 Part B — everything §9's drawer shows for this drawing. */
+  drawer: DrawerDrawing
 }
 
 export interface FloorRow {
@@ -117,6 +117,7 @@ export function FloorBreakdown({
   floors,
   projectShopDrawing,
   handoverItems,
+  drawingActor,
 }: {
   projectId: string
   isPic: boolean
@@ -130,7 +131,12 @@ export function FloorBreakdown({
   floors: FloorRow[]
   projectShopDrawing: DrawingRow[]
   handoverItems: HandoverItem[]
+  /** Brief 100 Part B — who the signed-in person is, for §9.5's gates. */
+  drawingActor: DrawingActor
 }) {
+  // §9.1 — one drawer at a time across the whole screen, so opening a
+  // second drawing closes the first rather than stacking panels.
+  const [openDrawingId, setOpenDrawingId] = useState<string | null>(null)
   const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
 
@@ -191,9 +197,31 @@ export function FloorBreakdown({
 
           <section className="floor-breakdown__section">
             <h3 className="floor-breakdown__section-title">{t('floorBreakdownProjectLevelTitle')}</h3>
+            {projectShopDrawing.length === 0 && (
+              <div className="wf-empty-state-card">
+                <p className="wf-empty-state-card__headline">{t('drawerRegisterEmptyProjectHeadline')}</p>
+                <p className="wf-empty-state-card__body">
+                  {floors.length} {t('drawerRegisterEmptyProjectBodyPrefix')}
+                </p>
+                {/* Brief 100 Part B stopped here: §21.4 says "Add a shop
+                    drawing" is the update screen's EXISTING add action and
+                    to flag it if the screen has none. It has none, so this
+                    says what is true instead of inventing a control. */}
+                <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyNoAddAction')}</p>
+              </div>
+            )}
             <div className="floor-breakdown__drawing-list">
               {projectShopDrawing.map((item) => (
-                <DrawingRowView key={item.id} projectId={projectId} item={item} isPic={isPic} />
+                <DrawingRowView
+                  key={item.id}
+                  projectId={projectId}
+                  item={item}
+                  isPic={isPic}
+                  actor={drawingActor}
+                  isOpen={openDrawingId === item.id}
+                  onOpen={() => setOpenDrawingId(item.id)}
+                  onClose={() => setOpenDrawingId(null)}
+                />
               ))}
             </div>
             {isQcMember && (
@@ -240,6 +268,9 @@ export function FloorBreakdown({
                 isQcMember={isQcMember}
                 isProjectTeamMember={isProjectTeamMember}
                 isTncTeamMember={isTncTeamMember}
+                drawingActor={drawingActor}
+                openDrawingId={openDrawingId}
+                setOpenDrawingId={setOpenDrawingId}
               />
             ))
           )}
@@ -277,9 +308,15 @@ function FloorCard({
   isQcMember,
   isProjectTeamMember,
   isTncTeamMember,
+  drawingActor,
+  openDrawingId,
+  setOpenDrawingId,
 }: {
   projectId: string
   floor: FloorRow
+  drawingActor: DrawingActor
+  openDrawingId: string | null
+  setOpenDrawingId: (id: string | null) => void
   isPic: boolean
   isQcMember: boolean
   isProjectTeamMember: boolean
@@ -295,9 +332,27 @@ function FloorCard({
 
       <div className="floor-breakdown__subsection">
         <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownShopDrawingTitle')}</h4>
+        {floor.shopDrawing.length === 0 && (
+          <div className="wf-empty-state-card">
+            <p className="wf-empty-state-card__headline">
+              {t('drawerRegisterEmptyFloorPrefix')} {floor.label}
+            </p>
+            <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyFloorBody')}</p>
+            <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyNoAddAction')}</p>
+          </div>
+        )}
         <div className="floor-breakdown__drawing-list">
           {floor.shopDrawing.map((item) => (
-            <DrawingRowView key={item.id} projectId={projectId} item={item} isPic={isPic} />
+            <DrawingRowView
+              key={item.id}
+              projectId={projectId}
+              item={item}
+              isPic={isPic}
+              actor={drawingActor}
+              isOpen={openDrawingId === item.id}
+              onOpen={() => setOpenDrawingId(item.id)}
+              onClose={() => setOpenDrawingId(null)}
+            />
           ))}
         </div>
       </div>
@@ -333,13 +388,35 @@ function FloorCard({
   )
 }
 
-function DrawingRowView({ projectId, item, isPic }: { projectId: string; item: DrawingRow; isPic: boolean }) {
+function DrawingRowView({
+  projectId,
+  item,
+  isPic,
+  actor,
+  isOpen,
+  onOpen,
+  onClose,
+}: {
+  projectId: string
+  item: DrawingRow
+  isPic: boolean
+  actor: DrawingActor
+  isOpen: boolean
+  onOpen: () => void
+  onClose: () => void
+}) {
   const { t } = useLanguage()
   const [isPending, startTransition] = useTransition()
 
   return (
-    <div className="floor-breakdown__row">
-      <span className="floor-breakdown__row-label">{t(DRAWING_TYPE_KEYS[item.drawingType] ?? 'drawingTypeSchematic')}</span>
+    <>
+    <div className={`floor-breakdown__row${isOpen ? ' floor-breakdown__row--drawer-open' : ''}`}>
+      {/* §9.1 — clicking columns 1–2 opens the drawer. The status dropdown
+          in column 3 is untouched and is not a drawer target. */}
+      <button type="button" className="floor-breakdown__row-open" onClick={isOpen ? onClose : onOpen}>
+        <span className="floor-breakdown__row-label">{t(DRAWING_TYPE_KEYS[item.drawingType] ?? 'drawingTypeSchematic')}</span>
+        <PossessionChip drawing={item.drawer} />
+      </button>
       <select
         className="floor-breakdown__status-select"
         defaultValue={item.status}
@@ -361,6 +438,63 @@ function DrawingRowView({ projectId, item, isPic }: { projectId: string; item: D
         ))}
       </select>
     </div>
+    {isOpen && (
+      <ShopDrawingDrawer projectId={projectId} drawing={item.drawer} actor={actor} onClose={onClose} />
+    )}
+    </>
+  )
+}
+
+/** §9.2 — the possession chip. Amber is possession, not blame; nothing
+ *  here is red. Outlined for us, solid amber for a reviewer, solid ink
+ *  once approved, dashed where it was marked done by hand. */
+function PossessionChip({ drawing }: { drawing: DrawerDrawing }) {
+  const { t } = useLanguage()
+  const life = deriveLifecycle({
+    status: drawing.status,
+    preSubmissionStage: drawing.preSubmissionStage,
+    draftingStartedAt: drawing.draftingStartedAt,
+    legacyDoneNoHistory: drawing.legacyDoneNoHistory,
+    submissions: drawing.submissions,
+    checks: drawing.checks,
+    now: new Date(),
+  })
+
+  if (life.possession === 'none') {
+    return <span className="sd-chip-cell sd-chip-cell--none">—</span>
+  }
+
+  const org = life.openSubmission?.reviewerOrg ?? life.lastReturned?.reviewerOrg ?? null
+  const withDays = life.clocks.withAdtechDays
+  const reviewerDays = life.clocks.withReviewerDays
+
+  let chipClass = 'sd-chip sd-chip--adtech'
+  let chipText = t('drawerChipWithAdtech')
+  let detail = ''
+
+  if (life.possession === 'reviewer') {
+    chipClass = 'sd-chip sd-chip--reviewer'
+    chipText = `${t('drawerChipWithPrefix')} ${org ?? '—'}`
+    detail = `${t('drawerDetailSubmittedPrefix')} ${reviewerDays ?? 0}d ${t('drawerDetailSubmittedSuffix')}`
+  } else if (life.possession === 'approved') {
+    chipClass = 'sd-chip sd-chip--approved'
+    chipText = `${t('drawerChipApprovedPrefix')} ${life.lastReturned?.code ?? ''}`.trim()
+    detail = `${org ?? '—'}${life.lastReturned?.returnedAt ? ` · ${new Date(life.lastReturned.returnedAt).toLocaleDateString()}` : ''}`
+  } else if (life.possession === 'marked_done_by_hand') {
+    chipClass = 'sd-chip sd-chip--by-hand'
+    chipText = t('drawerChipMarkedByHand')
+  } else {
+    const word = life.stage === 'internal_check' || life.stage === 'checked'
+      ? t('drawerDetailAwaitingCheck')
+      : t('drawerDetailDrafting')
+    detail = withDays === null ? t('drawerStartNotRecorded') : `${word}, ${withDays}d`
+  }
+
+  return (
+    <span className="sd-chip-cell">
+      <span className={chipClass}>{chipText}</span>
+      {detail && <span className="sd-chip-detail">{detail}</span>}
+    </span>
   )
 }
 
@@ -763,4 +897,3 @@ function HandoverRowView({
     </div>
   )
 }
-

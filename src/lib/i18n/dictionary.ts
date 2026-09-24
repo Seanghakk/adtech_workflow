@@ -1507,6 +1507,144 @@ const en = {
   exportRefused: 'The export is run by the PIC, the Shop Drawing team or the A&A team.',
   exportFailed: 'Could not record this export. Nothing was downloaded — try again.',
   exportLoadFailedHeadline: 'The export panel did not load',
+
+  // -------------------------------------------------------------------
+  // Brief 100 Part B — the shop drawing drawer (v7.2 §9, §21.4).
+  // v7.2's exact copy throughout. Where it gives a template with a
+  // placeholder, the key holds the fixed words and the screen supplies
+  // the name, count or date.
+  // -------------------------------------------------------------------
+  drawerColumnWhereItIs: 'Where it is',
+  drawerKickerProject: 'Shop drawing · project level',
+  drawerKickerFloorPrefix: 'Shop drawing ·',
+  drawerClose: 'Close',
+  drawerCouldNotSave: 'Could not save. Nothing was changed — try again.',
+
+  // §9.2 possession chips and their detail lines.
+  drawerChipWithAdtech: 'With ADTECH',
+  drawerChipWithPrefix: 'With',
+  drawerChipApprovedPrefix: 'Approved',
+  drawerChipMarkedByHand: 'Marked done by hand',
+  drawerDetailDrafting: 'drafting',
+  drawerDetailAwaitingCheck: 'awaiting the manager’s check',
+  drawerDetailSubmittedPrefix: 'submitted',
+  drawerDetailSubmittedSuffix: 'ago',
+
+  // §9.3 stage strip.
+  drawerStageDrafting: 'Drafting',
+  drawerStageInternalCheck: 'Internal check',
+  drawerStageSubmitted: 'Submitted',
+  drawerStageApproved: 'Approved',
+  drawerHeldByAdtech: 'Held by ADTECH',
+  drawerHeldByReviewer: 'Held by the reviewer',
+  drawerRevPrefix: 'Rev',
+
+  // §21.4 "Just created", exact.
+  drawerJustCreatedState: 'Rev 0 · not started',
+  drawerJustCreatedAddedPrefix: 'added',
+  drawerJustCreatedAddedBy: 'by',
+  drawerJustCreatedNobody: 'nobody has started drafting',
+  drawerClocksNotStarted: 'Not started',
+  drawerClocksNeverSent: 'Never sent',
+  drawerHistoryEmpty: 'No revisions recorded yet. Rev 0 is the first entry once drafting starts.',
+
+  // §9.3 origin line.
+  drawerOriginRevisionSuffix: 'revision',
+  drawerOriginStartedPrefix: '· started',
+  drawerOriginAfterC: 'after a C return',
+
+  // §9.4 the two clocks.
+  drawerClocksHeading: 'Time held, all revisions',
+  drawerClockWithAdtech: 'With ADTECH',
+  drawerClockWithReviewer: 'With the reviewer',
+  drawerClockDaysSuffix: 'days',
+  // §9.4 — permanent, never a substituted proxy.
+  drawerStartNotRecorded: 'start not recorded',
+
+  // §9.5 first recording.
+  drawerStartDrafting: 'Start drafting',
+  drawerStartDraftingNote: 'Sets the status to in progress and starts the ADTECH clock from now.',
+  drawerMoveToInternalCheck: 'Move to internal check',
+  drawerAutoStatusConfirmed: 'status set to in progress automatically',
+
+  // §9.5 second recording — the manager's stamp block, exact.
+  drawerStampPrefix: 'This will be recorded as checked by',
+  drawerStampOn: 'on',
+  drawerStampSuffix: '. Your name and the time are taken from your sign-in and cannot be changed.',
+  drawerCheckButtonPrefix: 'Check Rev',
+  drawerWaitingForManager:
+    'Waiting for the Shop Drawing manager’s check — only the Shop Drawing team’s manager can record it, and only under their own name. Nothing for you to do here.',
+
+  // §9.5 third recording — submit.
+  drawerSubmitHeading: 'Submit',
+  drawerSubmitButtonPrefix: 'Submit Rev',
+  drawerReviewerParty: 'Reviewer',
+  drawerPartyClient: 'Client',
+  drawerPartyConsultant: 'Consultant',
+  drawerPartyMainContractor: 'Main contractor',
+  drawerPartyOther: 'Other',
+  drawerReviewerOrg: 'Organisation',
+  drawerDateSent: 'Date sent',
+  drawerSubmitFootnote:
+    'Once sent, this submission is written and can only be completed by a return — never edited.',
+  drawerSubmitAfterCheckPrefix: 'Submitting comes after the check. Rev',
+  drawerSubmitAfterCheckSuffix: 'has not been checked yet.',
+  drawerRefusedSubmit: 'Submitting is recorded by the PIC, the Shop Drawing team or the A&A team.',
+  // The checked_at <= submitted_at CHECK (migration 027). Surfaced as a
+  // sentence rather than the raw constraint name, per §21.0.
+  drawerReturnedBeforeSent:
+    'The date returned is before the date it was sent. A revision cannot come back before it went out — choose the date it actually came back.',
+  drawerSentBeforeChecked:
+    'The date sent is before the internal check was recorded. A revision cannot be sent before it was checked — choose the date it actually went out.',
+
+  // §9.5 fourth recording — the return and its three codes.
+  drawerReturnHeading: 'Record a return',
+  drawerReturnDate: 'Date returned',
+  drawerReturnComments: 'Comments',
+  drawerCodeA: 'A — approved',
+  drawerCodeAConsequence: 'Marks the drawing done.',
+  drawerCodeB: 'B — approved with comments',
+  drawerCodeBConsequence: 'Marks it done, installation may go ahead.',
+  drawerCodeC: 'C — revise and resubmit',
+  drawerCodeCConsequence: 'Opens Rev n+1 back at drafting.',
+  drawerReturnButton: 'Record the return',
+  drawerAutoDoneConfirmed: 'status set to done automatically',
+
+  // §9.6 history.
+  drawerOpenHistory: 'Open history',
+  drawerBackToDrawing: 'Back to the drawing',
+  drawerHistoryHeading: 'History',
+  drawerHistoryClosed: 'Closed',
+  drawerHistoryOpen: 'Open',
+  drawerHistoryChecked: 'Checked',
+  drawerHistorySent: 'Sent',
+  drawerHistoryReturned: 'Returned',
+  drawerHistoryComments: 'Comments',
+  drawerHistoryDaysWithReviewerSuffix: 'days with the reviewer',
+
+  // §21.4 "Cannot act", exact.
+  drawerCannotActHeadline: 'Nothing for you to do here yet',
+  drawerCannotActBody:
+    'Drafting is started by the PIC, the Shop Drawing team or the A&A team. You can read this drawing and its history.',
+
+  // §21.4 empty registers, exact.
+  drawerRegisterEmptyProjectHeadline: 'No shop drawings on this project yet',
+  drawerRegisterEmptyProjectBodyPrefix: 'floors are set up, so layouts can be added per floor or for the project as a whole. Drawings added here are what Project setup counts and what the AutoCAD export sends.',
+  drawerRegisterEmptyFloorPrefix: 'No drawings for',
+  drawerRegisterEmptyFloorBody:
+    'Add one here, or add a project-level drawing that covers every floor.',
+  // Brief 100 Part B stopped here: §21.4 says "Add a shop drawing" is the
+  // update screen's EXISTING add action, and to stop and flag if the
+  // screen has none. It has none — no code path anywhere creates a
+  // shop_drawing_items row; they are seeded by the floor trigger only.
+  // So the empty states carry their exact copy and say plainly that the
+  // way to add one does not exist yet, rather than inventing a control.
+  drawerRegisterEmptyNoAddAction:
+    'There is no way to add a shop drawing by hand yet. Floor drawings appear automatically when a floor is added in Project setup.',
+
+  // §21.4 failed to load, exact.
+  drawerLoadFailedHeadline: 'This drawing did not load',
+  drawerTryAgain: 'Try again',
 } as const
  
 export type DictionaryKey = keyof typeof en
