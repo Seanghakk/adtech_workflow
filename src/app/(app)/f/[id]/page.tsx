@@ -7,10 +7,10 @@ import { isUuid } from '@/lib/uuid'
  * (ADTECH_CMMS_Brief_029_QR_Generation) — read first, followed, not
  * redesigned. /f/<floor-uuid>, reached by scanning a printed floor
  * label. Minimal: it does no work of its own beyond resolving the id
- * and redirecting — the landing screen (screen 6a's floor breakdown,
- * Brief 024/056) already exists and is explicitly out of scope to
- * modify here (Brief 058 §6 — FloorBreakdown.tsx and floor-actions.ts
- * are untouched by this brief).
+ * and redirecting. As of Brief 100 Part E it lands on the scanned-floor
+ * PHONE page (/floors/[floorId]/scan, v7.2 §12) rather than the desktop
+ * floor breakdown it originally redirected to — see the redirect's own
+ * comment below for why that moved and what it does not change.
  *
  * NOT-SIGNED-IN HANDLING (§4): unlike the CMMS, which had to build its
  * own /login?redirect= mechanism for this exact flow, this app already
@@ -44,7 +44,7 @@ export default async function FloorResolvePage({ params }: { params: Promise<{ i
 
   const { data: floor } = await supabase
     .from('project_floors')
-    .select('id, project_id')
+    .select('id')
     .eq('id', id)
     .maybeSingle()
 
@@ -56,35 +56,23 @@ export default async function FloorResolvePage({ params }: { params: Promise<{ i
     notFound()
   }
 
-  // Brief 058 §3 — the QR is per FLOOR, not per floor-and-stage: a
-  // printed wall label can't know which stage the scanner cares about,
-  // so this lands on the floor's own panel, not one specific sub-stage,
-  // and the person picks the row themselves. JUDGMENT CALL, flagged
-  // rather than silently decided: FloorBreakdown.tsx's only existing
-  // anchor/scroll mechanism is #substage-<id> (Brief 056), and that file
-  // is explicitly off-limits to modify this round (§6) — so a genuine
-  // floor-level anchor (e.g. #floor-<id>) cannot be added without
-  // touching it. Reusing the EXISTING mechanism unmodified: this route
-  // resolves to the floor's FIRST sub-stage by sequence (first_fix,
-  // migration 008's own sequence 1, always installation's opening row)
-  // and lands on THAT #substage-<id> anchor. Since every one of a
-  // floor's sub-stage rows renders together in one contiguous block
-  // under that floor's own card (FloorCard in FloorBreakdown.tsx),
-  // scrolling to the first one puts the whole floor's panel in view —
-  // satisfying "lands on the floor's panel, person picks the row"
-  // exactly, through the existing mechanism, with zero changes to the
-  // file this brief is forbidden from touching.
-  const { data: firstSubStage } = await supabase
-    .from('floor_sub_stages')
-    .select('id')
-    .eq('floor_id', floor.id)
-    .order('sequence', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  redirect(
-    firstSubStage
-      ? `/projects/${floor.project_id}/update#substage-${firstSubStage.id}`
-      : `/projects/${floor.project_id}/update`,
-  )
+  // Brief 100 Part E — REPOINTED. Brief 058 landed this on the desktop
+  // update screen and Brief 078 kept it there deliberately, its own
+  // header saying /f/[id] "must keep landing on the existing desktop
+  // update screen until this page is actually complete — printed QR
+  // labels are already in the field and would otherwise land on an
+  // unfinished page." Part E completes v7.2 §12, so that condition is
+  // met and §12's opening line takes effect: "The /f/[id] QR resolve
+  // route points here."
+  //
+  // This is the one change in Part E that alters what a real scan does
+  // for someone standing on a floor, so it is worth being explicit: the
+  // desktop screen is unchanged and still reachable at its own route
+  // (§12 — "this is an additional screen, not a replacement"); only
+  // where a SCANNED label lands moves. Reverting is this one redirect.
+  //
+  // No sub-stage lookup any more: the phone page is per FLOOR and shows
+  // all five rows itself, so the first-sub-stage anchor Brief 058 needed
+  // to reach a row inside the desktop breakdown has nothing left to do.
+  redirect(`/floors/${floor.id}/scan`)
 }

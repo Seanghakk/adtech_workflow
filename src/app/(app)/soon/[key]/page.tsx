@@ -80,6 +80,17 @@ const ENTRIES: Record<string, ComingSoonEntry> = {
   // link) but directly navigable, same as 'execution' above. No
   // `breadcrumb` of its own — it IS the top of that branch (0 ancestors).
   admin: { headlineKey: 'comingSoonAdminHeadline', bodyKey: 'comingSoonAdminBody' },
+  // Brief 100 §3 — one of v7.2 §20's five NOT DRAWN routes. §12.9
+  // describes only the ENTRY to this screen, never the screen, so it
+  // gets an honest page here rather than a design invented to fill the
+  // gap. Reached from the phone floor page's material inspection block;
+  // its action points at the cross-project QC list, which is where a QC
+  // member records one today.
+  'material-inspection': {
+    headlineKey: 'comingSoonMaterialInspectionHeadline',
+    bodyKey: 'comingSoonMaterialInspectionBody',
+    action: { labelKey: 'comingSoonMaterialInspectionAction', href: '/qc-inspections' },
+  },
 }
 
 /**

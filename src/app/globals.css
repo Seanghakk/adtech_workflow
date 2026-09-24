@@ -7180,3 +7180,606 @@ a.floor-matrix__cell {
     grid-area: track;
   }
 }
+
+/* ===================================================================
+   Brief 100 Part E — the rest of the scanned-floor phone page
+   (v7.2 §12.1, §12.3-§12.9, §21.6)
+
+   §12.1's geometry, and the reason for all of it: this is read at arm's
+   length, in daylight, by someone standing on a concrete floor. Target
+   390px, must hold at 360px with no horizontal scroll and no clipped
+   label. Sections are full-bleed white bands on the ground — no side
+   margins, no cards, no inset boxes. Body copy is 15-16px here, not
+   14px.
+
+   This block is where the --wf-tap-* tokens Brief 078 declared finally
+   get read: 56px for anything a site worker taps, 60px for the one
+   primary action, 10px minimum between adjacent targets so a mis-tap
+   lands on nothing rather than on the wrong thing.
+
+   var(--text-muted) is deliberately absent: v7.2 forbids it by name (it
+   resolves to .6 ≈ 4.40:1 on white, failing WCAG AA). .62 ≈ 4.69:1.
+   =================================================================== */
+
+.phone-floor {
+  background: var(--wf-bg);
+  /* Full-bleed bands: the page's own padding is zero and each band
+     carries the 16px content padding itself (§12.1). */
+  padding: 0;
+  max-width: var(--wf-phone-w);
+}
+
+/* --- §12.3 groups, §12.4 row states -------------------------------- */
+
+.phone-rows__group {
+  margin-top: var(--wf-s5);
+}
+
+.phone-rows__group-label {
+  font: 700 12px/1.4 var(--wf-head);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0 0 var(--space-2);
+  padding: 0 var(--wf-s4);
+}
+
+.phone-rows__nothing-waiting {
+  background: var(--wf-surface);
+  border-top: var(--wf-border-hair) solid var(--rule-minor);
+  border-bottom: var(--wf-border-hair) solid var(--rule-minor);
+  padding: var(--wf-s4);
+  margin: var(--wf-s5) 0 0;
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-row {
+  background: var(--wf-surface);
+  border-top: var(--wf-border-hair) solid var(--rule-minor);
+  border-bottom: var(--wf-border-hair) solid var(--rule-minor);
+  padding: var(--wf-s4);
+  margin-bottom: -1px; /* adjacent bands share one rule, not two */
+}
+
+.phone-row__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--wf-s3);
+  min-height: 60px; /* §12.4 settled row */
+}
+
+.phone-row__label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--wf-ink);
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-row__subline {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-row__tag-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.phone-row__tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  white-space: nowrap;
+  background: var(--wf-surface-2);
+  color: var(--wf-ink);
+}
+
+/* §12.4 — awaiting QC: a 5px amber left spine and an amber-tint tag. */
+.phone-row--awaiting_qc {
+  border-left: 5px solid var(--wf-amber);
+}
+
+.phone-row__tag--awaiting_qc {
+  background: var(--wf-amber-tint);
+  color: var(--wf-amber-ink);
+  border: 1px solid var(--wf-amber-edge);
+}
+
+.phone-row__tag--qc_passed {
+  background: var(--wf-blue-tint);
+  color: var(--wf-blue);
+  border: 1px solid var(--wf-blue-edge);
+}
+
+/* §12.4 — QC failed stays on a WHITE field, not inactive grey: it has
+   to stay visible, because the installer has to come back and redo it.
+   The hatch swatch is 26x16 beside the words, always with a 1px ink
+   border, never used alone. */
+.phone-row--qc_failed {
+  background: var(--wf-surface);
+}
+
+.phone-row__hatch {
+  width: 26px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: var(--wf-hatch-ink);
+  border: 1px solid var(--wf-ink);
+}
+
+.phone-row__tag--qc_failed {
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-ink);
+}
+
+/* §12.4 read-only: inactive field, muted label and status. No lock
+   icon, no disabled-looking button — the control is simply absent. */
+.phone-row--readonly {
+  background: var(--wf-surface-2);
+}
+
+.phone-row--readonly .phone-row__label {
+  color: rgba(32, 30, 29, 0.62);
+  font-weight: 500;
+}
+
+.phone-row__open {
+  margin-top: var(--wf-tap-gap);
+  min-height: var(--wf-tap-min);
+  width: 100%;
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-ink);
+  font: 700 15px/1.2 var(--wf-head);
+  color: var(--wf-ink);
+  cursor: pointer;
+}
+
+.phone-row__control {
+  margin-top: var(--wf-tap-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wf-tap-gap);
+}
+
+.phone-row__note {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-row__error {
+  font-size: 14px;
+  margin: 0;
+  padding: var(--space-2) var(--wf-s3);
+  background: var(--wf-surface);
+  border-left: 5px solid var(--wf-ink);
+}
+
+/* --- §12.5 the status control: three joined equal segments --------- */
+
+.phone-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: var(--wf-border-full) solid var(--wf-ink);
+}
+
+.phone-seg__btn {
+  min-height: var(--wf-tap-min);
+  background: var(--wf-surface);
+  border: none;
+  border-right: 1px solid var(--wf-ink);
+  font: 600 14px/1.2 var(--wf-head);
+  color: var(--wf-ink);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.phone-seg__btn:last-child {
+  border-right: none;
+}
+
+/* Selected is a blue field with white Almarai 800. */
+.phone-seg__btn--on {
+  background: var(--wf-blue);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* --- §12.8 inspections --------------------------------------------- */
+
+.phone-inspect__title {
+  font: 700 15px/1.3 var(--wf-head);
+  color: var(--wf-ink);
+}
+
+.phone-inspect__results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--wf-tap-gap);
+}
+
+.phone-inspect__pass {
+  min-height: 58px;
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-blue);
+  color: var(--wf-blue);
+  font: 800 16px/1.2 var(--wf-head);
+  cursor: pointer;
+}
+
+.phone-inspect__pass--on {
+  background: var(--wf-blue);
+  color: #ffffff;
+}
+
+/* Fail is NOT red — a failed inspection is a finding, not a schedule
+   state, and red in this app means delay. Selected fail inverts to an
+   ink field with ground text. */
+.phone-inspect__fail {
+  min-height: 58px;
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-ink);
+  color: var(--wf-ink);
+  font: 800 16px/1.2 var(--wf-head);
+  cursor: pointer;
+}
+
+.phone-inspect__fail--on {
+  background: var(--wf-ink);
+  color: var(--wf-bg);
+}
+
+.phone-inspect__reason {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.phone-inspect__reason textarea {
+  min-height: 96px;
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+  padding: var(--space-2);
+  border: 1px solid var(--wf-ink);
+  background: var(--wf-surface);
+  width: 100%;
+}
+
+.phone-inspect__reason-note {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.phone-inspect__save {
+  min-height: var(--wf-tap-primary);
+  background: var(--wf-blue);
+  color: #ffffff;
+  border: none;
+  font: 800 16px/1.2 var(--wf-head);
+  cursor: pointer;
+}
+
+.phone-inspect__save:disabled {
+  background: var(--wf-surface-2);
+  color: rgba(32, 30, 29, 0.62);
+  cursor: default;
+}
+
+.phone-row__saved {
+  margin-top: var(--wf-tap-gap);
+  background: var(--wf-blue-tint);
+  border: var(--wf-border-full) solid var(--wf-blue);
+  color: var(--wf-blue);
+  padding: var(--wf-s3);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-row__saved-head {
+  font: 800 16px/1.2 var(--wf-head);
+}
+
+/* --- §12.9 material inspection: outside the list, on grey ---------- */
+
+.phone-material {
+  /* A 20px band of bare ground above and below, then 2px ink rules and
+     a grey field. The sub-stage rows are white bands on the ground;
+     this is deliberately a different object, so it can never be read as
+     a sixth row. */
+  margin: var(--wf-s5) 0;
+  background: var(--wf-surface-2);
+  border-top: var(--wf-border-full) solid var(--wf-ink);
+  border-bottom: var(--wf-border-full) solid var(--wf-ink);
+  padding: var(--wf-s4);
+}
+
+/* Scope before subject: the correction is read before the heading. */
+.phone-material__kicker {
+  font: 700 12px/1.4 var(--wf-head);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-ink);
+}
+
+.phone-material__heading {
+  font: 800 20px/1.2 var(--wf-head);
+  margin: var(--space-2) 0 var(--space-2);
+  color: var(--wf-ink);
+}
+
+.phone-material__body {
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+  margin: 0 0 var(--wf-s4);
+  color: var(--wf-ink);
+}
+
+.phone-material__recorded {
+  background: var(--wf-surface);
+  border: 1px solid var(--rule-minor);
+  padding: var(--wf-s3);
+  margin-bottom: var(--wf-s4);
+}
+
+.phone-material__recorded-title {
+  font: 700 12px/1.4 var(--wf-head);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(32, 30, 29, 0.62);
+  margin-bottom: var(--space-2);
+}
+
+.phone-material__none,
+.phone-material__item {
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+  margin: 0;
+}
+
+.phone-material__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.phone-material__result {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.phone-material__meta {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  margin-left: var(--space-2);
+}
+
+/* Deliberately NOT blue: this page's blue primaries act on THIS floor,
+   and this one does not. */
+.phone-material__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--wf-tap-min);
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-ink);
+  color: var(--wf-ink);
+  font: 700 15px/1.2 var(--wf-head);
+  text-decoration: none;
+}
+
+/* --- §12.6 the photo gate, §12.7 the three save outcomes ----------- */
+
+.phone-gate {
+  background: var(--wf-bg);
+  padding: var(--wf-s4);
+  max-width: var(--wf-phone-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wf-tap-gap);
+}
+
+.phone-gate__floor {
+  font: 800 22px/1.2 var(--wf-head);
+  line-height: var(--wf-lh-mixed);
+  color: var(--wf-ink);
+}
+
+.phone-gate__substage {
+  font-size: 14px;
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.phone-gate__statement {
+  border: var(--wf-border-full) solid var(--wf-ink);
+  background: var(--wf-surface);
+  padding: var(--wf-s3);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+  margin: 0;
+}
+
+.phone-gate__frame {
+  height: 230px;
+  background: var(--wf-surface-2);
+  border: 1px dashed var(--wf-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.phone-gate__frame-empty {
+  font-size: 14px;
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.phone-gate__frame-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* The confirm step shows the photo on ink, so the photo itself is the
+   brightest thing on the screen. */
+.phone-gate__confirm-photo {
+  height: 230px;
+  background: var(--wf-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.phone-gate__confirm-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.phone-gate__retake {
+  background: none;
+  border: none;
+  color: var(--wf-blue);
+  font: 700 15px/1.2 var(--wf-head);
+  cursor: pointer;
+  min-height: var(--wf-tap-min);
+  padding: 0 var(--space-2);
+}
+
+.phone-gate__file {
+  display: none;
+}
+
+.phone-gate__primary {
+  min-height: var(--wf-tap-primary);
+  width: 100%;
+  background: var(--wf-blue);
+  color: #ffffff;
+  border: none;
+  font: 800 16px/1.2 var(--wf-head);
+  cursor: pointer;
+}
+
+.phone-gate__primary:disabled {
+  background: var(--wf-surface-2);
+  color: rgba(32, 30, 29, 0.62);
+  cursor: default;
+}
+
+.phone-gate__cancel {
+  min-height: var(--wf-tap-min);
+  width: 100%;
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-ink);
+  color: var(--wf-ink);
+  font: 700 15px/1.2 var(--wf-head);
+  cursor: pointer;
+}
+
+.phone-gate__cancel-note {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0;
+}
+
+.phone-gate__summary {
+  margin: 0;
+  border-top: 1px solid var(--rule-minor);
+}
+
+.phone-gate__summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--wf-s3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--rule-minor);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-gate__summary-row dt {
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.phone-gate__summary-row dd {
+  margin: 0;
+  text-align: right;
+  color: var(--wf-ink);
+}
+
+.phone-gate__summary-member {
+  color: var(--wf-blue);
+  font-weight: 600;
+}
+
+/* §12.7 outcome 1 — the button is REPLACED by this, never greyed. */
+.phone-gate__saving {
+  background: var(--wf-surface);
+  border: var(--wf-border-full) solid var(--wf-ink);
+  padding: var(--wf-s3);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-gate__saving-head,
+.phone-gate__saved-head,
+.phone-gate__not-saved-head {
+  font: 800 16px/1.2 var(--wf-head);
+  margin-bottom: var(--space-2);
+}
+
+/* §12.7 outcome 2 — blue tint, 2px blue border, blue ink. Never red. */
+.phone-gate__saved {
+  background: var(--wf-blue-tint);
+  border: var(--wf-border-full) solid var(--wf-blue);
+  color: var(--wf-blue);
+  padding: var(--wf-s4);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-gate__saved-line {
+  margin: 0 0 var(--space-2);
+}
+
+/* §12.7 outcome 3 — a 5px INK left spine on white. No red anywhere: red
+   is delay, and a failed upload is not a late project. */
+.phone-gate__not-saved {
+  background: var(--wf-surface);
+  border-left: 5px solid var(--wf-ink);
+  padding: var(--wf-s3);
+  font-size: 15px;
+  line-height: var(--wf-lh-mixed);
+}
+
+.phone-gate__not-saved-detail,
+.phone-gate__error {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: var(--space-2) 0 0;
+}
+
+/* §12.1 — must hold at 360px with no horizontal scroll and no clipped
+   label. The three status segments are the tightest thing on the page. */
+@media (max-width: 380px) {
+  .phone-seg__btn {
+    font-size: 13px;
+    padding: 0 2px;
+  }
+
+  .phone-row__main {
+    flex-wrap: wrap;
+  }
+}

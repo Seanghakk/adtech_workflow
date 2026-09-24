@@ -781,6 +781,110 @@ const en = {
   // only this brief (v6 §10 steps 1-4); the rest of the page (steps 5-12)
   // is later work.
   phoneFloorHeaderKicker: 'You scanned',
+
+  // Brief 100 Part E / v7.2 §12 + §21.6 — the rest of the scanned-floor
+  // phone page. Copy is v7.2's own wherever v7.2 writes it out. The four
+  // keys marked DRAFTED below are ones §12 DESCRIBES but never writes;
+  // per Brief 100 §4 they are flagged in the Result doc rather than
+  // quietly invented, and are the first thing to replace on review.
+
+  // §12.3 group labels. The actionable group sits at the top under a
+  // label naming why it is theirs.
+  phoneFloorGroupInstallationYours: 'Installation — you can update these',
+  // DRAFTED: §12.3 writes the Installation label only. Same shape.
+  phoneFloorGroupTncYours: 'T&C — you can update these',
+  phoneFloorGroupQcWaiting: 'Waiting for you on this floor',
+  // §12.4 names this group explicitly.
+  phoneFloorGroupAlreadyInspected: 'Already inspected',
+  // DRAFTED: §12.3 asks only for "a label naming who owns them".
+  phoneFloorGroupOwnedInstallation: 'Installation — the Project team updates these',
+  phoneFloorGroupOwnedTnc: 'T&C — the T&C team updates these',
+
+  // §12.5 names these five computed display states in its own words.
+  // "Complete, awaiting QC", "QC passed" and "QC failed" are computed and
+  // are never written to the status column.
+  phoneFloorTagNotStarted: 'Not started',
+  phoneFloorTagInProgress: 'In progress',
+  phoneFloorTagAwaitingQc: 'Complete, awaiting QC',
+  phoneFloorTagQcPassed: 'QC passed',
+  phoneFloorTagQcFailed: 'QC failed',
+
+  // §21.6 "Phone, nothing started" — the subline on every untouched row.
+  phoneFloorNobodyUpdated: 'Nobody has updated this yet',
+  phoneFloorSublineBy: 'by',
+  phoneFloorReasonLabel: 'Reason',
+
+  // §12.5 — announced before the gate is hit, never as a rejection after.
+  phoneFloorPhotoNotice: 'Choosing Done asks for a photo first.',
+  phoneFloorUpdateAction: 'Update',
+  phoneFloorCloseAction: 'Close',
+
+  // §12.6 the photo gate.
+  phoneFloorCaptureStatement:
+    'Marking done — a photo of the finished work is required before this can be saved',
+  phoneFloorTakePhoto: 'Take the photo',
+  phoneFloorCancel: 'Cancel',
+  phoneFloorCancelNote: 'Returns with the status unchanged.',
+  phoneFloorRetake: 'Retake',
+  phoneFloorSaveUpdate: 'Save this update',
+  phoneFloorSummarySubStage: 'Sub-stage',
+  phoneFloorSummaryNewStatus: 'New status',
+  phoneFloorSummaryBy: 'By',
+  phoneFloorPhotoFrameEmpty: 'No photo yet',
+
+  // §12.7 — exactly three save outcomes, no fourth.
+  // DRAFTED: §12.7 specifies the saving BLOCK replaces the button, but
+  // writes no copy for it.
+  phoneFloorSaving: 'Saving…',
+  phoneFloorSavingBody: 'Sending this update and its photo. Nothing is saved until the server confirms it.',
+  phoneFloorSaved: 'Saved',
+  phoneFloorSavedWithPhoto: 'with photo',
+  phoneFloorSavedNowReads: 'This row now reads',
+  phoneFloorSavedTelegramSuffix: 'has been told on Telegram',
+  phoneFloorSavedNobodyToNotify: 'No one to notify — this was marked done before tracking.',
+  // DRAFTED: §12.7 says the not-saved block must state plainly that
+  // nothing was sent, that the photo is still here, and that leaving
+  // loses it. These three sentences are that, written out.
+  phoneFloorNotSaved: 'Not saved',
+  phoneFloorNotSavedBody:
+    'Nothing was sent. Your photo is still here, and leaving this page loses it.',
+  phoneFloorRetry: 'Retry',
+  phoneFloorBackToFloor: 'Back to the floor',
+
+  // §12.8 inspections on the phone.
+  phoneFloorInspectionTitle: 'Record an inspection',
+  phoneFloorInspectionPass: 'Pass',
+  phoneFloorInspectionFail: 'Fail',
+  phoneFloorInspectionReasonRequired: 'A reason is required on a fail.',
+  phoneFloorInspectionSave: 'Save this inspection',
+  phoneFloorInspectionNoRewindNote:
+    'An inspection is its own record — a fail does not change the status of the work.',
+
+  // §12.9 material inspection — project-level, and never a sixth row.
+  phoneFloorMaterialKicker: 'Whole project — not this floor',
+  phoneFloorMaterialHeading: 'Material inspection',
+  phoneFloorMaterialBodyPrefix: 'Materials are inspected once for',
+  phoneFloorMaterialBodyMiddle:
+    'as a whole. Anything you record here applies to every floor on the project, not just',
+  phoneFloorMaterialRecordedSoFar: 'Recorded so far',
+  phoneFloorMaterialNonePrefix: 'No material inspection recorded for',
+  phoneFloorMaterialNoneSuffix: 'yet.',
+  phoneFloorMaterialAction: 'Record a material inspection',
+
+  // §21.6 "Phone, QC with nothing waiting" — in place of the actionable
+  // group, never an empty group.
+  phoneFloorQcNothingWaitingPrefix: 'Nothing on',
+  phoneFloorQcNothingWaitingSuffix:
+    'is waiting for inspection. A sub-stage appears here the moment it is marked done.',
+
+  // §21.0 — a read that failed is never an empty list.
+  phoneFloorLoadFailed: 'This floor could not be loaded.',
+
+  // Brief 100 §3 — the NOT DRAWN material inspection screen's honest page.
+  comingSoonMaterialInspectionHeadline: 'Recording a material inspection is not built yet',
+  comingSoonMaterialInspectionBody:
+    'Materials are inspected once for the whole project, not per floor. Until this screen exists, a QC member records one from the project’s update screen, and every inspection already recorded is listed on the floor you scanned.',
+  comingSoonMaterialInspectionAction: 'Open QC inspections',
   phoneStatusKicker: 'Status',
   phoneStatusHeldByLabel: 'Held by',
   phoneStatusInStateLabel: 'in this state',
