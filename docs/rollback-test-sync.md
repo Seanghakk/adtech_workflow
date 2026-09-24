@@ -114,22 +114,103 @@ from production for this comparison.
    exits non-zero when anything differs. Between them they cover: tables,
    columns (name/type/nullable/default),
    constraints (`pg_get_constraintdef`), indexes, functions (arguments,
-   return type, `prosecdef`, and a hash of `prosrc` — expect a few
-   functions to show a differing hash that turns out to be pure `\r\n` vs
-   `\n` line-ending noise in the stored body text, not a real difference;
-   confirm with `repr()` on the raw bytes before treating a hash mismatch
-   as meaningful), triggers, RLS enabled-per-table, every policy's `USING`/
+   return type, `prosecdef`, and a hash of `prosrc`), triggers, RLS
+   enabled-per-table, every policy's `USING`/
    `WITH CHECK`, grants on `anon`/`authenticated`/`service_role`, views,
-   and schema-level `USAGE`. For each result set, compare as Python (or
+   schema-level `USAGE`, and — since Brief 100 Part E — the `storage`
+   schema (see its own section below). For each result set, compare as Python (or
    equivalent) **sets**, not diffed text — `prod_set - rbt_set` and
    `rbt_set - prod_set` tell you unambiguously which side has what,
    something a hand-read diff can get backwards under time pressure.
+
+   **Line endings in function bodies.** The body hash strips carriage
+   returns before hashing. Production's functions were applied with CRLF
+   and rollback-test's with LF, so a raw `md5(prosrc)` reported four
+   functions as differing on *every* run — `compute_progress_update_delta`,
+   `current_team`, `is_manager`, `is_member` — while the bodies were
+   byte-identical once the CRs came out (confirmed before normalising,
+   not assumed). Eight false differences a run is how a comparison
+   teaches people to skim its own output. The hash still catches a real
+   body change, which is what it is there for.
+
+   **A query that is not in the script's own `FILES` list is never
+   compared.** `compare-catalogs.py` now refuses to run if it finds an
+   `.out` file it does not know about, rather than silently skipping it.
+   That gap is not hypothetical — see the storage section below.
 
 4. **Also check the specific `public`-schema objects this app depends on**
    (`public.user_profiles` above all — grep the app for
    `.schema('public')` and grep every migration for `public\.\w+` to
    confirm the current list hasn't grown). These belong to the CMMS, not
    this repo — see below.
+
+## Storage buckets (added Brief 100 Part E)
+
+**Photo evidence lives in a bucket, not in a table**, so nothing above
+ever looked at it. Every query in this procedure reads the `workflow`
+schema (plus the one `public` table this app depends on), and a bucket
+could therefore go missing on rollback-test indefinitely while the
+comparison reported clean — which is exactly what happened.
+
+Brief 100 Part E found production carrying two buckets —
+`progress-photos` (Brief 057's progress-update evidence and Brief 024's
+sub-stage evidence) and `wo-photos` — and **rollback-test carrying none
+at all**. The consequence was not cosmetic: photo capture could not be
+exercised on rollback-test on *any* screen, neither the phone floor page
+being built nor Brief 057's desktop photo gate that had been live for
+weeks. A screen whose photo gate cannot be tested there is a screen whose
+rollback-test run proves less than it appears to.
+
+**Repaired on rollback-test** (rollback-test only, as always): both
+buckets created to match production's configuration exactly — `public`
+true, no size limit, no MIME restriction, `avif_autodetection` false,
+type `STANDARD`, versioning `DISABLED` — then verified column by column
+against production, rather than assumed from the insert having succeeded.
+
+**One step is still outstanding, and it is not something this procedure
+can do.** The buckets now exist on rollback-test, but an upload also
+needs a service-role key for that project, and `.env.local` holds only
+production's. Confirmed rather than assumed: `SUPABASE_SECRET_KEY`
+authenticates against production (read-only bucket list, 200) and is
+rejected by rollback-test with `Invalid Compact JWS`. So a photo upload
+aimed at rollback-test still fails — at the key now, no longer at the
+missing bucket.
+
+No code change is needed for this. `createServiceClient()` reads
+`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`, so add
+rollback-test's secret key as a third inline override on the dev server
+used for rollback-test testing:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL="https://srdqnofwhnrojkolwnke.supabase.co" \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="<rollback-test publishable key>" \
+SUPABASE_SECRET_KEY="<rollback-test secret key>" \
+npx next dev -p 3100
+```
+
+Never edit `.env.local` to do this, and never point a production secret
+key at rollback-test or the reverse — the inline override is the whole
+mechanism, the same way the URL and publishable key are already handled.
+
+What the comparison now covers, and what it deliberately does not:
+
+- `storage_buckets` — each bucket's **configuration**: public flag, size
+  limit, allowed MIME types, AVIF autodetection, type, versioning.
+- `storage_tables` and `storage_rls_enabled` — the storage schema's own
+  shape, which moves when Supabase upgrades one project and not the other.
+- `storage_policies` — every policy on a `storage.*` table. Both projects
+  currently have **none**, and that is correct rather than an oversight:
+  uploads go through the service-role client in
+  `src/app/api/progress-photos/upload/route.ts`, which bypasses RLS
+  entirely, and both buckets are public, so reads need no policy. If a
+  policy ever appears on one side only, it is now visible.
+- **Never the objects inside a bucket.** `storage.objects` is application
+  data and falls under the same rule as every other table here: schema
+  only, never rows. A count is the one exception, and only if one is
+  genuinely needed.
+- `owner`, `owner_id` and `created_at` are deliberately not compared —
+  they record who clicked Create and when, which differs legitimately
+  between two projects holding the same bucket.
 
 ## Verifying a migration that replaces a function body
 
@@ -183,8 +264,10 @@ When writing one:
 
 Comparing `md5(replace(prosrc, chr(13), ''))` across the two projects is
 the blunt version of the same check and is worth running after any
-production migration — see the `functions` section of the catalog
-comparison, and the note there about `\r\n` line-ending noise.
+production migration. That is now exactly what the `functions` section of
+the catalog comparison computes, so a plain run of the comparison already
+does it — a differing hash there means a genuinely differing body, not
+line endings.
 
 ## Production is read-only; repairs go to rollback-test
 

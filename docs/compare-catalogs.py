@@ -41,6 +41,12 @@ FILES = [
     "grants",
     "views",
     "schema_grants",
+    # Storage (Brief 100 Part E). Bucket CONFIGURATION only — never the
+    # objects inside a bucket, which are application data.
+    "storage_buckets",
+    "storage_tables",
+    "storage_rls_enabled",
+    "storage_policies",
 ]
 
 
@@ -55,12 +61,34 @@ def load(path: Path) -> set[str]:
         return {line.rstrip("\n") for line in f if line.strip()}
 
 
+def unlisted(directory: Path) -> list[str]:
+    """Output files on disk that FILES does not mention.
+
+    A query can be added to catalog-queries.sql and simply not compared,
+    because nothing connects the two lists. That is not hypothetical: the
+    storage buckets went missing on rollback-test for weeks with every
+    comparison above reporting clean, since none of them looked at
+    storage at all. An unlisted .out file is now a loud failure rather
+    than a silent gap.
+    """
+    return sorted(f.stem for f in directory.glob("*.out") if f.stem not in FILES)
+
+
 def main() -> int:
     if len(sys.argv) != 3:
         raise SystemExit(__doc__.strip())
 
     prod_dir, rbt_dir = Path(sys.argv[1]), Path(sys.argv[2])
     differences = 0
+
+    missed = sorted(set(unlisted(prod_dir)) | set(unlisted(rbt_dir)))
+    if missed:
+        raise SystemExit(
+            "These query outputs exist but are not in FILES, so they would "
+            "never be compared:\n  "
+            + "\n  ".join(missed)
+            + "\nAdd them to FILES in this script."
+        )
 
     for name in FILES:
         prod = load(prod_dir / f"{name}.out")
