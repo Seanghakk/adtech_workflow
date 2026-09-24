@@ -6545,3 +6545,341 @@ a.floor-matrix__cell {
   font: 400 13px/1.6 var(--font-body);
   color: var(--ink);
 }
+
+/* ===================================================================
+   Brief 100 Part B — the shop drawing drawer (v7.2 §9).
+
+   Screen-local composition only: no sixth shared part, no new token,
+   no new colour. The history grid is the 4.2 data table and the empty
+   registers are 4.5, both reused as they are.
+   =================================================================== */
+
+/* §9.1 — one new column between the name and the existing dropdown.
+   The dropdown does not move and is not restyled. Columns 1–2 are the
+   drawer target; the select is not. */
+.floor-breakdown__row-open {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.2fr);
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.floor-breakdown__row--drawer-open {
+  border-left: 5px solid var(--navy);
+  background: var(--navy-tint-bg);
+  padding-left: var(--space-3);
+}
+
+/* §9.2 — the possession chip. Amber is possession, not blame; nothing
+   here is red unless the existing age rule fires. */
+.sd-chip-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sd-chip-cell--none {
+  color: var(--text-muted);
+}
+.sd-chip {
+  display: inline-block;
+  align-self: flex-start;
+  font: 600 11.5px/1 var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+}
+.sd-chip--adtech {
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  background: none;
+}
+.sd-chip--reviewer {
+  background: var(--warning);
+  color: #fff;
+}
+.sd-chip--approved {
+  background: var(--ink);
+  color: var(--bg);
+}
+.sd-chip--by-hand {
+  border: 1px dashed var(--ink);
+  color: var(--ink);
+  background: none;
+}
+.sd-chip-detail {
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+
+/* §9.3 — the drawer itself. */
+.sd-drawer {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  border-left: 5px solid var(--navy);
+  padding: var(--space-5);
+  margin: 0 0 var(--space-4);
+}
+.sd-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.sd-drawer__kicker {
+  font: 600 11.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.sd-drawer__title {
+  font: 800 19px/1.3 var(--font-heading);
+  color: var(--ink);
+  margin: 0;
+}
+.sd-drawer__close {
+  background: none;
+  border: 1px solid var(--ink);
+  padding: var(--space-2) var(--space-3);
+  font: 600 12px/1 var(--font-body);
+  cursor: pointer;
+}
+.sd-drawer__state {
+  font: 800 17px/1.4 var(--font-heading);
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+.sd-drawer__origin {
+  font: 400 13.5px/1.6 var(--font-body);
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+/* §9.3 — a position indicator, never a set of buttons. */
+.sd-drawer__strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid rgba(32, 30, 29, 0.25);
+}
+.sd-drawer__strip-cell {
+  padding: var(--space-3);
+  text-align: center;
+  font: 600 12.5px/1 var(--font-body);
+  color: var(--ink);
+  border-right: 1px solid rgba(32, 30, 29, 0.25);
+}
+.sd-drawer__strip-cell:last-child {
+  border-right: none;
+}
+.sd-drawer__strip-cell--current {
+  background: var(--ink);
+  color: var(--bg);
+}
+.sd-drawer__holders {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  margin-bottom: var(--space-5);
+}
+.sd-drawer__holder {
+  padding-top: var(--space-2);
+  font: 400 12px/1.3 var(--font-body);
+  color: var(--text-muted);
+}
+.sd-drawer__holder--us {
+  border-top: 2px solid var(--ink);
+}
+.sd-drawer__holder--them {
+  border-top: 2px solid var(--grey);
+}
+
+/* §9.4 — stated symmetrically and never coloured. */
+.sd-drawer__clocks {
+  margin-bottom: var(--space-5);
+}
+.sd-drawer__clocks-heading {
+  font: 600 11.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+}
+.sd-drawer__clock-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid rgba(32, 30, 29, 0.2);
+}
+.sd-drawer__clock {
+  padding: var(--space-4);
+  border-right: 1px solid rgba(32, 30, 29, 0.2);
+}
+.sd-drawer__clock:last-child {
+  border-right: none;
+}
+.sd-drawer__clock-label {
+  display: block;
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.sd-drawer__clock-org {
+  color: var(--text-muted);
+}
+.sd-drawer__clock-value {
+  font: 800 22px/1 var(--font-heading);
+  color: var(--ink);
+}
+/* §9.4 — "start not recorded" in heading weight, in place of the number. */
+.sd-drawer__clock-value--words {
+  font: 800 17px/1.2 var(--font-heading);
+  color: var(--ink);
+}
+/* Ink for us against a neutral hatch for them — not amber vs ink, which
+   would read as good vs bad. */
+.sd-drawer__proportion {
+  display: flex;
+  height: 10px;
+  margin-top: var(--space-3);
+  border: 1px solid rgba(32, 30, 29, 0.25);
+}
+.sd-drawer__proportion-us {
+  background: var(--ink);
+}
+.sd-drawer__proportion-them {
+  flex: 1;
+  background: var(--wf-hatch-grey);
+}
+
+/* §9.5 — the recordings. */
+.sd-drawer__recording {
+  margin-bottom: var(--space-4);
+}
+.sd-drawer__recording-heading {
+  font: 800 15px/1.3 var(--font-heading);
+  color: var(--ink);
+  margin: 0 0 var(--space-3);
+}
+.sd-drawer__hint {
+  display: block;
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+.sd-drawer__confirmed {
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--text-muted);
+  margin: var(--space-3) 0;
+}
+.sd-drawer__stamp {
+  border: 1px solid rgba(32, 30, 29, 0.35);
+  padding: var(--space-4);
+}
+.sd-drawer__stamp-text {
+  font: 400 13.5px/1.7 var(--font-body);
+  color: var(--ink);
+  margin: 0 0 var(--space-3);
+}
+.wf-form-row--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+.sd-drawer__parties {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.sd-drawer__party,
+.sd-drawer__code-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 400 13.5px/1.5 var(--font-body);
+  color: var(--ink);
+}
+.sd-drawer__codes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+/* §9.5 — shape, not hue. A C return is an ordinary step in a review, so
+   it must not be red; it is the OUTLINED square. */
+.sd-drawer__code-glyph {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1px solid var(--ink);
+}
+.sd-drawer__code-glyph--filled {
+  background: var(--ink);
+}
+.sd-drawer__code-glyph--outlined {
+  background: none;
+}
+.sd-drawer__code-consequence {
+  color: var(--text-muted);
+}
+
+/* §9.6 — history. A closed entry contains no control of any kind. */
+.sd-drawer__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: 600 13px/1 var(--font-body);
+  color: var(--navy);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.sd-drawer__history {
+  margin-top: var(--space-4);
+}
+.sd-drawer__revision {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+}
+.sd-drawer__revision--closed {
+  background: var(--bg);
+}
+.sd-drawer__revision--open {
+  background: var(--surface);
+  border-left: 5px solid var(--navy);
+}
+.sd-drawer__revision-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.sd-drawer__revision-cap {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid rgba(32, 30, 29, 0.35);
+  padding: 3px 7px;
+}
+
+/* §9.1 — desktop only. There is no phone version of the recording
+   screen, so the drawer and its chip column stand down at phone widths
+   rather than reflowing into something unusable. */
+@media (max-width: 640px) {
+  .sd-drawer,
+  .sd-chip-cell {
+    display: none;
+  }
+  .floor-breakdown__row-open {
+    grid-template-columns: 1fr;
+    cursor: default;
+  }
+}

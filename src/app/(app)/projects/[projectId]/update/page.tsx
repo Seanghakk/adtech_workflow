@@ -10,6 +10,9 @@ import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { UpdateProgressForm } from './UpdateProgressForm'
 import { FloorTrackedProgress } from './FloorTrackedProgress'
 import { FloorBreakdown, type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
+import type { DrawerDrawing } from './ShopDrawingDrawer'
+import type { DrawingActor } from '@/lib/shopDrawing/permissions'
+import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { computeSubStageQcFields } from './subStageQcFields'
 
 /**
@@ -119,7 +122,9 @@ export default async function UpdateProgressPage({
     await Promise.all([
       supabase
         .from('shop_drawing_items')
-        .select('id, floor_id, scope, drawing_type, status')
+        .select(
+          'id, floor_id, scope, drawing_type, status, created_at, pre_submission_stage, drafting_started_at, legacy_done_no_lifecycle_history',
+        )
         .eq('project_id', project.id),
       floorIds.length > 0
         ? supabase
@@ -162,9 +167,90 @@ export default async function UpdateProgressPage({
     inspectionsBySubStage.set(row.floor_sub_stage_id, list)
   }
 
+  // Brief 100 Part B — the drawer's data (v7.2 §9). Loaded here with the
+  // rest of the screen rather than on open, because §9.1's whole reason
+  // for a drawer instead of a detail page is that the update screen is
+  // worked through in one sitting. A project carries roughly two drawings
+  // per floor, so this is a small read.
+  const itemIds = (shopDrawingRows ?? []).map((r) => r.id)
+  const [{ data: submissionRows }, { data: checkRows }] = itemIds.length
+    ? await Promise.all([
+        supabase
+          .from('shop_drawing_submissions')
+          .select(
+            'id, item_id, revision, reviewer_party, reviewer_org, submitted_at, submitted_by, returned_at, code, comments, checked_by, checked_at',
+          )
+          .in('item_id', itemIds),
+        supabase
+          .from('shop_drawing_checks')
+          .select('item_id, revision, checked_by, checked_at')
+          .in('item_id', itemIds),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  const drawerPeopleIds = new Set<string>()
+  for (const r of submissionRows ?? []) {
+    if (r.submitted_by) drawerPeopleIds.add(r.submitted_by)
+    if (r.checked_by) drawerPeopleIds.add(r.checked_by)
+  }
+  for (const c of checkRows ?? []) if (c.checked_by) drawerPeopleIds.add(c.checked_by)
+  const floorLabelById = new Map((floorRows ?? []).map((f) => [f.id, f.label]))
+
+  // §9.5's gates. isShopDrawingManager is deliberately narrow — the Shop
+  // Drawing team's own manager, which is exactly what
+  // workflow.record_shop_drawing_check() checks for itself.
+  const drawingActor: DrawingActor = {
+    isPic: isCurrentUserPic,
+    isSuperadmin: Boolean(member?.isSuperadmin),
+    teamCode: member?.teamCode ?? '',
+    isShopDrawingManager: member?.role === 'manager' && member?.teamCode === 'shop_drawing',
+    // From the session, not the profile map above — that map is built from
+    // the project's own people (owner, PIC, last author) and the signed-in
+    // member need not be any of them.
+    displayName: member?.fullName ?? member?.username ?? null,
+  }
+  const drawerProfiles = await getUserProfilesByIds(supabase, [...drawerPeopleIds])
+  const drawerName = (id: string | null): string | null =>
+    id ? formatMemberName(drawerProfiles.get(id), t('membersNoProfile')) : null
+
+  type RawDrawingRow = NonNullable<typeof shopDrawingRows>[number]
+  const buildDrawing = (r: RawDrawingRow): DrawerDrawing => ({
+    id: r.id,
+    typeLabel: t(DRAWING_TYPE_KEYS[r.drawing_type] ?? 'drawingTypeSchematic'),
+    floorLabel: r.floor_id ? (floorLabelById.get(r.floor_id) ?? null) : null,
+    createdAt: r.created_at,
+    status: r.status as 'not_started' | 'in_progress' | 'done',
+    preSubmissionStage: r.pre_submission_stage as 'drafting' | 'internal_check' | null,
+    draftingStartedAt: r.drafting_started_at,
+    legacyDoneNoHistory: Boolean(r.legacy_done_no_lifecycle_history),
+    submissions: (submissionRows ?? [])
+      .filter((s) => s.item_id === r.id)
+      .map((s) => ({
+        id: s.id,
+        revision: s.revision,
+        reviewerParty: s.reviewer_party,
+        reviewerOrg: s.reviewer_org,
+        submittedAt: s.submitted_at,
+        returnedAt: s.returned_at,
+        code: s.code as 'A' | 'B' | 'C' | null,
+        comments: s.comments,
+        submittedByName: drawerName(s.submitted_by),
+        checkedByName: drawerName(s.checked_by),
+        checkedAt: s.checked_at,
+      })),
+    checks: (checkRows ?? [])
+      .filter((c) => c.item_id === r.id)
+      .map((c) => ({
+        revision: c.revision,
+        checkedBy: c.checked_by,
+        checkedAt: c.checked_at,
+        checkedByName: drawerName(c.checked_by),
+      })),
+  })
+
   const projectShopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
     .filter((r) => r.scope === 'project')
-    .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status }))
+    .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status, drawer: buildDrawing(r) }))
 
   const floors: FloorRow[] = (floorRows ?? []).map((floor) => {
     const subStages: SubStageRow[] = (subStageRows ?? [])
@@ -187,7 +273,7 @@ export default async function UpdateProgressPage({
 
     const shopDrawing: DrawingRow[] = (shopDrawingRows ?? [])
       .filter((r) => r.scope === 'floor' && r.floor_id === floor.id)
-      .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status }))
+      .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status, drawer: buildDrawing(r) }))
 
     return { id: floor.id, label: floor.label, shopDrawing, subStages }
   })
@@ -302,6 +388,7 @@ export default async function UpdateProgressPage({
         floors={floors}
         projectShopDrawing={projectShopDrawing}
         handoverItems={handoverItems}
+        drawingActor={drawingActor}
       />
     </div>
     </>
