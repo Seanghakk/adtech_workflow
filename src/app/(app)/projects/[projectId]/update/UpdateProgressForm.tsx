@@ -146,6 +146,104 @@ export function UpdateProgressForm({
 
   const lastPhotoUrl = lastReported?.photoUrl ?? null
 
+  // Brief 100 route walk, finding 1 — a refusal is a SENTENCE naming who
+  // can help, never a row of disabled controls (Brief 100 §4).
+  //
+  // This screen used to render the whole entry form with disabled={!canWrite}
+  // on every control and the explanation underneath: on a project with no
+  // floors an ordinary member met ten dead controls — eight reason codes,
+  // "Add photo", "Save — no change" — before reading why. The sentence was
+  // already right; it was the greyed-out row beside it that was wrong.
+  //
+  // So when the save could not possibly succeed, the controls are not
+  // disabled — they are not rendered. What stays is what a person who
+  // cannot write still came here to read: who holds it, where it stands,
+  // and who to ask. The same shape /users, /lookups and /notifications
+  // already use, and the same shape the phone floor page uses for a member
+  // whose team owns nothing on that floor.
+  if (!canWrite) {
+    return (
+      <div className="update-card">
+        <div className="update-card__header">
+          <div className="update-card__identity">
+            <div className="update-card__meta">
+              {project.soNumber ? (
+                <span className="so-number">{project.soNumber}</span>
+              ) : (
+                <span className="so-number so-number--pending">No SO yet</span>
+              )}
+              <span className="stream-tag">{project.stream.toUpperCase()}</span>
+            </div>
+            <div className="update-card__name">{project.name}</div>
+            <div className="update-card__sub">{project.openItemCount} open sub-items</div>
+          </div>
+          <div className="update-card__actors">
+            <div className="pic-mark">
+              <span className="pic-mark__label">{s.picLabel}</span>
+              <span className="pic-mark__value">{(pic.label ?? s.unassigned).toUpperCase()}</span>
+            </div>
+            <div className="owner-mark">
+              <span className="owner-mark__label">{s.ownerLabel}</span>
+              <span className="owner-mark__box">
+                {(project.ownerLabel ?? s.unassigned).toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="update-card__figures">
+          <div className="update-card__figure">
+            <div className="update-card__figure-label">{s.lastReported}</div>
+            <div className="update-card__figure-value update-card__figure-value--muted">
+              {project.percentComplete}
+              <span className="update-card__percent-sign">%</span>
+            </div>
+            <div className="update-card__figure-caption">
+              {lastReported
+                ? `${lastReported.dateLabel}${lastReported.byLabel ? `, ${s.by} ${lastReported.byLabel}` : ''}`
+                : s.unreported}
+            </div>
+            {/* Kept: this one opens the stored photo and genuinely works.
+                It is an action, not a disabled stub. */}
+            {lastPhotoUrl ? (
+              <button
+                type="button"
+                className="photo-thumb photo-thumb--small"
+                onClick={() => setOverlayUrl(lastPhotoUrl)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- stored evidence photo */}
+                <img src={lastPhotoUrl} alt={s.photoEvidenceAlt} />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="update-card__blocked-note" role="status">
+          {!pic.assigned ? (
+            <>
+              <div className="update-card__blocked-title">{s.picUnassignedTitle}</div>
+              <div className="update-card__blocked-body">{s.picUnassignedBody}</div>
+            </>
+          ) : (
+            <>
+              <div className="update-card__blocked-title">{s.picRestrictedTitle}</div>
+              <div className="update-card__blocked-body">
+                {s.picRestrictedBodyPrefix} {(pic.label ?? s.unassigned).toUpperCase()}.
+              </div>
+            </>
+          )}
+        </div>
+
+        {overlayUrl ? (
+          <div className="photo-overlay" onClick={() => setOverlayUrl(null)}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- stored evidence photo */}
+            <img src={overlayUrl} alt={s.photoEvidenceAlt} />
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <form
       action={formAction}
