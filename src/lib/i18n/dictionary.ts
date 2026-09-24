@@ -1499,7 +1499,12 @@ const en = {
   exportThenRun: 'Then run ADTSSMLOAD in AutoCAD.',
 
   // §21.3 — who.
-  exportRefused: 'The export is run by the PIC or the shop drawing team.',
+  // v7.2 §21.3's own sentence reads "The export is run by the PIC or the
+  // shop drawing team." Migration 038 added A&A to the export log's policy
+  // (decided 24 Sep 2026), so the sentence names them too — a sentence that
+  // omits a team who CAN help sends people to the wrong person. Shaped like
+  // Brief 099's own shop drawing BOQ refusal, which already names both.
+  exportRefused: 'The export is run by the PIC, the Shop Drawing team or the A&A team.',
   exportFailed: 'Could not record this export. Nothing was downloaded — try again.',
   exportLoadFailedHeadline: 'The export panel did not load',
 } as const
