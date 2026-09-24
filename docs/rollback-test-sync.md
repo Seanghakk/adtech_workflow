@@ -47,13 +47,20 @@ rollback-test discipline itself; migrations 023/024 are narrow, easy to
 forget, additive columns; `public.user_profiles`'s extra columns belong to
 the CMMS (see below) and were never this repo's to add anywhere.
 
-Brief 091 also found the *opposite* kind of drift — objects that exist on
+Brief 091 also found the *opposite* kind of drift — objects that existed on
 rollback-test but not on production (`workflow.contract_boq_line_locations`
 and its policies, from migration 020; `workflow.requests`'s
-`requests_update` policy, from migration 016). These mean **production is
+`requests_update` policy, from migration 016). That meant **production was
 missing migrations that are checked into this repo** — a real gap, but a
 different one, and out of scope for a rollback-test repair (see "What this
 tool does NOT do" below).
+
+**Both were resolved on 23 Sep 2026 under Brief 093**, which investigated
+the gap and applied migrations 016 and 020 to production. Production now
+carries `workflow.contract_boq_line_locations`, `contract_boq_lines`'
+PIC-shaped policies and the `requests_update` policy, so this particular
+drift is closed in the direction of production catching up. It is kept here
+as the worked example of the class, not as a live gap.
 
 ## How to run this comparison again
 
@@ -92,10 +99,20 @@ from production for this comparison.
    instead, which diffs by *value*, not by text position.
 
 3. **Run the same catalog queries against both projects and diff the result
-   sets in a small script**, not the raw SQL text. The queries this repo's
-   own Brief 091 used are saved for reuse — ask whoever ran that brief for
-   `catalog_queries.sql`, or reconstruct from `information_schema`/
-   `pg_catalog` covering: tables, columns (name/type/nullable/default),
+   sets in a small script**, not the raw SQL text. Both are checked in
+   beside this doc — `docs/catalog-queries.sql` and
+   `docs/compare-catalogs.py`:
+   ```bash
+   mkdir -p /tmp/catalog/prod /tmp/catalog/rbt
+   (cd /tmp/catalog/prod && psql "$DATABASE_URL"               -f "$REPO"/docs/catalog-queries.sql)
+   (cd /tmp/catalog/rbt  && psql "$ROLLBACK_TEST_DATABASE_URL" -f "$REPO"/docs/catalog-queries.sql)
+   python3 "$REPO"/docs/compare-catalogs.py /tmp/catalog/prod /tmp/catalog/rbt
+   ```
+   Each run writes into its own directory because psql's `\o` is relative
+   to the working directory. The comparison prints `PROD_ONLY:` and
+   `RBT_ONLY:` per line, so which side has what is never ambiguous, and
+   exits non-zero when anything differs. Between them they cover: tables,
+   columns (name/type/nullable/default),
    constraints (`pg_get_constraintdef`), indexes, functions (arguments,
    return type, `prosecdef`, and a hash of `prosrc` — expect a few
    functions to show a differing hash that turns out to be pure `\r\n` vs
@@ -148,11 +165,12 @@ from production for this comparison.
 ## What this tool does NOT do
 
 - It does not decide whether a migration that only exists on rollback-test
-  (like migration 020's table, or migration 016's policy, as of Sep 2026 —
-  see Brief 091's own result doc for the live list at that time) should be
-  applied to production, abandoned, or reworked. That's a product/priority
-  decision for Seanghakk, not something this comparison resolves on its
-  own.
+  should be applied to production, abandoned, or reworked. That's a
+  product/priority decision for Seanghakk, not something this comparison
+  resolves on its own. Brief 091 surfaced two such cases (migration 020's
+  table and migration 016's policy); Brief 093 then took that decision and
+  applied both to production on 23 Sep 2026. The comparison's job ended at
+  naming them.
 - It does not reach into the CMMS's own schema beyond what this app
   directly depends on. `public.user_profiles` gets kept in sync because
   this app's own tables FK into it constantly; things like `public.sites`
