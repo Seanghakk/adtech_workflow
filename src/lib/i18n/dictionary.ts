@@ -1418,6 +1418,95 @@ const en = {
   tenderBoqColQuantity: 'Quantity',
   tenderBoqLineCount: 'lines',
   tenderBoqLoadFailedHeadline: 'Tender BOQ did not load',
+
+  // -------------------------------------------------------------------
+  // Brief 100 Part A — the AutoCAD Sheet Set export (v7.2 §8, §21.3).
+  // Every string below is v7.2's own exact copy. The property names are
+  // the ADTECH-TB block's attribute TAGS and are deliberately not
+  // translated or prettified — they are the contract with the LISP
+  // routine (§8.1), so they live in code, not here.
+  // -------------------------------------------------------------------
+  exportKicker: 'AutoCAD Sheet Set export',
+
+  // §8.2 group heads — exact.
+  exportGroupOnce: 'Sent once — the same on every sheet',
+  exportGroupPerDrawingPrefix: 'Sent per drawing —',
+  exportGroupPerDrawingSuffix: 'sheets',
+  exportColTag: 'Tag',
+  exportColValue: 'Value',
+  exportNotSent:
+    'Not sent, stays in the drawing: scale, document type, sheet x of y, revision history.',
+
+  // §8.2a — the drawing number format block.
+  exportFormatHeading: 'The drawing number format',
+  exportFormatPattern: '{SO}-ADT-{SYSTEM}-{LEVEL}-DR-{DISCIPLINE}-{NNNN}',
+  exportFormatExample: 'AD0746V26P-ADT-FIRE-02-DR-F-1001',
+  exportFormatExampleNote: 'fire alarm layout, level 02',
+  exportFormatParts:
+    'SO with its hyphen removed · ADT originator · Part 1 system code · the floor’s drawing code, or ZZ for whole-project drawings · DR · discipline letter F / T / E · number series 0xxx schematic, 1xxx layout, 2xxx detail connection, 3xxx typical / section.',
+  exportFormatIso:
+    'This is based on ISO 19650 naming and is not strictly compliant.',
+  // §21.3 — on a project set to client format the block is replaced by this.
+  exportFormatClient: 'Drawing numbers come from the register as entered.',
+
+  // §21.3 — first export ever.
+  exportNeverHeadline: 'Never exported',
+  exportNeverBodyPrefix: 'This is the first export for this project. It sends all',
+  exportNeverBodySuffix:
+    'sheets. From the next export on, this space lists what has changed since.',
+
+  // §21.3 — no drawings.
+  exportNoDrawingsHeadline: 'No drawings to send yet',
+  exportNoDrawingsBody:
+    'An export now would carry the six project values and no sheets. Drawings are added in the shop drawing screens; the project values are below so they can be checked now.',
+  exportOpenShopDrawings: 'Open shop drawings',
+  exportDownloadAnyway: 'Download anyway',
+
+  // §21.3 — missing values. Each headline, then the shared sentence.
+  exportMissingOwner: 'Owner not set',
+  exportMissingConsultant: 'Consultant not set',
+  exportMissingFloorCodes: 'floors with no drawing code',
+  exportMissingSystemCodes: 'systems with no CAD code',
+  exportMissingDrawingPeople: 'drawings with no drafter, checker or approver',
+  exportMissingSentenceSuffix: 'will be blank in every title block.',
+  exportMissingSetItIn: 'Set it in',
+  exportSectionIdentity: 'Project identity',
+  exportSectionStructure: 'Building structure',
+  exportSectionSystems: 'Systems in this project',
+  exportSectionDrawings: 'Drawings',
+
+  // §8.4 / §21.3 — changed since. A staleness notice, not an age ladder.
+  exportLastExportedPrefix: 'Last exported',
+  exportLastExportedBy: 'by',
+  exportNothingChanged: 'Nothing has changed since the last export.',
+  exportChangedPic: 'PIC changed from',
+  exportChangedPicTo: 'to',
+  exportChangedOwner: 'Owner changed from',
+  exportChangedConsultant: 'Consultant changed from',
+  exportChangedFloorsAdded: 'floors added',
+  exportChangedFloorsRemoved: 'floors removed',
+  exportChangedSystemsAdded: 'systems added',
+  exportChangedDrawingsRegistered: 'drawings registered',
+  exportChangedRevisionBumpedPrefix: 'revision bumped to Rev',
+
+  // §8.6 / §21.3 — a project that started before the standard.
+  exportPreStandard:
+    'This project started before the CAD standard. Existing drawing sets are not backfilled; the export is here for new sheets.',
+
+  // §8.5 / §21.3 — under every download.
+  exportDownload: 'Download the CSV',
+  exportDownloading: 'Preparing the file…',
+  exportThenRun: 'Then run ADTSSMLOAD in AutoCAD.',
+
+  // §21.3 — who.
+  // v7.2 §21.3's own sentence reads "The export is run by the PIC or the
+  // shop drawing team." Migration 038 added A&A to the export log's policy
+  // (decided 24 Sep 2026), so the sentence names them too — a sentence that
+  // omits a team who CAN help sends people to the wrong person. Shaped like
+  // Brief 099's own shop drawing BOQ refusal, which already names both.
+  exportRefused: 'The export is run by the PIC, the Shop Drawing team or the A&A team.',
+  exportFailed: 'Could not record this export. Nothing was downloaded — try again.',
+  exportLoadFailedHeadline: 'The export panel did not load',
 } as const
  
 export type DictionaryKey = keyof typeof en

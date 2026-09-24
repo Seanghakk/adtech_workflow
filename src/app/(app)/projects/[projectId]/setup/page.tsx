@@ -432,16 +432,28 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
           )}
         </section>
 
-        {/* §6 Exports — summary only (Brief 099 builds the real panel) */}
+        {/* §6 Exports — the summary; the panel itself is its own screen
+            (Brief 100 Part A), reached by the link below. */}
         <section id="exports" className="wf-setup-section">
           <h2 className="wf-setup-section__title">{t('setupSection6Name')}</h2>
           <p className="wf-setup-desk-work-note">{t('setupDeskWorkNote')}</p>
-          <div className="wf-empty-state-card">
-            <p className="wf-empty-state-card__headline">{t('setupExportsEmptyHeadline')}</p>
-            <p className="wf-empty-state-card__body">
-              {drawingCount} {t('setupExportsReadyPrefix')}
+          {(exportCount ?? 0) === 0 ? (
+            <div className="wf-empty-state-card">
+              <p className="wf-empty-state-card__headline">{t('setupExportsEmptyHeadline')}</p>
+              <p className="wf-empty-state-card__body">
+                {drawingCount} {t('setupExportsReadyPrefix')}
+              </p>
+              <div className="wf-empty-state-card__actions">
+                <Link href={`/projects/${project.id}/export`} className="btn btn--primary">
+                  {t('setupExportsOpenPanel')}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <p>
+              <Link href={`/projects/${project.id}/export`}>{t('setupExportsOpenPanel')}</Link>
             </p>
-          </div>
+          )}
         </section>
       </div>
     </>
