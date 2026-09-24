@@ -76,14 +76,7 @@ export default async function SoRecordPage({
   // a row that is not there. The second is notFound() below; the first
   // gets the failed state, never a blank page.
   if (projectError) {
-    return (
-      <div className="so-record">
-        <div className="wf-load-failed-card" role="alert">
-          <p style={{ margin: 0, fontWeight: 700 }}>{t('soHubLoadFailedHeadline')}</p>
-          <p style={{ margin: 'var(--space-2) 0 0' }}>{t('setupLoadFailedBody')}</p>
-        </div>
-      </div>
-    )
+    return <SoRecordLoadFailed t={t} />
   }
 
   // Same "not found or not visible" convention as /projects/[projectId]/update
@@ -202,9 +195,9 @@ export default async function SoRecordPage({
     { data: variations },
     { data: scopeTypes },
     { data: stages },
-    { data: linkedRequests },
-    { data: procurementLines },
-    { data: dependencyLinks },
+    { data: linkedRequests, error: requestsError },
+    { data: procurementLines, error: procurementError },
+    { data: dependencyLinks, error: dependencyError },
   ] = await Promise.all([
     supabase
       .from('variations')
@@ -270,7 +263,7 @@ export default async function SoRecordPage({
   // Brief 100 Part C — §21.5's "recent" strand. progress_updates is this
   // app's own record of who moved what and when; the SO record had no
   // recent list before.
-  const { data: recentRows } = await supabase
+  const { data: recentRows, error: recentError } = await supabase
     .from('progress_updates')
     .select('id, author_id, recorded_at, old_percent, new_percent')
     .eq('subject_type', 'project')
@@ -319,6 +312,15 @@ export default async function SoRecordPage({
 
   const { rows: dependencyRows, totalSlip: dependencySlip } = computeDependencyChain(dependencyLinks ?? [])
 
+  // Brief 100 Part C review item 1 / Brief 100 §4: "Every failed read shows
+  // the 21.0 failed state, never an empty table." Wiring only the project
+  // read was not enough — every source behind this page is checked, because
+  // a failed read that falls back to an empty list or a zero count is
+  // indistinguishable on screen from a project that genuinely has nothing.
+  if (setupStatus.readFailed || recentError || requestsError || procurementError || dependencyError) {
+    return <SoRecordLoadFailed t={t} />
+  }
+
   // §21.5 "Nothing in any tile" — the live column's empty state fires when
   // there is genuinely nothing moving, not merely when one strand is bare.
   const nothingMoving =
@@ -333,6 +335,15 @@ export default async function SoRecordPage({
     'soHubNextDrawings',
     'soHubNextExports',
   ] as const
+  // Zero towers is a valid project shape (v7.2 §6.2 item 2), so the tile
+  // has to read properly at 0 and 1, not just at "many".
+  const towerDetail =
+    setupStatus.towerCount === 0
+      ? t('soHubTowersNone')
+      : setupStatus.towerCount === 1
+        ? `1 ${t('soHubTowerSingular')}`
+        : `${setupStatus.towerCount} ${t('soHubTowersSuffix')}`
+
   const nextSectionLabel = setupStatus.nextSection
     ? t(NEXT_SECTION_KEYS[setupStatus.nextSection - 1])
     : t('soHubAllSectionsDone')
@@ -606,7 +617,7 @@ export default async function SoRecordPage({
             <HubTile
               label={t('soHubTileFloors')}
               value={String(setupStatus.floorCount)}
-              detail={`${setupStatus.towerCount} ${t('soHubTowersSuffix')}`}
+              detail={towerDetail}
               href={`/projects/${project.id}/setup#structure`}
               linkText={setupStatus.floorCount === 0 ? t('soHubSetUpFloors') : t('soHubOpen')}
             />
@@ -721,6 +732,20 @@ function HubTile({
       <Link href={href} className="so-hub__tile-link">
         {linkText}
       </Link>
+    </div>
+  )
+}
+
+/** v7.2 §21.0 — the failed state, for any read this page depends on.
+ *  Shared so the project row and the hub's own sources cannot drift into
+ *  showing different things for the same kind of failure. */
+function SoRecordLoadFailed({ t }: { t: (key: import('@/lib/i18n/dictionary').DictionaryKey) => string }) {
+  return (
+    <div className="so-record">
+      <div className="wf-load-failed-card" role="alert">
+        <p style={{ margin: 0, fontWeight: 700 }}>{t('soHubLoadFailedHeadline')}</p>
+        <p style={{ margin: 'var(--space-2) 0 0' }}>{t('setupLoadFailedBody')}</p>
+      </div>
     </div>
   )
 }

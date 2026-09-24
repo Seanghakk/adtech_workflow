@@ -1654,7 +1654,6 @@ const en = {
   soHubRegisterTitle: 'The register',
 
   // §21.5 — the register's one link row and its subline.
-  soHubSetupSublinePrefix: 'Next:',
   // v7.2 gives one worked example of the subline, "Floors come next." The
   // other five follow its shape with the section's own name; flagged in
   // the Result doc as a template extended from a single example.
@@ -1672,7 +1671,8 @@ const en = {
   soHubTileDrawings: 'Drawings',
   soHubTileLastExport: 'Last export',
   soHubTowersSuffix: 'towers',
-  soHubLinesSuffix: 'lines',
+  soHubTowerSingular: 'tower',
+  soHubTowersNone: 'No towers',
   soHubTiersImportedSuffix: 'of 3 tiers imported',
   soHubRegisteredSuffix: 'registered',
   soHubNeverExported: 'never exported',

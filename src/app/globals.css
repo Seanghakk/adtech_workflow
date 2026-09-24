@@ -6425,7 +6425,7 @@ a.floor-matrix__cell {
 }
 .boq-import__figure-label {
   font: 400 13px/1.4 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .boq-import__figures-headline {
   font: 800 17px/1.4 var(--font-heading);
@@ -6434,7 +6434,7 @@ a.floor-matrix__cell {
 }
 .boq-import__note {
   font: 400 13.5px/1.75 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin: var(--space-2) 0 0;
 }
 
@@ -6585,7 +6585,7 @@ a.floor-matrix__cell {
   gap: 2px;
 }
 .sd-chip-cell--none {
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .sd-chip {
   display: inline-block;
@@ -6615,7 +6615,7 @@ a.floor-matrix__cell {
 }
 .sd-chip-detail {
   font: 400 12.5px/1.4 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 
 /* §9.3 — the drawer itself. */
@@ -6638,7 +6638,7 @@ a.floor-matrix__cell {
   font: 600 11.5px/1 var(--font-body);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin-bottom: var(--space-2);
 }
 .sd-drawer__title {
@@ -6660,7 +6660,7 @@ a.floor-matrix__cell {
 }
 .sd-drawer__origin {
   font: 400 13.5px/1.6 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin: 0 0 var(--space-4);
 }
 
@@ -6692,7 +6692,7 @@ a.floor-matrix__cell {
 .sd-drawer__holder {
   padding-top: var(--space-2);
   font: 400 12px/1.3 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .sd-drawer__holder--us {
   border-top: 2px solid var(--ink);
@@ -6709,7 +6709,7 @@ a.floor-matrix__cell {
   font: 600 11.5px/1 var(--font-body);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin: 0 0 var(--space-3);
 }
 .sd-drawer__clock-pair {
@@ -6727,11 +6727,11 @@ a.floor-matrix__cell {
 .sd-drawer__clock-label {
   display: block;
   font: 400 12.5px/1.4 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin-bottom: var(--space-2);
 }
 .sd-drawer__clock-org {
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .sd-drawer__clock-value {
   font: 800 22px/1 var(--font-heading);
@@ -6770,12 +6770,12 @@ a.floor-matrix__cell {
 .sd-drawer__hint {
   display: block;
   font: 400 13px/1.6 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin-top: var(--space-2);
 }
 .sd-drawer__confirmed {
   font: 400 13px/1.6 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   margin: var(--space-3) 0;
 }
 .sd-drawer__stamp {
@@ -6828,7 +6828,7 @@ a.floor-matrix__cell {
   background: none;
 }
 .sd-drawer__code-consequence {
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 
 /* §9.6 — history. A closed entry contains no control of any kind. */
@@ -6865,7 +6865,7 @@ a.floor-matrix__cell {
   font: 600 11px/1 var(--font-body);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
   border: 1px solid rgba(32, 30, 29, 0.35);
   padding: 3px 7px;
 }
@@ -6937,7 +6937,7 @@ a.floor-matrix__cell {
 }
 .so-hub__setup-subline {
   font: 400 13px/1.5 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 
 /* §21.5 — four read-out tiles. Ink on white: counts, not results. */
@@ -6958,7 +6958,7 @@ a.floor-matrix__cell {
   font: 600 11.5px/1 var(--font-body);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .so-hub__tile-value {
   font: 800 26px/1.1 var(--font-heading);
@@ -6966,7 +6966,7 @@ a.floor-matrix__cell {
 }
 .so-hub__tile-detail {
   font: 400 12.5px/1.4 var(--font-body);
-  color: var(--text-muted);
+  color: rgba(32, 30, 29, 0.62);
 }
 .so-hub__tile-link {
   margin-top: var(--space-2);
