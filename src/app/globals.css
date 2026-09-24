@@ -6994,3 +6994,189 @@ a.floor-matrix__cell {
     padding-top: var(--space-5);
   }
 }
+
+/* ===================================================================
+   Brief 100 Part D — Execution overview charts (v7.2 §13, §21.6)
+
+   Reads the three chart tokens §7 declared and left unused until now:
+   --wf-chart-axis (2px), --wf-chart-grid (1px), --wf-chart-label (12px).
+
+   The line is ACTUAL ONLY. There is no target rule and no gap band here
+   on purpose — no project carries a planned baseline, so §13 replaces
+   both with one plain note. --wf-hatch-red stays unread in the token
+   set for when a baseline exists.
+
+   var(--text-muted) is deliberately not used anywhere in this block:
+   v7.2 forbids it by name (it resolves to .6 ≈ 4.40:1 on white, which
+   fails WCAG AA). The literal below is .62 ≈ 4.69:1.
+   =================================================================== */
+
+.chart {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--rule-minor);
+}
+
+.chart:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.chart__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 var(--space-4);
+}
+
+.chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 720px;
+}
+
+/* §13: 2px ink on the left and bottom axes ONLY — no box, no top or
+   right rule. The polyline draws exactly those two runs. */
+.chart__axis {
+  stroke: var(--ink);
+  stroke-width: var(--wf-chart-axis);
+}
+
+/* Four horizontal 1px gridlines, set back far enough that they read as
+   ground the line sits on rather than as data of their own. */
+.chart__gridline {
+  stroke: var(--rule-minor);
+  stroke-width: var(--wf-chart-grid);
+}
+
+/* §13: actual is 3px blue solid. */
+.chart__actual {
+  stroke: var(--navy);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* §13's 4px terminal dot — and, in §21.6's one-point state, the only
+   mark on the chart. */
+.chart__terminal {
+  fill: var(--navy);
+}
+
+.chart__tick {
+  font-size: var(--wf-chart-label);
+  fill: rgba(32, 30, 29, 0.62);
+}
+
+.chart__note {
+  font-size: 13px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: var(--space-2) 0 0;
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.chart__legend--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: 0;
+}
+
+.chart__legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--wf-chart-label);
+  color: var(--ink);
+}
+
+.chart__swatch {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+/* The line's own swatch is a 3px rule, not a block: it should read as
+   the same ink the series is drawn in. */
+.chart__swatch--actual {
+  height: 3px;
+  width: 18px;
+  background: var(--navy);
+}
+
+.chart__donut-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+/* --- the concurrency bars (§13's required pattern) ---
+   Independent bars sharing one left edge, each carrying its own
+   "n / 30 fl" figure. Not a funnel: the lengths are what say
+   "concurrent and staggered" without a word of explanation. */
+.chart__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 560px;
+}
+
+.chart__bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 72px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.chart__bar-label {
+  font-size: var(--wf-chart-label);
+  color: var(--ink);
+}
+
+.chart__bar-track {
+  height: 14px;
+  background: var(--wf-subtree-bg);
+  border: 1px solid var(--rule-minor);
+}
+
+/* display:block matters — the fill is a <span> inside the track, and the
+   track is not a flex/grid container, so it would otherwise stay inline
+   and ignore both its height and its percentage width. (The track, the
+   label and the figure are grid items and get blockified for free.) */
+.chart__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--navy);
+}
+
+.chart__bar-figure {
+  font-size: var(--wf-chart-label);
+  color: rgba(32, 30, 29, 0.62);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .chart__bar-row {
+    grid-template-columns: 1fr 64px;
+    grid-template-areas: 'label figure' 'track track';
+  }
+  .chart__bar-label {
+    grid-area: label;
+  }
+  .chart__bar-figure {
+    grid-area: figure;
+  }
+  .chart__bar-track {
+    grid-area: track;
+  }
+}

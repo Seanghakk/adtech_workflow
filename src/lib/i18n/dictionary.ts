@@ -653,6 +653,7 @@ const en = {
   soRecordSetupSectionsDoneSuffix: 'of 6 sections done',
   // Brief 056 — the floor x sub-stage colour matrix, ?view=matrix on 2a.
   soRecordViewMatrix: 'View matrix',
+  soRecordViewOverview: 'View execution overview',
   floorMatrixKicker: 'Floor x sub-stage matrix',
   floorMatrixBackToSoRecord: 'Back to SO record',
   floorMatrixEmptyNoFloors: 'No floors configured yet.',
@@ -1699,6 +1700,62 @@ const en = {
   soHubRecentPercentPrefix: 'Progress moved to',
   soHubRecentBy: 'by',
   soHubLoadFailedHeadline: 'This SO record did not load',
+
+  // -------------------------------------------------------------------
+  // Brief 100 Part D — the Execution overview's charts (v7.2 §13, §21.6).
+  // Overview pages ARE charts; tables are the drill-down and never appear
+  // above one. Every string below is v7.2's own exact copy.
+  // -------------------------------------------------------------------
+  overviewKicker: 'Execution overview',
+  overviewLineTitle: 'Progress over time',
+  overviewDonutTitle: 'Status split',
+  overviewBarTitle: 'Progress by system',
+  overviewConcurrencyTitle: 'Floors reached, by stage',
+
+  // §13 / §21.6 — always, in place of the target legend. There is no
+  // target line and no gap band: no project carries a baseline today.
+  overviewNoTarget: 'No target set for this project.',
+  overviewLegendActual: 'Actual',
+
+  // §21.6 "Line, no points" — two variants, depending on whether the
+  // project has floors at all.
+  overviewLineNoPointsHeadline: 'No progress recorded on this project yet',
+  overviewLineNoPointsWithFloors:
+    'The line draws once floors have been updated twice. Floors are set up; nobody has updated one yet.',
+  overviewLineNoPointsNoFloors:
+    'The line draws once floors are set up and updated twice.',
+  overviewOpenProjectSetup: 'Open Project setup',
+
+  // §21.6 "Line, one point" — the axes and a single terminal mark.
+  overviewLineOnePointPrefix: 'One update so far —',
+  overviewLineOnePointMiddle: 'of',
+  overviewLineOnePointSuffix: 'cells done. The line starts at the second update.',
+
+  // §21.6 "Donut, nothing started".
+  overviewDonutEmpty: 'No sub-stages started on this project yet',
+  overviewDonutDone: 'Done',
+  overviewDonutInProgress: 'In progress',
+  overviewDonutWaiting: 'Waiting',
+  overviewDonutDelayed: 'Delayed',
+
+  // §21.6 "Bar by system, none".
+  overviewBarEmptyHeadline: 'No systems on this project yet',
+  overviewBarEmptyBody:
+    'Each system gets a bar here. A BOQ import usually adds them, or they can be added in Project setup.',
+  // Brief 100 Part D stopped here: nothing in the schema ties a system to
+  // progress, so the FILLED bar cannot be computed without a schema
+  // change. §2 says to stop on that, report it, and carry on. The empty
+  // state above is correct and live; this sentence stands in where
+  // systems exist but their progress cannot be measured.
+  overviewBarNoMeasure:
+    'These systems are set up, but nothing yet records progress against a system, so there is no bar to draw. Adding that is a schema change and is logged as an open item.',
+
+  // §13's concurrency pattern — "n / 30 fl", the figure right-aligned.
+  overviewFloorsSuffix: 'fl',
+  overviewStageInstallation: 'Installation',
+  overviewStageTnc: 'Testing & commissioning',
+
+  overviewLoadFailedHeadline: 'The overview did not load',
 } as const
  
 export type DictionaryKey = keyof typeof en
