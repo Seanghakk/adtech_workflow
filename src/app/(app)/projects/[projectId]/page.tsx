@@ -644,6 +644,16 @@ export default async function SoRecordPage({
             />
           </div>
 
+          {/* Brief 100 Part D — the per-project entry to the execution
+              overview. Ungated on purpose: the overview's own §21.6 empty
+              states are written for the no-floors and no-readings cases,
+              so it is worth reaching before there is anything to draw.
+              The global rail's 'Overview' item is a separate, still-absent
+              CROSS-project screen and stays case (C) in src/lib/nav.ts. */}
+          <Link href={`/projects/${project.id}/overview`} className="awaiting-so-card__link">
+            {t('soRecordViewOverview')}
+          </Link>
+
           {/* Brief 056 §7 — the matrix's second entry point. Only once
               floors exist; a matrix over zero floors is an empty grid.
               Not one of the six setup sections, so it keeps its own row. */}
