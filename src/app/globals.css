@@ -6974,9 +6974,16 @@ a.floor-matrix__cell {
   color: var(--navy);
 }
 
-/* §21.5 — at 390px the register stacks below the live work, and the
-   tiles become a two-column grid (which they already are). */
-@media (max-width: 900px) {
+/* §21.5 — the register stacks below the live work, and the tiles stay a
+   two-column grid (which they already are).
+
+   The breakpoint is 1100px, not 900px, so the register gives way BEFORE
+   the live column gets narrower than it. The register is a fixed 340px;
+   at a 1024px viewport a 900px breakpoint left the live work on 344px —
+   tight, nothing clipped, but the wrong thing winning the space. Above
+   1100px the live column has a real margin over the register, and below
+   it the register goes underneath rather than squeezing the work. */
+@media (max-width: 1100px) {
   .so-hub {
     grid-template-columns: 1fr;
   }
