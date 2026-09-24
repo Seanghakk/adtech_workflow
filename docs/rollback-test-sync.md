@@ -47,13 +47,20 @@ rollback-test discipline itself; migrations 023/024 are narrow, easy to
 forget, additive columns; `public.user_profiles`'s extra columns belong to
 the CMMS (see below) and were never this repo's to add anywhere.
 
-Brief 091 also found the *opposite* kind of drift — objects that exist on
+Brief 091 also found the *opposite* kind of drift — objects that existed on
 rollback-test but not on production (`workflow.contract_boq_line_locations`
 and its policies, from migration 020; `workflow.requests`'s
-`requests_update` policy, from migration 016). These mean **production is
+`requests_update` policy, from migration 016). That meant **production was
 missing migrations that are checked into this repo** — a real gap, but a
 different one, and out of scope for a rollback-test repair (see "What this
 tool does NOT do" below).
+
+**Both were resolved on 23 Sep 2026 under Brief 093**, which investigated
+the gap and applied migrations 016 and 020 to production. Production now
+carries `workflow.contract_boq_line_locations`, `contract_boq_lines`'
+PIC-shaped policies and the `requests_update` policy, so this particular
+drift is closed in the direction of production catching up. It is kept here
+as the worked example of the class, not as a live gap.
 
 ## How to run this comparison again
 
@@ -92,10 +99,20 @@ from production for this comparison.
    instead, which diffs by *value*, not by text position.
 
 3. **Run the same catalog queries against both projects and diff the result
-   sets in a small script**, not the raw SQL text. The queries this repo's
-   own Brief 091 used are saved for reuse — ask whoever ran that brief for
-   `catalog_queries.sql`, or reconstruct from `information_schema`/
-   `pg_catalog` covering: tables, columns (name/type/nullable/default),
+   sets in a small script**, not the raw SQL text. Both are checked in
+   beside this doc — `docs/catalog-queries.sql` and
+   `docs/compare-catalogs.py`:
+   ```bash
+   mkdir -p /tmp/catalog/prod /tmp/catalog/rbt
+   (cd /tmp/catalog/prod && psql "$DATABASE_URL"               -f "$REPO"/docs/catalog-queries.sql)
+   (cd /tmp/catalog/rbt  && psql "$ROLLBACK_TEST_DATABASE_URL" -f "$REPO"/docs/catalog-queries.sql)
+   python3 "$REPO"/docs/compare-catalogs.py /tmp/catalog/prod /tmp/catalog/rbt
+   ```
+   Each run writes into its own directory because psql's `\o` is relative
+   to the working directory. The comparison prints `PROD_ONLY:` and
+   `RBT_ONLY:` per line, so which side has what is never ambiguous, and
+   exits non-zero when anything differs. Between them they cover: tables,
+   columns (name/type/nullable/default),
    constraints (`pg_get_constraintdef`), indexes, functions (arguments,
    return type, `prosecdef`, and a hash of `prosrc` — expect a few
    functions to show a differing hash that turns out to be pure `\r\n` vs
@@ -113,6 +130,61 @@ from production for this comparison.
    `.schema('public')` and grep every migration for `public\.\w+` to
    confirm the current list hasn't grown). These belong to the CMMS, not
    this repo — see below.
+
+## Verifying a migration that replaces a function body
+
+**A verification query must assert a marker unique to the new body, not
+just that the function exists and is `SECURITY DEFINER`.**
+
+This is not a style preference. Migration 037 was amended in place by
+Brief 099 to correct its permission rule, and a superseded copy of the
+migration was run against production by mistake. Its verification had 14
+checks and **all 14 passed against the wrong function**, because every one
+of them asked about schema shape:
+
+```
+ 9 | workflow.commit_boq_import(...) exists     | present | present | PASS
+10 | commit_boq_import is SECURITY DEFINER      | true    | true    | PASS
+```
+
+Both statements are equally true of either version. Production carried the
+wrong permission rule through a merge, and what eventually caught it was
+this document's own catalog comparison noticing the function's body hash
+differed between the two projects — not the verification written for that
+migration.
+
+The fix is one more check per replaced function, asserting a string that
+appears in the new body and nowhere in the old one:
+
+```sql
+select 15, 'commit_boq_import carries Brief 099''s per-tier rule',
+  'true',
+  coalesce((select (prosrc like '%v_may_write_tier%')::text
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'workflow' and p.proname = 'commit_boq_import'), 'MISSING')
+```
+
+When writing one:
+
+- **Pick a marker that only the new body can contain** — a new variable
+  name, a new branch, a renamed error message. Not a comment: comments get
+  copied between versions more readily than code does.
+- **Prove the check fails on the old body**, not only that it passes on
+  the new one. Install the previous version on rollback-test, confirm the
+  check reports FAIL, then re-apply the migration. A check that has only
+  ever been seen passing has not been tested.
+- **One check per behaviour the amendment changed**, not one per
+  migration. Migration 037's correction changed two things — the per-tier
+  rule and the separate floors/systems gate — so it carries two markers.
+- This applies to any `CREATE OR REPLACE` on an existing object, not just
+  functions. If a migration's whole point is to change what something
+  already does, "it exists" proves nothing about whether it was applied.
+
+Comparing `md5(replace(prosrc, chr(13), ''))` across the two projects is
+the blunt version of the same check and is worth running after any
+production migration — see the `functions` section of the catalog
+comparison, and the note there about `\r\n` line-ending noise.
 
 ## Production is read-only; repairs go to rollback-test
 
@@ -148,11 +220,12 @@ from production for this comparison.
 ## What this tool does NOT do
 
 - It does not decide whether a migration that only exists on rollback-test
-  (like migration 020's table, or migration 016's policy, as of Sep 2026 —
-  see Brief 091's own result doc for the live list at that time) should be
-  applied to production, abandoned, or reworked. That's a product/priority
-  decision for Seanghakk, not something this comparison resolves on its
-  own.
+  should be applied to production, abandoned, or reworked. That's a
+  product/priority decision for Seanghakk, not something this comparison
+  resolves on its own. Brief 091 surfaced two such cases (migration 020's
+  table and migration 016's policy); Brief 093 then took that decision and
+  applied both to production on 23 Sep 2026. The comparison's job ended at
+  naming them.
 - It does not reach into the CMMS's own schema beyond what this app
   directly depends on. `public.user_profiles` gets kept in sync because
   this app's own tables FK into it constantly; things like `public.sites`
@@ -180,4 +253,8 @@ that's not drift, that's the fixtures doing their job.
   run there proves less than it looks like it proves.
 - **After any migration is applied to production** — to confirm the
   structural gap that migration was meant to close on production also
-  gets closed on rollback-test in the same pass, not "eventually."
+  gets closed on rollback-test in the same pass, not "eventually." Run
+  the migration's own verification query against production as well, and
+  read the output rather than the exit status: if the migration replaced
+  a function body, check the marker assertion above is among the rows
+  that passed.
