@@ -1645,6 +1645,60 @@ const en = {
   // §21.4 failed to load, exact.
   drawerLoadFailedHeadline: 'This drawing did not load',
   drawerTryAgain: 'Try again',
+
+  // -------------------------------------------------------------------
+  // Brief 100 Part C — the SO record re-lay (v7.2 mockup 6f, §21.5).
+  // Two columns on the 2px rule: left the live work, right the register.
+  // -------------------------------------------------------------------
+  soHubLiveTitle: 'Live work',
+  soHubRegisterTitle: 'The register',
+
+  // §21.5 — the register's one link row and its subline.
+  soHubSetupSublinePrefix: 'Next:',
+  // v7.2 gives one worked example of the subline, "Floors come next." The
+  // other five follow its shape with the section's own name; flagged in
+  // the Result doc as a template extended from a single example.
+  soHubNextIdentity: 'Project identity comes next.',
+  soHubNextFloors: 'Floors come next.',
+  soHubNextSystems: 'Systems come next.',
+  soHubNextBoq: 'The BOQ comes next.',
+  soHubNextDrawings: 'Drawings come next.',
+  soHubNextExports: 'The export comes next.',
+  soHubAllSectionsDone: 'Every section is set up.',
+
+  // §21.5 — the four read-out tiles. Counts, not results.
+  soHubTileFloors: 'Floors',
+  soHubTileBoq: 'BOQ',
+  soHubTileDrawings: 'Drawings',
+  soHubTileLastExport: 'Last export',
+  soHubTowersSuffix: 'towers',
+  soHubLinesSuffix: 'lines',
+  soHubTiersImportedSuffix: 'of 3 tiers imported',
+  soHubRegisteredSuffix: 'registered',
+  soHubNeverExported: 'never exported',
+  // Each tile's link: its empty wording, or "Open" once it has something.
+  soHubSetUpFloors: 'Set up floors',
+  soHubImportABoq: 'Import a BOQ',
+  soHubOpenShopDrawings: 'Open shop drawings',
+  soHubOpenExportPanel: 'Open the export panel',
+  soHubOpen: 'Open',
+
+  // §21.5 "Nothing in any tile" — the live column's empty state, exact.
+  soHubNothingMovingHeadline: 'Nothing is moving on this project yet',
+  soHubNothingMovingBody:
+    'Work appears here as soon as a stage starts, a line is ordered or a floor is updated. Every track counts against floors and a BOQ, so Project setup comes first.',
+  soHubOpenProjectSetup: 'Open Project setup',
+
+  // §21.5 Recent. v7.2's own sentence is "SO approved by <name> · <date>.
+  // Nothing recorded since." — the schema records no SO approver, so the
+  // second half stands alone and the first is replaced by the SO
+  // assignment where that date exists. Flagged in the Result doc.
+  soHubRecentTitle: 'Recent',
+  soHubNothingRecordedSince: 'Nothing recorded since.',
+  soHubSoAssignedPrefix: 'SO assigned',
+  soHubRecentPercentPrefix: 'Progress moved to',
+  soHubRecentBy: 'by',
+  soHubLoadFailedHeadline: 'This SO record did not load',
 } as const
  
 export type DictionaryKey = keyof typeof en

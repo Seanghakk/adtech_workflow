@@ -6883,3 +6883,107 @@ a.floor-matrix__cell {
     cursor: default;
   }
 }
+
+/* ===================================================================
+   Brief 100 Part C — the SO record re-lay (v7.2 mockup 6f, §21.5).
+
+   Two columns on the 2px rule: left the live work, right the register.
+   The tiles are page chrome, not a new shared part; the empty live
+   column is 4.5, reused as it is.
+   =================================================================== */
+.so-hub {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+.so-hub__live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+/* The 2px rule the two columns sit on. */
+.so-hub__register {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-left: 2px solid var(--rule-major);
+  padding-left: var(--space-6);
+}
+
+/* §21.5 — ONE link row, carrying the strip's own mark for the overall
+   state and a subline naming the next section. */
+.so-hub__setup-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-4);
+  text-decoration: none;
+  color: inherit;
+}
+.so-hub__setup-row:hover {
+  border-color: var(--navy);
+}
+.so-hub__setup-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.so-hub__setup-title {
+  font: 800 14.5px/1.3 var(--font-heading);
+  color: var(--navy);
+}
+.so-hub__setup-subline {
+  font: 400 13px/1.5 var(--font-body);
+  color: var(--text-muted);
+}
+
+/* §21.5 — four read-out tiles. Ink on white: counts, not results. */
+.so-hub__tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.so-hub__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-4);
+}
+.so-hub__tile-label {
+  font: 600 11.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.so-hub__tile-value {
+  font: 800 26px/1.1 var(--font-heading);
+  color: var(--ink);
+}
+.so-hub__tile-detail {
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--text-muted);
+}
+.so-hub__tile-link {
+  margin-top: var(--space-2);
+  font: 600 13px/1 var(--font-body);
+  color: var(--navy);
+}
+
+/* §21.5 — at 390px the register stacks below the live work, and the
+   tiles become a two-column grid (which they already are). */
+@media (max-width: 900px) {
+  .so-hub {
+    grid-template-columns: 1fr;
+  }
+  .so-hub__register {
+    border-left: none;
+    border-top: 2px solid var(--rule-major);
+    padding-left: 0;
+    padding-top: var(--space-5);
+  }
+}
