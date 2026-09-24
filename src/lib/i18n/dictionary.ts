@@ -880,6 +880,24 @@ const en = {
   // §21.0 — a read that failed is never an empty list.
   phoneFloorLoadFailed: 'This floor could not be loaded.',
 
+  // Brief 100 route walk, finding 2 — the app's own not-found copy. The
+  // framework's default ("404 This page could not be found.") is honest
+  // but it is not this app's voice, it says nothing about what to do,
+  // and on an unmatched path it used to arrive with no shell and no way
+  // back at all.
+  notFoundHeadline: 'That page could not be found',
+  notFoundBody:
+    'The link may be out of date, or whatever it pointed at may have been removed. Nothing is wrong with your account — everything else in the app still works.',
+
+  // The scanned-label case, which is the one that happens to someone
+  // standing on a floor holding a phone.
+  floorLabelNotFoundHeadline: 'This label does not match a floor any more',
+  floorLabelNotFoundBody:
+    'The sticker is probably out of date — floors get renamed, merged or removed after the labels are printed — and a scuffed or torn code can also misread.',
+  floorLabelNotFoundAsk:
+    'Ask the project’s PIC to check the floor list in Project setup and print a new label for this floor.',
+  floorLabelNotFoundRetry: 'If the sticker looks damaged, try scanning it again first.',
+
   // Brief 100 §3 — the NOT DRAWN material inspection screen's honest page.
   comingSoonMaterialInspectionHeadline: 'Recording a material inspection is not built yet',
   comingSoonMaterialInspectionBody:
