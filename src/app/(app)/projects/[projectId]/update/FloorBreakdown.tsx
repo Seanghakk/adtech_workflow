@@ -121,6 +121,8 @@ export function FloorBreakdown({
   projectShopDrawing,
   handoverItems,
   drawingActor,
+  systems,
+  systemsReadFailed,
 }: {
   projectId: string
   isPic: boolean
@@ -136,6 +138,10 @@ export function FloorBreakdown({
   handoverItems: HandoverItem[]
   /** Brief 100 Part B — who the signed-in person is, for §9.5's gates. */
   drawingActor: DrawingActor
+  /** Brief 102 follow-up — the project's systems, for the add form. */
+  systems: { id: string; name: string; cadCode: string | null }[]
+  /** Brief 094 — a failed systems read must not read as "no systems". */
+  systemsReadFailed: boolean
 }) {
   // §9.1 — one drawer at a time across the whole screen, so opening a
   // second drawing closes the first rather than stacking panels.
@@ -214,6 +220,8 @@ export function FloorBreakdown({
                   floors={floors.map((f) => ({ id: f.id, label: f.label }))}
                   canAdd={canAddDrawing(drawingActor)}
                   defaultScope="project"
+                  systems={systems}
+                  systemsReadFailed={systemsReadFailed}
                 />
               </div>
             )}
@@ -237,6 +245,8 @@ export function FloorBreakdown({
                 floors={floors.map((f) => ({ id: f.id, label: f.label }))}
                 canAdd={canAddDrawing(drawingActor)}
                 defaultScope="project"
+                systems={systems}
+                systemsReadFailed={systemsReadFailed}
               />
             )}
             {isQcMember && (
@@ -286,6 +296,8 @@ export function FloorBreakdown({
                 drawingActor={drawingActor}
                 openDrawingId={openDrawingId}
                 setOpenDrawingId={setOpenDrawingId}
+                systems={systems}
+                systemsReadFailed={systemsReadFailed}
               />
             ))
           )}
@@ -326,9 +338,13 @@ function FloorCard({
   drawingActor,
   openDrawingId,
   setOpenDrawingId,
+  systems,
+  systemsReadFailed,
 }: {
   projectId: string
   floor: FloorRow
+  systems: { id: string; name: string; cadCode: string | null }[]
+  systemsReadFailed: boolean
   drawingActor: DrawingActor
   openDrawingId: string | null
   setOpenDrawingId: (id: string | null) => void
@@ -376,6 +392,8 @@ function FloorCard({
           canAdd={canAddDrawing(drawingActor)}
           defaultScope="floor"
           defaultFloorId={floor.id}
+          systems={systems}
+          systemsReadFailed={systemsReadFailed}
         />
       </div>
 

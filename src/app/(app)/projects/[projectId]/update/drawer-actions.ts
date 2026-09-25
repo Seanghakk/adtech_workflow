@@ -253,6 +253,8 @@ export async function addShopDrawing(
   const drawingType = String(formData.get('drawingType') ?? '')
   const floorIdRaw = String(formData.get('floorId') ?? '').trim()
   const floorId = floorIdRaw === '' ? null : floorIdRaw
+  const systemIdRaw = String(formData.get('systemId') ?? '').trim()
+  const systemId = systemIdRaw === '' ? null : systemIdRaw
 
   if (!projectId || (scope !== 'project' && scope !== 'floor')) {
     return fail('Pick where this drawing belongs.')
@@ -290,6 +292,21 @@ export async function addShopDrawing(
     return fail(
       'Only the Shop Drawing team, A&A, or this project’s PIC can add a drawing here. Nothing was created.',
     )
+  }
+
+  // Brief 102 follow-up — a plain FK cannot express "the system must
+  // belong to the SAME project as the drawing", so it is checked here.
+  // The form only ever offers this project's own systems, so reaching
+  // this refusal means a request that did not come from the form.
+  if (systemId) {
+    const { data: system, error: systemError } = await supabase
+      .from('project_systems')
+      .select('id')
+      .eq('id', systemId)
+      .eq('project_id', projectId)
+      .maybeSingle()
+    if (systemError) return fail('Could not add this drawing.')
+    if (!system) return fail('That system does not belong to this project. Nothing was created.')
   }
 
   // §3.4 — look first, so the refusal can NAME the drawing that already
@@ -339,6 +356,9 @@ export async function addShopDrawing(
     // start here is exactly the dishonesty Part B established against.
     status: 'not_started',
     created_by: member.userId,
+    // NULL when nobody has decided yet — the same honesty as created_by.
+    // It is the {SYSTEM} part of v7.2 §8.2's drawing-number format.
+    system_id: systemId,
   })
 
   if (error) {
