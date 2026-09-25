@@ -1798,6 +1798,14 @@ const en = {
   addDrawingTitlePreviewLabel: 'It will be called',
   addDrawingNumberNote:
     'The drawing number is assigned by the project’s numbering rules — you do not type one.',
+  // Brief 102 follow-up — the system field, once migration 040 gave it
+  // somewhere to live. DRAFTED, like the rest of this form's copy.
+  addDrawingSystemLabel: 'System',
+  addDrawingSystemNone: 'Not decided yet',
+  addDrawingNoSystemsNote:
+    'This project has no systems yet. A BOQ import usually adds them, or they can be added in Project setup.',
+  addDrawingSystemsUnavailable:
+    'The project’s systems could not be loaded, so this drawing will be added without one.',
   addDrawingSubmit: 'Add drawing',
   addDrawingCancel: 'Cancel',
   addDrawingRefusedNote:

@@ -188,6 +188,16 @@ export default async function UpdateProgressPage({
       ])
     : [{ data: [] }, { data: [] }]
 
+  // Brief 102 follow-up — the project's systems, for the add form's
+  // system field. Error captured per Brief 094: a failed read must not
+  // render as "this project has no systems", which would send someone to
+  // Project setup to create ones that already exist.
+  const { data: systemRows, error: systemsError } = await supabase
+    .from('project_systems')
+    .select('id, name, cad_code')
+    .eq('project_id', project.id)
+    .order('name')
+
   const drawerPeopleIds = new Set<string>()
   for (const r of submissionRows ?? []) {
     if (r.submitted_by) drawerPeopleIds.add(r.submitted_by)
@@ -395,6 +405,8 @@ export default async function UpdateProgressPage({
         projectShopDrawing={projectShopDrawing}
         handoverItems={handoverItems}
         drawingActor={drawingActor}
+        systems={(systemRows ?? []).map((r) => ({ id: r.id, name: r.name, cadCode: r.cad_code }))}
+        systemsReadFailed={Boolean(systemsError)}
       />
     </div>
     </>
