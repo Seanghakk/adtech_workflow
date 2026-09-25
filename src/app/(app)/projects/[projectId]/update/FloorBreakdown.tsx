@@ -22,6 +22,9 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { formatDateICT } from '@/lib/format/datetime'
+import { AddDrawingForm } from './AddDrawingForm'
+import { canAddDrawing } from '@/lib/shopDrawing/addDrawing'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
@@ -203,11 +206,15 @@ export function FloorBreakdown({
                 <p className="wf-empty-state-card__body">
                   {floors.length} {t('drawerRegisterEmptyProjectBodyPrefix')}
                 </p>
-                {/* Brief 100 Part B stopped here: §21.4 says "Add a shop
-                    drawing" is the update screen's EXISTING add action and
-                    to flag it if the screen has none. It has none, so this
-                    says what is true instead of inventing a control. */}
-                <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyNoAddAction')}</p>
+                {/* Brief 100 Part B stopped here and said plainly that the
+                    screen had no add action. Brief 102 built it, so the
+                    sentence is replaced by the action itself. */}
+                <AddDrawingForm
+                  projectId={projectId}
+                  floors={floors.map((f) => ({ id: f.id, label: f.label }))}
+                  canAdd={canAddDrawing(drawingActor)}
+                  defaultScope="project"
+                />
               </div>
             )}
             <div className="floor-breakdown__drawing-list">
@@ -224,6 +231,14 @@ export function FloorBreakdown({
                 />
               ))}
             </div>
+            {projectShopDrawing.length > 0 && (
+              <AddDrawingForm
+                projectId={projectId}
+                floors={floors.map((f) => ({ id: f.id, label: f.label }))}
+                canAdd={canAddDrawing(drawingActor)}
+                defaultScope="project"
+              />
+            )}
             {isQcMember && (
               <MaterialInspectionRecorder projectId={projectId} floors={floors.map((f) => ({ id: f.id, label: f.label }))} />
             )}
@@ -338,7 +353,6 @@ function FloorCard({
               {t('drawerRegisterEmptyFloorPrefix')} {floor.label}
             </p>
             <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyFloorBody')}</p>
-            <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyNoAddAction')}</p>
           </div>
         )}
         <div className="floor-breakdown__drawing-list">
@@ -355,6 +369,14 @@ function FloorCard({
             />
           ))}
         </div>
+        {/* Brief 102 — on this floor, pre-selected, in both states. */}
+        <AddDrawingForm
+          projectId={projectId}
+          floors={[{ id: floor.id, label: floor.label }]}
+          canAdd={canAddDrawing(drawingActor)}
+          defaultScope="floor"
+          defaultFloorId={floor.id}
+        />
       </div>
 
       <div className="floor-breakdown__subsection">
@@ -479,7 +501,7 @@ function PossessionChip({ drawing }: { drawing: DrawerDrawing }) {
   } else if (life.possession === 'approved') {
     chipClass = 'sd-chip sd-chip--approved'
     chipText = `${t('drawerChipApprovedPrefix')} ${life.lastReturned?.code ?? ''}`.trim()
-    detail = `${org ?? '—'}${life.lastReturned?.returnedAt ? ` · ${new Date(life.lastReturned.returnedAt).toLocaleDateString()}` : ''}`
+    detail = `${org ?? '—'}${life.lastReturned?.returnedAt ? ` · ${formatDateICT(life.lastReturned.returnedAt)}` : ''}`
   } else if (life.possession === 'marked_done_by_hand') {
     chipClass = 'sd-chip sd-chip--by-hand'
     chipText = t('drawerChipMarkedByHand')

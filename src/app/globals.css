@@ -7807,3 +7807,114 @@ a.floor-matrix__cell {
     flex-wrap: wrap;
   }
 }
+
+/* ===================================================================
+   Brief 102 — "Add a shop drawing" (v7.2 §9, §21.4)
+
+   The creation path Brief 100 Part B stopped on. Built on §4.1's form
+   row rather than as a panel of its own: no new shared part, no new
+   token, no new colour.
+   =================================================================== */
+
+.add-drawing {
+  margin-top: var(--space-3);
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.add-drawing__heading {
+  font: 800 15px/1.2 var(--font-heading);
+  margin: 0;
+  color: var(--ink);
+}
+
+.add-drawing__group {
+  border: none;
+  margin: 0;
+  padding: 0;
+  /* A <fieldset> defaults to min-inline-size: min-content, which ignores
+     normal flex shrinking and is the usual reason a form overflows a
+     narrow viewport. */
+  min-inline-size: 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* No .add-drawing__label: §4.1's .wf-form-row__label already is one,
+   and a second near-duplicate of a shared part is what §4 exists to
+   stop. The form itself is .wf-form-row--stack, which the shared part
+   already provides for a column layout. */
+
+.add-drawing__choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.add-drawing__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 320px;
+  /* A flex item will not shrink below its content's min-width without
+     this, and a <select> full of floor labels has a wide one. Measured:
+     the open form added 46px of horizontal overflow at 390px before
+     these three lines. */
+  min-width: 0;
+}
+
+.add-drawing__field select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.add-drawing__note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0;
+}
+
+.add-drawing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.add-drawing__saved {
+  font-size: 13px;
+  color: var(--navy);
+  margin: 0;
+}
+
+/* A refused add is a sentence, never a disabled button — so this is the
+   only failure surface, and it carries the server's own words. */
+.add-drawing__error {
+  font-size: 14px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border-left: 5px solid var(--ink);
+}
+
+/* §12.1's phone rule applies here too: at 390px the row wraps rather
+   than scrolling sideways. */
+@media (max-width: 560px) {
+  .add-drawing__field {
+    max-width: 100%;
+  }
+  .add-drawing__group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}

@@ -105,11 +105,28 @@ export interface ExportDrawingInput {
 /** §8.2 — "FLOOR | Floor label, or GENERAL for project-level drawings". */
 export const GENERAL_FLOOR = 'GENERAL'
 
+/**
+ * The drawing's TITLE, composed rather than stored.
+ *
+ * workflow.shop_drawing_items has no title column and Brief 102 did not
+ * add one: a title that is always "<type> — <floor>" is a derivation,
+ * and storing a derivation is how two screens start disagreeing about
+ * what a drawing is called.
+ *
+ * Exported so the add form shows the caller exactly the title the
+ * AutoCAD export will write for the drawing they are about to create.
+ * One implementation, two readers — the same reason
+ * computeSubStageDisplayState exists.
+ */
+export function composeDrawingTitle(d: { typeLabel: string; floorLabel: string | null }): string {
+  return d.floorLabel ? `${d.typeLabel} — ${d.floorLabel}` : d.typeLabel
+}
+
 export function buildDrawingValues(d: ExportDrawingInput): DrawingValues {
   const floor = d.floorLabel ?? GENERAL_FLOOR
   return {
     DRAWINGNO: d.drawingNumber ?? '',
-    TITLE: d.floorLabel ? `${d.typeLabel} — ${d.floorLabel}` : d.typeLabel,
+    TITLE: composeDrawingTitle({ typeLabel: d.typeLabel, floorLabel: d.floorLabel }),
     REV: d.revision === null ? '' : `Rev ${d.revision}`,
     STATUS: d.statusLabel,
     ISSUEDATE: d.issueDate ?? '',

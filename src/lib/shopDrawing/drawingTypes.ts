@@ -11,6 +11,10 @@ import type { DictionaryKey } from '@/lib/i18n/dictionary'
  * the Brief 100 Part B drawer read "System schematic". One map, importable
  * from both sides.
  */
+/** The four types the app knows. Brief 102 needs them as a type, not
+ *  just as a lookup, so the scope-to-type split can be checked. */
+export type DrawingTypeKey = 'schematic' | 'typical_section' | 'layout' | 'detail_connection'
+
 export const DRAWING_TYPE_KEYS: Record<string, DictionaryKey> = {
   schematic: 'drawingTypeSchematic',
   typical_section: 'drawingTypeTypicalSection',

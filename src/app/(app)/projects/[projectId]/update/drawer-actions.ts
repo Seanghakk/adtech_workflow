@@ -20,6 +20,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { verifyWriteAffectedRow, existsByColumn, writeFailureMessage } from '@/lib/supabase/verified-write'
+import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
+import { canAddDrawing, findDuplicate, isTypeAllowedForScope } from '@/lib/shopDrawing/addDrawing'
+import { composeDrawingTitle } from '@/lib/autocad/export'
 import type { DrawerActionState } from './drawer-shared'
 
 
@@ -213,6 +216,138 @@ export async function recordReturn(
         .update({ pre_submission_stage: 'drafting' })
         .eq('id', itemId)
     }
+  }
+
+  revalidatePath(`/projects/${projectId}/update`)
+  return ok()
+}
+
+/**
+ * Brief 102 — "Add a shop drawing", the creation path Part B correctly
+ * stopped on.
+ *
+ * Before migration 039 nothing in this app created a shop_drawing_items
+ * row: they appeared only from the floor trigger, two per floor, and
+ * project-level drawings — the system schematics and the typical /
+ * section drawings — had no path at all.
+ *
+ * What it does NOT ask for, deliberately:
+ *  - a drawing NUMBER. The numbering rules are already built (§17a /
+ *    Part A's export); asking a person to type one invites a collision
+ *    with the per-project unique index and a format nobody validates.
+ *  - a TITLE. shop_drawing_items has no title column and Brief 102 says
+ *    not to add one. The title is composed by composeDrawingTitle(),
+ *    the same function the AutoCAD export uses, so the register and the
+ *    export can never disagree about what a drawing is called.
+ *  - a SYSTEM. §3.2 asks for one and there is nowhere to put it —
+ *    shop_drawing_items has no system column, and project_systems is
+ *    not linked to drawings in any way. Stopped and flagged rather than
+ *    adding a third change to the migration; see the result doc.
+ */
+export async function addShopDrawing(
+  _prev: DrawerActionState,
+  formData: FormData,
+): Promise<DrawerActionState> {
+  const projectId = String(formData.get('projectId') ?? '')
+  const scope = String(formData.get('scope') ?? '')
+  const drawingType = String(formData.get('drawingType') ?? '')
+  const floorIdRaw = String(formData.get('floorId') ?? '').trim()
+  const floorId = floorIdRaw === '' ? null : floorIdRaw
+
+  if (!projectId || (scope !== 'project' && scope !== 'floor')) {
+    return fail('Pick where this drawing belongs.')
+  }
+  // Mirrors migration 008's shape_check, so an impossible combination is
+  // refused here in words rather than as a constraint violation.
+  if (!isTypeAllowedForScope(scope, drawingType)) {
+    return fail('That drawing type does not belong at that level.')
+  }
+  if (scope === 'floor' && !floorId) {
+    return fail('Pick which floor this drawing is for.')
+  }
+
+  const { member } = await getCurrentMember()
+  if (!member) return fail('You need to be signed in to do this.')
+
+  const supabase = await createClient()
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('id, pic_id')
+    .eq('id', projectId)
+    .maybeSingle()
+  if (projectError || !project) return fail('Could not add this drawing.')
+
+  // App-layer belt-and-suspenders matching migration 039's widened
+  // policy. RLS is the real gate — this exists so a direct POST is
+  // refused with the same sentence the screen already shows.
+  const allowed = canAddDrawing({
+    teamCode: member.teamCode,
+    isSuperadmin: member.isSuperadmin,
+    isPic: project.pic_id === member.userId,
+  })
+  if (!allowed) {
+    return fail(
+      'Only the Shop Drawing team, A&A, or this project’s PIC can add a drawing here. Nothing was created.',
+    )
+  }
+
+  // §3.4 — look first, so the refusal can NAME the drawing that already
+  // exists. The two partial unique indexes on this table are what make a
+  // race impossible; this read only makes the message readable.
+  const { data: existingRows, error: existingError } = await supabase
+    .from('shop_drawing_items')
+    .select('id, scope, drawing_type, floor_id')
+    .eq('project_id', projectId)
+  if (existingError) return fail('Could not add this drawing.')
+
+  const duplicate = findDuplicate(
+    { scope, drawingType, floorId },
+    (existingRows ?? []).map((r) => ({
+      id: r.id,
+      scope: r.scope as 'project' | 'floor',
+      drawingType: r.drawing_type,
+      floorId: r.floor_id,
+    })),
+  )
+  if (duplicate) {
+    const t = await getServerTranslator()
+    const typeLabel = t(DRAWING_TYPE_KEYS[drawingType] ?? 'drawingTypeSchematic')
+    let floorLabel: string | null = null
+    if (duplicate.floorId) {
+      const { data: floor } = await supabase
+        .from('project_floors')
+        .select('label')
+        .eq('id', duplicate.floorId)
+        .maybeSingle()
+      floorLabel = floor?.label ?? null
+    }
+    return fail(
+      `${composeDrawingTitle({ typeLabel, floorLabel })} already exists on this project. Open it from the register rather than adding a second one.`,
+    )
+  }
+
+  // An INSERT refused by RLS throws rather than returning zero rows
+  // (Brief 094), so the error below is the whole check.
+  const { error } = await supabase.from('shop_drawing_items').insert({
+    project_id: projectId,
+    scope,
+    drawing_type: drawingType,
+    floor_id: scope === 'floor' ? floorId : null,
+    // §3.3 — first stage, and NO drafting start. The clock begins when
+    // someone starts drafting, not when the row is created; inventing a
+    // start here is exactly the dishonesty Part B established against.
+    status: 'not_started',
+    created_by: member.userId,
+  })
+
+  if (error) {
+    // The unique indexes are the real duplicate gate; this is the race
+    // the read above cannot close.
+    if (error.code === '23505') {
+      return fail('That drawing already exists on this project.')
+    }
+    return fail('Could not add this drawing.')
   }
 
   revalidatePath(`/projects/${projectId}/update`)

@@ -123,7 +123,7 @@ export default async function UpdateProgressPage({
       supabase
         .from('shop_drawing_items')
         .select(
-          'id, floor_id, scope, drawing_type, status, created_at, pre_submission_stage, drafting_started_at, legacy_done_no_lifecycle_history',
+          'id, floor_id, scope, drawing_type, status, created_at, created_by, pre_submission_stage, drafting_started_at, legacy_done_no_lifecycle_history',
         )
         .eq('project_id', project.id),
       floorIds.length > 0
@@ -194,6 +194,8 @@ export default async function UpdateProgressPage({
     if (r.checked_by) drawerPeopleIds.add(r.checked_by)
   }
   for (const c of checkRows ?? []) if (c.checked_by) drawerPeopleIds.add(c.checked_by)
+  // Brief 102 — whoever added each drawing, for §21.4's "added <date> by <name>".
+  for (const r of shopDrawingRows ?? []) if (r.created_by) drawerPeopleIds.add(r.created_by)
   const floorLabelById = new Map((floorRows ?? []).map((f) => [f.id, f.label]))
 
   // §9.5's gates. isShopDrawingManager is deliberately narrow — the Shop
@@ -219,6 +221,10 @@ export default async function UpdateProgressPage({
     typeLabel: t(DRAWING_TYPE_KEYS[r.drawing_type] ?? 'drawingTypeSchematic'),
     floorLabel: r.floor_id ? (floorLabelById.get(r.floor_id) ?? null) : null,
     createdAt: r.created_at,
+    // Brief 102 — NULL on every row the floor trigger seeded and on
+    // everything created before migration 039. The drawer says so in
+    // words rather than printing "by unknown".
+    createdByName: drawerName(r.created_by),
     status: r.status as 'not_started' | 'in_progress' | 'done',
     preSubmissionStage: r.pre_submission_stage as 'drafting' | 'internal_check' | null,
     draftingStartedAt: r.drafting_started_at,
