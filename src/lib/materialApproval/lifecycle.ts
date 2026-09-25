@@ -158,28 +158,6 @@ export function productChanged(
 }
 
 /**
- * sent_on and returned_on are DATE columns, so they parse as UTC midnight.
- * `now` is a real instant. Comparing the two directly loses the ICT offset
- * and an open submission reads a day short for seven hours out of every
- * twenty-four — the sort of quiet off-by-one that is only ever noticed in a
- * delay dispute, which §9.4 says is the one thing these clocks must not do.
- *
- * So `now` is normalised to ICT-midnight-as-UTC before it meets a date,
- * putting both sides on the same footing. Same rule as daysSinceICT, which
- * this deliberately mirrors rather than re-deriving.
- */
-export function ictMidnight(d: Date): Date {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Phnom_Penh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(d)
-  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value)
-  return new Date(Date.UTC(get('year'), get('month') - 1, get('day')))
-}
-
-/**
  * §9.4's clocks, unchanged, via §9's own helper.
  *
  * The mapping is the whole of this function: a material approval submission
@@ -214,7 +192,7 @@ function clocksFor(input: PackageInput, submissions: SubmissionRecord[]) {
       legacyDoneNoHistory: false,
       submissions: asDrawing,
       checks: [],
-      now: ictMidnight(input.now),
+      now: input.now,
     },
     asDrawing,
   )

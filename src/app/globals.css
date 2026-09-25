@@ -8712,3 +8712,11 @@ a.floor-matrix__cell {
   .ma-strip { grid-template-columns: 1fr; }
   .ma-clocks__pair { grid-template-columns: 1fr; }
 }
+
+/* §23.8's procurement column (Brief 105 + migration 044). */
+.procurement-line-card__approval { display: flex; flex-direction: column; gap: 2px; }
+.procurement-line-card__approval-detail { font-size: 12px; color: var(--wf-text-2); }
+/* Both "no package covers this line" and "this line has no BOQ link" render
+   here, and they are DIFFERENT statements — the copy keeps them apart, not
+   the styling, so neither is dressed up as the other. */
+.procurement-line-card__approval-none { font-size: 12px; color: var(--wf-text-2); }

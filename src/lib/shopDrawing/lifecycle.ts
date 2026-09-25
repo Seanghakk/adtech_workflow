@@ -10,6 +10,7 @@
  * once, and A/B returns set the status to done. Nothing here is a
  * permission check; this only decides what to SHOW.
  */
+import { daysSinceICT } from '@/lib/format/datetime'
 
 export type DrawingStatus = 'not_started' | 'in_progress' | 'done'
 export type PreSubmissionStage = 'drafting' | 'internal_check' | null
@@ -82,12 +83,28 @@ export interface Clocks {
   showProportionBar: boolean
 }
 
-const DAY_MS = 86_400_000
-
+/**
+ * Whole ICT CALENDAR days, not 24-hour buckets.
+ *
+ * Brief 105 fixed this. It used to be Math.floor((to - from) / 86_400_000),
+ * which counts elapsed 24-hour periods — so a drawing sent at 18:00 ICT and
+ * read at 09:00 the next morning reported 0 days, where every other age
+ * figure in this app reported 1. daysSinceICT is what the matrix, the age
+ * ladder and the cross-project lists all use (25 files), so the drawer's
+ * clocks were the only figures in the app counting differently, and they
+ * read SHORT — by up to a full day, for part of every day.
+ *
+ * That matters more here than almost anywhere else: §9.4 is explicit that
+ * these two numbers are the ones quoted in a delay dispute, and a with-the-
+ * reviewer figure that under-reports is exactly the wrong way to be wrong.
+ *
+ * Counting calendar days also makes the material approval caller correct
+ * for free: its sent_on/returned_on are DATE columns that parse as UTC
+ * midnight, and an ICT calendar date derived from them is the date written
+ * on the form. One rule, both callers, no shim at either call site.
+ */
 function days(fromIso: string, toIso: string | Date): number {
-  const from = new Date(fromIso).getTime()
-  const to = toIso instanceof Date ? toIso.getTime() : new Date(toIso).getTime()
-  return Math.max(0, Math.floor((to - from) / DAY_MS))
+  return Math.max(0, daysSinceICT(fromIso, toIso))
 }
 
 const byRevision = (a: SubmissionRecord, b: SubmissionRecord) => a.revision - b.revision

@@ -2151,6 +2151,13 @@ const en = {
   // §23.8 procurement
   materialApprovalProcurementColumn: 'Material approval',
   materialApprovalNoneRecorded: 'No material approval recorded',
+  // SUPPLIED IN CHAT by Seanghakk on 25 Sep 2026, not by v7.4 §23 — which has
+  // no string for this case because it assumed every procurement line could be
+  // matched to a BOQ line. His instruction, verbatim: "Where it's null, say
+  // the line isn't linked to a BOQ line, never that no approval exists."
+  // The distinction is the whole point: one is a statement about the LINK,
+  // the other about the APPROVAL, and only the first is true here.
+  materialApprovalLineNotLinked: 'Not linked to a BOQ line',
   materialApprovalNoneRecordedForPrefix: 'No material approval recorded for',
   materialApprovalPoWarningHeadline: 'Not approved yet',
   materialApprovalPoWarningIsIn: 'is in',

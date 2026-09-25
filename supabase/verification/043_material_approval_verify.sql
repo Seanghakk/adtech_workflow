@@ -13,7 +13,13 @@
 -- DEFINER — the standing rule since a superseded copy of migration 037 reached
 -- production and passed all fourteen of its own checks.
 --
--- Expected: 26 rows, all PASS.
+-- Expected AFTER the migration: 28 rows all PASS, then check 29 PASS, then a
+-- summary reading "new tables 6 | policies 10".
+--
+-- Expected BEFORE it: 26 of the 28 FAIL, then an ERROR on check 29's missing
+-- column. Checks 24 and 26 pass beforehand because they are NEGATIVE checks
+-- and pass vacuously when nothing exists — they mean something only after the
+-- migration, paired with 23 and 25.
 -- =============================================================================
 
 \pset format aligned

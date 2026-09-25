@@ -13,6 +13,14 @@ export const metadata: Metadata = {
   title: 'Procurement — ADTECH Workflow Tracker',
 }
 
+/** Shape of the submission rows read for §23.8's column. */
+type SubmissionRow = {
+  sent_on: string | null
+  returned_on: string | null
+  code: string | null
+  org: string | null
+}
+
 type ProcurementLine = {
   id: string
   sourcing_started_at: string | null
@@ -30,6 +38,9 @@ type ProcurementLine = {
   override_accepted_at: string | null
   override_accepted_by: string | null
   override_package_id: string | null
+  /** Migration 044 — which contract BOQ line this orders, when known.
+   *  Null means the LINK is unknown, never that no approval exists. */
+  contract_boq_line_id: string | null
 }
 
 /**
@@ -102,7 +113,7 @@ export default async function ProcurementLinePage({
     supabase
       .from('procurement_lines')
       .select(
-        'id, sourcing_started_at, mr_submitted_at, mr_approved_at, po_issued_at, delivery_received, delivery_total, customs_status, created_at, raised_before_approval, override_accepted_at, override_package_id, override_accepted_by',
+        'id, sourcing_started_at, mr_submitted_at, mr_approved_at, po_issued_at, delivery_received, delivery_total, customs_status, created_at, raised_before_approval, override_accepted_at, override_package_id, override_accepted_by, contract_boq_line_id',
       )
       .eq('project_id', project.id)
       .order('created_at', { ascending: true }),
@@ -114,6 +125,55 @@ export default async function ProcurementLinePage({
 
   // §23.8 names whoever accepted a PO-before-approval override, so their
   // profile is resolved with the PIC's in the same round trip.
+  // §23.8's column. A package covers contract BOQ lines, so a procurement
+  // line reaches its approval through migration 044's link — and only
+  // through it. Where the link is null there is nothing to look up, and the
+  // column says so rather than asserting anything about the approval.
+  const linkedBoqLineIds = (procurementLines ?? [])
+    .map((l) => l.contract_boq_line_id)
+    .filter((id): id is string => Boolean(id))
+
+  const { data: approvalRows } = linkedBoqLineIds.length
+    ? await supabase
+        .from('material_approval_package_lines')
+        .select(
+          `contract_boq_line_id,
+           material_approval_packages (
+             id, ref, title, source,
+             material_approval_revisions (
+               rev,
+               material_approval_submissions ( sent_on, returned_on, code, org )
+             )
+           )`,
+        )
+        .in('contract_boq_line_id', linkedBoqLineIds)
+    : { data: [] }
+
+  const approvalByBoqLine = new Map<string, { ref: string; detail: string; tone: string }>()
+  for (const row of approvalRows ?? []) {
+    const pkg = Array.isArray(row.material_approval_packages)
+      ? row.material_approval_packages[0]
+      : row.material_approval_packages
+    if (!pkg || !row.contract_boq_line_id) continue
+    const subs = (pkg.material_approval_revisions ?? []).flatMap(
+      (r: { material_approval_submissions?: SubmissionRow[] }) => r.material_approval_submissions ?? [],
+    )
+    const returned = subs.filter((x: SubmissionRow) => x.code === 'A' || x.code === 'B').slice(-1)[0]
+    const open = subs.find((x: SubmissionRow) => x.returned_on === null && x.sent_on !== null)
+
+    approvalByBoqLine.set(row.contract_boq_line_id, {
+      ref: pkg.ref,
+      detail: pkg.source === 'paper'
+        ? t('materialApprovalChipApprovedOnPaper')
+        : returned
+          ? `${t('materialApprovalChipApprovedPrefix')} ${returned.code}${returned.org ? ` · ${returned.org}` : ''}`
+          : open
+            ? `${t('materialApprovalChipWithPrefix')} ${open.org ?? ''}`
+            : t('materialApprovalDetailNotStarted'),
+      tone: pkg.source === 'paper' ? 'paper' : returned ? 'approved' : open ? 'reviewer' : 'none',
+    })
+  }
+
   const overrideUserIds = (procurementLines ?? [])
     .map((l) => l.override_accepted_by)
     .filter((id): id is string => Boolean(id))
@@ -190,6 +250,11 @@ export default async function ProcurementLinePage({
                   ? formatMemberName(profiles.get(line.override_accepted_by), t('membersNoProfile'))
                   : null
               }
+              approval={
+                line.contract_boq_line_id
+                  ? approvalByBoqLine.get(line.contract_boq_line_id) ?? null
+                  : null
+              }
             />
           ))}
         </div>
@@ -206,12 +271,17 @@ function ProcurementLineCard({
   line,
   t,
   overrideName,
+  approval,
 }: {
   index: number
   line: ProcurementLine
   t: (key: import('@/lib/i18n/dictionary').DictionaryKey) => string
   /** §23.8 — the person who accepted raising this PO before approval. */
   overrideName: string | null
+  /** §23.8's column. null covers TWO different situations, and the render
+   *  below keeps them apart: the line has no BOQ link at all, or it has one
+   *  and no package covers it. Only the second is a fact about approvals. */
+  approval: { ref: string; detail: string; tone: string } | null
 }) {
   const sourcingDays = line.sourcing_started_at ? daysSinceICT(line.sourcing_started_at) : null
   const poDays = line.mr_approved_at ? daysSinceICT(line.mr_approved_at) : null
@@ -301,6 +371,31 @@ function ProcurementLineCard({
               ? `${line.delivery_received}/${line.delivery_total} ${t('procurementLineDeliveredCount')}`
               : t('procurementLineDeliveryNotTracked')}
           </span>
+        </div>
+        {/* §23.8 — one column, "Material approval". */}
+        <div className="procurement-line-card__approval">
+          <span className="procurement-line-card__footer-label">
+            {t('materialApprovalProcurementColumn')}
+          </span>
+          {approval ? (
+            <span className="procurement-line-card__footer-value">
+              <span className={`ma-chip ma-chip--${approval.tone}`}>{approval.ref}</span>{' '}
+              <span className="procurement-line-card__approval-detail">{approval.detail}</span>
+            </span>
+          ) : line.contract_boq_line_id ? (
+            // Linked to a BOQ line, and no package covers it. This IS §23.8's
+            // "A line in no package" case, and the sentence is true.
+            <span className="procurement-line-card__approval-none">
+              {t('materialApprovalNoneRecorded')}
+            </span>
+          ) : (
+            // No BOQ link. Saying "no material approval recorded" here would
+            // assert something about the approval that we have not checked and
+            // cannot check — it is the LINK that is missing.
+            <span className="procurement-line-card__approval-none">
+              {t('materialApprovalLineNotLinked')}
+            </span>
+          )}
         </div>
         <div className="procurement-line-card__customs">
           <span className="procurement-line-card__footer-label">{t('procurementLineCustomsLabel')}</span>
