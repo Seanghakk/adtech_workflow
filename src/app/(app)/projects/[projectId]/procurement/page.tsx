@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { getTeamLabelsByUserIds } from '@/lib/auth/member-teams'
-import { formatDateICT, daysSinceICT } from '@/lib/format/datetime'
+import { formatDateICT, formatTimeICT, daysSinceICT } from '@/lib/format/datetime'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { AgeLadder } from '@/components/AgeLadder'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -23,6 +23,13 @@ type ProcurementLine = {
   delivery_total: number | null
   customs_status: string | null
   created_at: string
+  /** Brief 105 / v7.4 §23.8 / §5.4 — written ONLY when the "Not approved
+   *  yet" warning was overridden, and never edited afterwards. The record
+   *  stays visible on the line for good. */
+  raised_before_approval: boolean | null
+  override_accepted_at: string | null
+  override_accepted_by: string | null
+  override_package_id: string | null
 }
 
 /**
@@ -95,7 +102,7 @@ export default async function ProcurementLinePage({
     supabase
       .from('procurement_lines')
       .select(
-        'id, sourcing_started_at, mr_submitted_at, mr_approved_at, po_issued_at, delivery_received, delivery_total, customs_status, created_at',
+        'id, sourcing_started_at, mr_submitted_at, mr_approved_at, po_issued_at, delivery_received, delivery_total, customs_status, created_at, raised_before_approval, override_accepted_at, override_package_id, override_accepted_by',
       )
       .eq('project_id', project.id)
       .order('created_at', { ascending: true }),
@@ -105,7 +112,12 @@ export default async function ProcurementLinePage({
       .eq('project_id', project.id),
   ])
 
-  const profiles = await getUserProfilesByIds(supabase, [project.pic_id])
+  // §23.8 names whoever accepted a PO-before-approval override, so their
+  // profile is resolved with the PIC's in the same round trip.
+  const overrideUserIds = (procurementLines ?? [])
+    .map((l) => l.override_accepted_by)
+    .filter((id): id is string => Boolean(id))
+  const profiles = await getUserProfilesByIds(supabase, [project.pic_id, ...overrideUserIds])
   const teamLabels = await getTeamLabelsByUserIds(supabase, [project.pic_id])
   const picLabel = project.pic_id
     ? formatMemberName(profiles.get(project.pic_id), t('membersNoProfile'))
@@ -168,7 +180,17 @@ export default async function ProcurementLinePage({
       ) : (
         <div className="procurement-line__list">
           {lines.map((line, i) => (
-            <ProcurementLineCard key={line.id} index={i} line={line} t={t} />
+            <ProcurementLineCard
+              key={line.id}
+              index={i}
+              line={line}
+              t={t}
+              overrideName={
+                line.override_accepted_by
+                  ? formatMemberName(profiles.get(line.override_accepted_by), t('membersNoProfile'))
+                  : null
+              }
+            />
           ))}
         </div>
       )}
@@ -183,10 +205,13 @@ function ProcurementLineCard({
   index,
   line,
   t,
+  overrideName,
 }: {
   index: number
   line: ProcurementLine
   t: (key: import('@/lib/i18n/dictionary').DictionaryKey) => string
+  /** §23.8 — the person who accepted raising this PO before approval. */
+  overrideName: string | null
 }) {
   const sourcingDays = line.sourcing_started_at ? daysSinceICT(line.sourcing_started_at) : null
   const poDays = line.mr_approved_at ? daysSinceICT(line.mr_approved_at) : null
@@ -245,6 +270,26 @@ function ProcurementLineCard({
                 : t('procurementLinePoNotYetIssued')}
             </span>
           </>
+        )}
+        {/* §23.8 / §5.4 — the override record. Written only when the
+            warning was overridden, never edited, and it stays on the line
+            for good: a PO raised before its approval is a fact about how
+            this line was ordered, not a transient warning state. */}
+        {line.raised_before_approval && (
+          <span className="procurement-line-card__override">
+            <span className="procurement-line-card__override-title">
+              {t('materialApprovalRaisedBeforeApproval')}
+            </span>
+            <span className="procurement-line-card__override-by">
+              {t('materialApprovalAcceptedByPrefix')}{' '}
+              <span className="procurement-line-card__override-name">
+                {overrideName ?? t('dashboardUnassigned')}
+              </span>
+              {line.override_accepted_at
+                ? ` · ${formatDateICT(line.override_accepted_at)}, ${formatTimeICT(line.override_accepted_at)}`
+                : ''}
+            </span>
+          </span>
         )}
       </div>
 

@@ -79,6 +79,11 @@ export async function recordMaterialInspection(formData: FormData): Promise<{ er
   const status = String(formData.get('status') ?? '')
   const notes = String(formData.get('notes') ?? '').trim()
   const floorIds = formData.getAll('floorIds').map(String).filter(Boolean)
+  // Brief 105 / v7.4 §23.8 — which material approval this inspection checked
+  // against. Optional by design: §5.5 says a missing approval NEVER blocks an
+  // inspection, so an empty value is recorded honestly as "none" rather than
+  // refusing the write.
+  const approvalPackageId = String(formData.get('approvalPackageId') ?? '').trim() || null
 
   if (!projectId || !INSPECTION_STATUSES.includes(status as (typeof INSPECTION_STATUSES)[number])) {
     return { error: 'Invalid inspection.' }
@@ -98,6 +103,7 @@ export async function recordMaterialInspection(formData: FormData): Promise<{ er
       inspector_id: gate.userId,
       inspected_at: status === 'pending' ? null : new Date().toISOString(),
       notes: notes || null,
+      approval_package_id: approvalPackageId,
     })
     .select('id')
     .single()

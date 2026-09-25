@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { SUB_STAGE_KEYS } from '@/lib/floorScan/rows'
+import type { ApprovedPackage } from '@/components/MaterialApprovalCheckBlock'
 import {
   defaultOpenFloorIds,
   deriveNeedsAttention,
@@ -67,6 +68,7 @@ export function UpdateRegisters({
   projectShopDrawing,
   isPic,
   isQcMember,
+  approvedPackages,
   isProjectTeamMember,
   isTncTeamMember,
   drawingActor,
@@ -86,6 +88,9 @@ export function UpdateRegisters({
   projectShopDrawing: DrawingRow[]
   isPic: boolean
   isQcMember: boolean
+  /** Brief 105 §23.8 — approved material approval packages, for the QC
+   *  material inspection block. */
+  approvedPackages: ApprovedPackage[]
   isProjectTeamMember: boolean
   isTncTeamMember: boolean
   drawingActor: DrawingActor
@@ -301,6 +306,8 @@ export function UpdateRegisters({
             <MaterialInspectionRecorder
               projectId={projectId}
               floors={floors.map((f) => ({ id: f.id, label: f.label }))}
+              approvedPackages={approvedPackages}
+              picName={picName}
             />
           )}
         </section>

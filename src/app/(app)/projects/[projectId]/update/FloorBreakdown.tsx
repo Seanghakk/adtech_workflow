@@ -30,6 +30,7 @@ import { deriveLifecycle } from '@/lib/shopDrawing/lifecycle'
 import type { DrawingActor } from '@/lib/shopDrawing/permissions'
 import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
+import { MaterialApprovalCheckBlock, type ApprovedPackage } from '@/components/MaterialApprovalCheckBlock'
 import type { SubStageDisplayState } from '@/lib/subStageDisplayState'
 
 const STATUS_KEYS: Record<string, DictionaryKey> = {
@@ -547,10 +548,23 @@ function InspectionForm({
   )
 }
 
-export function MaterialInspectionRecorder({ projectId, floors }: { projectId: string; floors: { id: string; label: string }[] }) {
+export function MaterialInspectionRecorder({
+  projectId,
+  floors,
+  approvedPackages = [],
+  picName = null,
+}: {
+  projectId: string
+  floors: { id: string; label: string }[]
+  /** Brief 105 / §23.8 — approved packages this inspection can be checked
+   *  against. Empty is a real, expected state (§5.5), not a missing prop. */
+  approvedPackages?: ApprovedPackage[]
+  picName?: string | null
+}) {
   const { t } = useLanguage()
   const [recording, setRecording] = useState(false)
   const [selectedFloors, setSelectedFloors] = useState<string[]>([])
+  const [approvalId, setApprovalId] = useState<string | null>(null)
 
   return (
     <div className="floor-breakdown__material-inspection">
@@ -578,10 +592,22 @@ export function MaterialInspectionRecorder({ projectId, floors }: { projectId: s
               ))}
             </fieldset>
           )}
+          {/* §23.8 — above Pass/Fail, always rendered: with an approval it
+              names what arrived should match; without one it says to check
+              the paper approval, as before. Never blocks (§5.5). */}
+          <MaterialApprovalCheckBlock
+            packages={approvedPackages}
+            inspectionTypeLabel={t('floorBreakdownMaterialInspectionTitle')}
+            picName={picName}
+            value={approvalId}
+            onChange={setApprovalId}
+          />
           <InspectionForm
             onSubmit={(formData) => {
               formData.set('projectId', projectId)
               selectedFloors.forEach((id) => formData.append('floorIds', id))
+              const chosen = approvalId ?? approvedPackages[0]?.id
+              if (chosen) formData.set('approvalPackageId', chosen)
               return recordMaterialInspection(formData)
             }}
             onDone={() => {

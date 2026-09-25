@@ -2037,6 +2037,162 @@ const en = {
   overviewStageTnc: 'Testing & commissioning',
 
   overviewLoadFailedHeadline: 'The overview did not load',
+
+  // ==== Brief 105 / v7.4 §23 — material approval ====
+  // §23's exact copy. Where §23 gives a sentence, it is transcribed whole
+  // rather than assembled from fragments, because assembling is where drift
+  // starts. §23.11: "Bilingual; MR, PO, BOQ, QC stay upright English in Khmer
+  // strings; dictionary prefix materialApproval."
+  //
+  // Form labels the recordings share with §9 (party options, organisation,
+  // date sent, date returned, comments, the history labels) are NOT
+  // duplicated here — §23.2 says the copy patterns are §9's with "drawing"
+  // read as "package", so the drawer reuses drawerPartyClient, drawerDateSent
+  // and the rest directly.
+
+  materialApprovalHeading: 'Material approval',
+  materialApprovalBreadcrumb: 'Material approval',
+
+  // §23.5 actions
+  materialApprovalAddPackage: 'Add a package',
+  materialApprovalRecordPaper: 'Record an approval made on paper',
+
+  // §23.5 the five summary cells
+  materialApprovalSummaryWithAdtech: 'with ADTECH',
+  materialApprovalSummaryWithReviewer: 'with a reviewer',
+  materialApprovalSummaryApproved: 'approved',
+  materialApprovalSummaryFromPaperSuffix: 'recorded from paper',
+  materialApprovalSummaryNotStarted: 'not started',
+  materialApprovalSummaryLinesMiddle: 'of',
+  materialApprovalSummaryLinesSuffix: 'contract lines in a package',
+  materialApprovalSummaryUncoveredSuffix: 'not in any package yet',
+
+  // §23.5 the table
+  materialApprovalColPackage: 'Package',
+  materialApprovalColLines: 'Contract lines',
+  materialApprovalColProduct: 'Product · revision',
+  materialApprovalColWhere: 'Where it is',
+  materialApprovalColTimeHeld: 'Time held',
+
+  // §23.5 chips and detail lines
+  materialApprovalChipWithAdtech: 'With ADTECH',
+  materialApprovalChipWithPrefix: 'With',
+  materialApprovalChipApprovedPrefix: 'Approved',
+  materialApprovalChipApprovedOnPaper: 'Approved on paper',
+  materialApprovalDetailNotStarted: 'not started',
+  materialApprovalDetailPreparingPrefix: 'preparing,',
+  materialApprovalDetailSubmittedPrefix: 'submitted',
+  materialApprovalDetailSubmittedSuffix: 'ago',
+
+  // §23.4 a package with no contract line
+  materialApprovalNotInBoqPrefix: 'Not in the contract BOQ —',
+  materialApprovalNotInBoqToggle: '+ This is not in the contract BOQ',
+  materialApprovalLineNoLongerInBoq: 'no longer in the contract BOQ',
+  materialApprovalLineAlreadyInPackage: 'already in',
+
+  // §23.6 the drawer
+  materialApprovalDrawerKicker: 'Material approval',
+  materialApprovalStagePreparing: 'Preparing',
+  materialApprovalStageSubmitted: 'Submitted',
+  materialApprovalStageApproved: 'Approved',
+  materialApprovalSubmittedAs: 'Submitted as',
+  materialApprovalProposed: 'Proposed',
+  materialApprovalPreviousRevWasPrefix: 'Rev',
+  materialApprovalPreviousRevWasSuffix: 'was',
+  materialApprovalCovers: 'Covers',
+  materialApprovalCoversLinesSuffix: 'contract lines',
+  materialApprovalCoversLink: 'List them',
+  materialApprovalDocuments: 'Documents',
+  materialApprovalProductChanged: 'product changed',
+
+  // §23.6 the recordings
+  materialApprovalStartPreparing: 'Start preparing',
+  materialApprovalAddButtonPrefix: 'Add package',
+  materialApprovalSubmitDifferentProductPrefix: 'Rev',
+  materialApprovalSubmitDifferentProductBody:
+    'proposes a different product from the revision before it. Check the documents are the right set.',
+  materialApprovalReturnButtonPrefix: 'Record return',
+  materialApprovalCodeAConsequence: 'the package is approved · its lines may be ordered',
+  materialApprovalCodeBConsequence: 'approved with comments · the comments travel to QC and Procurement',
+  materialApprovalCodeCConsequence: 'opens the next revision at preparing · may propose another product',
+  materialApprovalPaperNote:
+    'For a package approved before the app tracked it. It is written as approved on paper, with no clocks — no start date or send date is asked for, and none is guessed.',
+  materialApprovalPaperNoC: 'record the approval that followed it',
+  materialApprovalPaperStampDate: 'Date on the returned stamp',
+  materialApprovalPaperApprovedBy: 'Approved by',
+  materialApprovalPaperScan: 'Scan',
+  materialApprovalClocksNotRecorded: 'not recorded — approved before tracking',
+
+  // §23.6 the refusal — a sentence naming who can, never a disabled control
+  materialApprovalRefusedHeadline: 'Nothing for you to record here',
+  materialApprovalRefusedBodyPrefix:
+    'Material approvals are added, sent and returned by QC and the PIC,',
+  materialApprovalRefusedBodySuffix:
+    '. You can read this package, its documents and its history.',
+
+  // §23.7 history
+  materialApprovalHistoryProduct: 'Product',
+  materialApprovalHistoryPrepared: 'Prepared',
+  materialApprovalHistoryApprovedOnPaper: 'Approved on paper',
+  materialApprovalHistoryStampDate: 'Stamp date',
+  materialApprovalHistoryRecorded: 'Recorded',
+
+  // §23.8 the QC material inspection block
+  materialApprovalCheckAgainst: 'Check what arrived against',
+  materialApprovalCheckProduct: 'Product',
+  materialApprovalCheckApproved: 'Approved',
+  materialApprovalCheckNotes: 'Notes',
+  materialApprovalNoneForTypePrefix: 'No material approval recorded for',
+  materialApprovalNoneForTypeBodyPrefix:
+    'Check what arrived against the paper approval, as before. If there is none, say so in the reason — the PIC,',
+  materialApprovalNoneForTypeBodySuffix: ', can record it in the app.',
+  materialApprovalFailShouldHaveBeenPrefix: 'It should have been',
+
+  // §23.8 procurement
+  materialApprovalProcurementColumn: 'Material approval',
+  materialApprovalNoneRecorded: 'No material approval recorded',
+  materialApprovalNoneRecordedForPrefix: 'No material approval recorded for',
+  materialApprovalPoWarningHeadline: 'Not approved yet',
+  materialApprovalPoWarningIsIn: 'is in',
+  materialApprovalPoWarningWith: ', with',
+  materialApprovalPoWarningSince: 'since',
+  materialApprovalPoWarningBody:
+    '. You can still raise the PO; the app records that it was raised before approval, by you, and when.',
+  materialApprovalPoWarningRaise: 'Raise PO before approval',
+  materialApprovalPoWarningOpenPrefix: 'Open',
+  materialApprovalRaisedBeforeApproval: 'Raised before approval',
+  materialApprovalAcceptedByPrefix: 'accepted by',
+
+  // §23.3 the SO record register tile
+  materialApprovalTilePackagesSuffix: 'packages',
+  materialApprovalTileApprovedSuffix: 'approved',
+  materialApprovalTileNothing: 'Material approval — nothing recorded',
+
+  // §23.9 every state
+  materialApprovalEmptyHeadlinePrefix: 'No material approvals for',
+  materialApprovalEmptyHeadlineSuffix: 'yet',
+  materialApprovalEmptyBodyPrefix:
+    'contract BOQ lines on this project are in no package. A package groups the lines of one product and goes to the client, consultant or main contractor for approval. Approvals already made on paper can be recorded as they are — who approved, when it came back, the code — without clocks.',
+  materialApprovalEmptyFootnote:
+    'Until a package exists, Procurement shows “No material approval recorded” beside each line, and QC material inspections check against the paper approval, as today.',
+  materialApprovalNoBoqBody:
+    'Packages cover contract BOQ lines, and this project has no contract BOQ. You can still record a package that is not in the BOQ — a substitute or a sample — if you say why.',
+  materialApprovalNoBoqNotice: 'Needs a contract BOQ first',
+  materialApprovalNoBoqLink: 'Open Project setup → BOQ',
+  materialApprovalAddNotInBoq: 'Add a package not in the BOQ',
+  materialApprovalAllApprovedPrefix: 'All',
+  materialApprovalAllApprovedSuffix: 'contract lines approved',
+  materialApprovalAllApprovedDetailPrefix: 'last approval',
+  materialApprovalLoadFailed: 'Material approval did not load',
+  materialApprovalPackageLoadFailed: 'This package did not load',
+
+  // §23.10 at 390px — read-only
+  materialApprovalPhonePackagesSuffix: 'packages',
+  materialApprovalPhoneLinesMiddle: 'of',
+  materialApprovalPhoneLinesSuffix: 'lines covered',
+  materialApprovalPhoneDeskWork:
+    'Recording a material approval is desk work — open this project on a computer.',
+
 } as const
  
 export type DictionaryKey = keyof typeof en

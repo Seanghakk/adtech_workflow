@@ -336,6 +336,49 @@ export default async function UpdateProgressPage({
 
   // Ages are computed HERE, in ICT, and passed down as a lookup — the
   // client never re-derives a day count in the browser's own timezone.
+  // Brief 105 / v7.4 §23.8 — the approved material approval packages the QC
+  // material inspection can be checked against. Only approved ones are
+  // offered: a package still with a reviewer is not something an inspector
+  // can check delivered material against. An empty list is a real state
+  // (§5.5) and the block says so rather than disappearing.
+  const { data: maRows } = await supabase
+    .from('material_approval_packages')
+    .select(
+      `id, ref, title, source, system_id,
+       material_approval_revisions (
+         rev, manufacturer, product, model,
+         material_approval_submissions ( returned_on, code, org, party, comments ),
+         material_approval_documents ( id )
+       )`,
+    )
+    .eq('project_id', project.id)
+
+  const approvedPackages = (maRows ?? []).flatMap((pkg) => {
+    const revs = [...(pkg.material_approval_revisions ?? [])].sort((a, b) => a.rev - b.rev)
+    const latest = revs[revs.length - 1]
+    const ret = revs
+      .flatMap((r) => r.material_approval_submissions ?? [])
+      .filter((x) => x.code === 'A' || x.code === 'B')
+      .slice(-1)[0]
+    if (!ret) return []
+    return [{
+      id: pkg.id,
+      ref: pkg.ref,
+      title: pkg.title,
+      systemName: (systemRows ?? []).find((sx) => sx.id === pkg.system_id)?.name ?? null,
+      manufacturer: latest?.manufacturer ?? null,
+      product: latest?.product ?? null,
+      model: latest?.model ?? null,
+      code: ret.code as 'A' | 'B',
+      returnedOn: ret.returned_on,
+      org: ret.org,
+      party: ret.party,
+      comments: ret.comments,
+      documentCount: revs.reduce((n, r) => n + (r.material_approval_documents ?? []).length, 0),
+      fromPaper: pkg.source === 'paper',
+    }]
+  })
+
   const ageOfIso: Record<string, number> = {}
   const noteAge = (iso: string | null) => {
     if (iso && !(iso in ageOfIso)) ageOfIso[iso] = daysSinceICT(iso)
@@ -522,6 +565,7 @@ export default async function UpdateProgressPage({
               systemsReadFailed={Boolean(systemsError)}
               ageOfIso={ageOfIso}
               handoverItems={handoverItems}
+              approvedPackages={approvedPackages}
             />
             <div className="wf-empty-state-card update-empty">
               <p className="wf-empty-state-card__headline">
@@ -555,6 +599,7 @@ export default async function UpdateProgressPage({
             systemsReadFailed={Boolean(systemsError)}
             ageOfIso={ageOfIso}
             handoverItems={handoverItems}
+            approvedPackages={approvedPackages}
           />
         )}
       </div>

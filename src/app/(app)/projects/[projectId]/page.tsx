@@ -260,6 +260,24 @@ export default async function SoRecordPage({
   // uses (setup/setup-status.ts) so the two can never disagree.
   const setupStatus = await getSetupSectionsStatus(supabase, project.id, project, client?.name)
 
+  // Brief 105 / v7.4 §23.3 — the material approval register tile. §23.3 is
+  // explicit that this is NOT an eighth journey item and NOT an Execution
+  // subtree item (every subtree item is a cross-project list, and this one
+  // would be empty on every project for months), so the SO record is the
+  // one place the route is reachable from by browsing.
+  const { data: maRows } = await supabase
+    .from('material_approval_packages')
+    .select(`id, source, material_approval_revisions ( material_approval_submissions ( returned_on, code ) )`)
+    .eq('project_id', project.id)
+
+  const maPackages = maRows?.length ?? 0
+  const maApproved = (maRows ?? []).filter((p) =>
+    p.source === 'paper' ||
+    (p.material_approval_revisions ?? []).some((r) =>
+      (r.material_approval_submissions ?? []).some((x) => x.code === 'A' || x.code === 'B'),
+    ),
+  ).length
+
   // Brief 100 Part C — §21.5's "recent" strand. progress_updates is this
   // app's own record of who moved what and when; the SO record had no
   // recent list before.
@@ -640,6 +658,19 @@ export default async function SoRecordPage({
               detail={t('soHubRegisteredSuffix')}
               href={`/projects/${project.id}/update`}
               linkText={setupStatus.drawingCount === 0 ? t('soHubOpenShopDrawings') : t('soHubOpen')}
+            />
+            {/* §23.3 — "Material approval — n packages · n approved", or
+                "nothing recorded" when there is none. */}
+            <HubTile
+              label={t('materialApprovalHeading')}
+              value={maPackages === 0 ? '\u2014' : String(maPackages)}
+              detail={
+                maPackages === 0
+                  ? t('materialApprovalTileNothing')
+                  : `${maPackages} ${t('materialApprovalTilePackagesSuffix')} \u00b7 ${maApproved} ${t('materialApprovalTileApprovedSuffix')}`
+              }
+              href={`/projects/${project.id}/material-approval`}
+              linkText={t('soHubOpen')}
             />
             <HubTile
               label={t('soHubTileLastExport')}
