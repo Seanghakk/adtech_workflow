@@ -8503,3 +8503,220 @@ a.floor-matrix__cell {
     min-width: 0;
   }
 }
+
+/* ============================================================
+   Brief 105 / v7.4 §23 — material approval
+   ============================================================
+
+   §23.11: "Parts: 4.2 data table, 4.5 empty state; the drawer is §9's. No
+   new token, no new tag, no sixth part, no green, radius 0, no shadow,
+   nothing below 12px. Red only by the age rule."
+
+   ONE DELIBERATE EXCEPTION, FLAGGED IN THE RESULT DOC. Brief 105 §6 says
+   to use --wf-text-2 for secondary text "if the D095 sweep has landed by
+   then, otherwise flag it rather than writing .62". The sweep has NOT
+   landed: --wf-text-2 does not exist in this stylesheet and 202 places
+   still carry the .62 value D095 found fails AA. Writing .62 again is the
+   one thing §6 rules out, so the token is defined here at D095's own
+   stated value (.68, §2.1a) and used by this feature only. The remaining
+   202 places are a separate sweep, not scope creep onto this brief. */
+:root {
+  --wf-text-2: rgba(32, 30, 29, 0.68);
+}
+
+.ma-screen { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.ma-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.ma-head__project { font-size: 13px; }
+.ma-head__title { font: 800 22px/1.2 var(--font-heading); margin: 4px 0 0; }
+.ma-head__actions { display: flex; gap: var(--space-2); }
+
+/* §23.10 — the phone reads; shown only at 390px. */
+.ma-desk-work { display: none; }
+
+/* §23.5 — five cells in one bordered row. */
+.ma-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  background: var(--surface);
+}
+.ma-summary__cell { padding: var(--space-3); border-right: 1px solid rgba(32, 30, 29, 0.12); }
+.ma-summary__cell:last-child { border-right: none; }
+.ma-summary__figure { font: 800 22px/1 var(--font-heading); }
+.ma-summary__label { font-size: 13px; margin-top: 4px; }
+.ma-summary__detail { font-size: 12px; color: var(--wf-text-2); margin-top: 2px; }
+
+/* §23.9 — "every contract line approved". A blue result field, which in
+   this app's vocabulary means done, not merely "no problems found". */
+.ma-all-approved {
+  background: var(--wf-blue-tint, #eef4f8);
+  border: 1px solid var(--wf-blue-edge, #aecbe0);
+  padding: var(--space-3);
+}
+.ma-all-approved__headline { font: 800 15px/1.3 var(--font-heading); color: var(--navy); }
+.ma-all-approved__detail { font-size: 12px; color: var(--wf-text-2); margin-top: 2px; }
+
+/* §23.5's table — part 4.2, not a new one. */
+.ma-table { width: 100%; }
+.ma-row { border-left: 5px solid transparent; }
+.ma-row--adtech { border-left-color: var(--ink); }
+.ma-row--reviewer { border-left-color: var(--wf-amber, #b26100); }
+.ma-row--selected { background: var(--wf-blue-tint, #eef4f8); border-left-color: var(--navy); }
+.ma-row__open { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; display: block; }
+.ma-row__ref { display: block; font-size: 12px; color: var(--wf-text-2); }
+.ma-row__name { display: block; font: 600 14px/1.3 var(--font-body); color: var(--ink); }
+.ma-row__outside { display: block; font-size: 12px; color: var(--wf-text-2); margin-top: 2px; }
+.ma-row__removed, .ma-row__rev { font-size: 12px; color: var(--wf-text-2); }
+.ma-row__dash, .ma-chip__dash { color: var(--wf-text-2); }
+
+/* §23.5's chips. Amber is possession, never blame (§5.6). */
+.ma-chip { display: inline-block; padding: 2px 6px; font: 600 12px/1.4 var(--font-body); }
+.ma-chip--adtech { border: 1px solid var(--ink); }
+.ma-chip--reviewer { background: var(--wf-amber, #b26100); color: #fff; }
+.ma-chip--approved { background: var(--ink); color: var(--surface); }
+/* §23.2 — the paper approval's own chip: a dashed outline, so it never
+   reads as the same statement as a tracked approval. */
+.ma-chip--paper { border: 1px dashed var(--ink); }
+.ma-chip__detail { display: block; font-size: 12px; color: var(--wf-text-2); margin-top: 2px; }
+
+.ma-clock__side { display: block; font-size: 12px; }
+.ma-clock__days { font: 800 13px/1 var(--font-heading); }
+.ma-clock__label { color: var(--wf-text-2); }
+.ma-clock__none { font-size: 12px; color: var(--wf-text-2); }
+
+/* §23.6's drawer — §9's shape and width. */
+.ma-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 100vw;
+  background: var(--surface); border-left: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-4); overflow-y: auto; z-index: 40;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.ma-drawer__head { display: flex; justify-content: space-between; gap: var(--space-3); }
+.ma-drawer__kicker { font-size: 12px; color: var(--wf-text-2); }
+.ma-drawer__name { font: 800 16px/1.3 var(--font-heading); margin-top: 2px; }
+.ma-drawer__close { background: none; border: 0; cursor: pointer; font-size: 13px; }
+.ma-drawer__outside, .ma-drawer__origin { font-size: 12px; color: var(--wf-text-2); }
+.ma-drawer__rev { font: 600 13px/1.4 var(--font-body); }
+
+/* §23.2 — THREE cells. There is no internal check. */
+.ma-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+.ma-strip__cell {
+  border: 1px solid var(--ink); padding: 6px; text-align: center;
+  font: 600 12px/1.2 var(--font-body);
+}
+.ma-strip__cell--current { background: var(--ink); color: var(--surface); }
+.ma-strip__spans { display: grid; grid-template-columns: 2fr 1fr; gap: 2px; }
+.ma-strip__span { font-size: 12px; padding-top: 4px; color: var(--wf-text-2); }
+.ma-strip__span--adtech { border-top: 2px solid var(--ink); }
+.ma-strip__span--reviewer { border-top: 2px solid rgba(32, 30, 29, 0.28); }
+
+.ma-grid > div, .ma-history__grid > div { display: flex; gap: var(--space-2); padding: 4px 0; }
+.ma-grid dt, .ma-history__grid dt { min-width: 110px; font-size: 12px; color: var(--wf-text-2); }
+.ma-grid dd, .ma-history__grid dd { margin: 0; font-size: 13px; }
+.ma-grid__removed, .ma-grid__prev-return { font-size: 12px; color: var(--wf-text-2); }
+
+/* §9.4's pair — same size, same weight, never coloured. */
+.ma-clocks { border: 1px solid rgba(32, 30, 29, 0.2); padding: var(--space-3); }
+.ma-clocks__heading { font: 600 12px/1.2 var(--font-body); color: var(--wf-text-2); }
+.ma-clocks__pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: 6px; }
+.ma-clocks__label { font-size: 12px; color: var(--wf-text-2); }
+.ma-clocks__value { font: 800 15px/1.2 var(--font-heading); }
+.ma-clocks__not-recorded, .ma-clocks__none { font: 800 13px/1.3 var(--font-heading); color: var(--wf-text-2); }
+/* Ink for us against a neutral hatch for them — not amber vs ink, which
+   would read as good vs bad (§9.4). */
+.ma-clocks__bar { display: flex; height: 6px; margin-top: 8px; }
+.ma-clocks__bar-us { background: var(--ink); }
+.ma-clocks__bar-them { background: repeating-linear-gradient(45deg, rgba(32,30,29,.28) 0 2px, transparent 2px 4px); }
+
+.ma-actions { display: flex; flex-direction: column; gap: var(--space-2); }
+.ma-actions__error { font-size: 12px; color: var(--wf-red-ink, #8e1620); }
+.ma-form { display: flex; flex-direction: column; gap: var(--space-2); }
+.ma-form__heading { font: 800 13px/1.2 var(--font-heading); }
+.ma-form label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--wf-text-2); }
+.ma-form input, .ma-form select, .ma-form textarea {
+  border: 1px solid rgba(32, 30, 29, 0.28); padding: 6px; font: 400 13px/1.3 var(--font-body);
+  min-height: 36px; background: var(--surface); color: var(--ink);
+}
+.ma-form__footnote, .ma-form__consequence { font-size: 12px; color: var(--wf-text-2); }
+.ma-form__notice {
+  border-left: 3px solid var(--wf-amber, #b26100); padding-left: var(--space-2);
+  font-size: 12px;
+}
+.ma-form__next-product { display: flex; flex-direction: column; gap: 4px; }
+
+/* §5.6 — shape, not hue. A C is a finding, not a delay, so it is an
+   OUTLINED square, never a red one. */
+.ma-codes { display: flex; gap: var(--space-3); }
+.ma-code { flex-direction: row !important; align-items: center; gap: 6px; cursor: pointer; }
+.ma-code__glyph { width: 12px; height: 12px; display: inline-block; border: 1px solid var(--ink); }
+.ma-code--filled input:checked ~ .ma-code__glyph { background: var(--ink); }
+.ma-code--outlined input:checked ~ .ma-code__glyph { background: transparent; border-width: 2px; }
+.ma-code__label { font: 600 13px/1 var(--font-body); color: var(--ink); }
+
+/* §23.6's refusal — a sentence, never a disabled control. */
+.ma-refused { border-left: 3px solid var(--wf-amber, #b26100); padding-left: var(--space-3); }
+.ma-refused__headline { font: 800 13px/1.3 var(--font-heading); }
+.ma-refused__body { font-size: 12px; color: var(--wf-text-2); margin: 2px 0 0; }
+
+.ma-drawer__history-link, .ma-history__back {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: 600 13px/1.2 var(--font-body); color: var(--navy); text-align: left;
+}
+
+/* §23.7 — a closed entry sits on the page ground and carries no control. */
+.ma-history { display: flex; flex-direction: column; gap: var(--space-3); }
+.ma-history__heading { font: 800 15px/1.2 var(--font-heading); }
+.ma-history__entry { border: 1px solid rgba(32, 30, 29, 0.2); padding: var(--space-3); background: var(--surface); border-left: 5px solid var(--navy); }
+.ma-history__entry--closed { background: var(--ground, #f6f4f2); border-left-color: transparent; }
+.ma-history__cap-row { display: flex; align-items: center; gap: var(--space-2); }
+.ma-history__rev { font: 800 13px/1.2 var(--font-heading); }
+.ma-history__cap { font: 600 11px/1 var(--font-body); text-transform: uppercase; border: 1px solid rgba(32,30,29,.4); padding: 2px 4px; color: var(--wf-text-2); }
+.ma-history__code { font: 800 13px/1 var(--font-heading); }
+.ma-history__changed { font-size: 12px; color: var(--wf-text-2); }
+
+/* §23.8 — the QC material inspection block. */
+.ma-check { border: 1px solid rgba(32, 30, 29, 0.2); background: var(--surface); padding: var(--space-3); margin-bottom: var(--space-3); }
+/* No approval: dashed, and it says what to do instead. Never blocks (§5.5). */
+.ma-check--none { border-style: dashed; }
+.ma-check__headline { font: 800 13px/1.3 var(--font-heading); }
+.ma-check__body { font-size: 12px; color: var(--wf-text-2); margin: 4px 0 0; }
+.ma-check__grid > div { display: flex; gap: var(--space-2); padding: 3px 0; }
+.ma-check__grid dt { min-width: 100px; font-size: 12px; color: var(--wf-text-2); }
+.ma-check__grid dd { margin: 0; font-size: 13px; }
+.ma-check__change-link { background: none; border: 0; padding: 0; cursor: pointer; font-size: 12px; color: var(--navy); }
+
+/* §23.8 / §5.4 — the override record, on the line for good. */
+.procurement-line-card__override { display: block; margin-top: var(--space-2); }
+.procurement-line-card__override-title { display: block; font: 600 12px/1.3 var(--font-body); color: #8a4b00; }
+.procurement-line-card__override-by { display: block; font-size: 12px; color: var(--wf-text-2); }
+.procurement-line-card__override-name { color: var(--navy); font-weight: 600; }
+
+/* §23.10 — at 390px this screen is READ-ONLY. */
+@media (max-width: 560px) {
+  .ma-desk-work {
+    display: block;
+    border-left: 3px solid var(--wf-amber, #b26100);
+    padding-left: var(--space-2);
+    font-size: 12px;
+  }
+  .ma-head__actions { display: none; }
+  .ma-summary { grid-template-columns: 1fr 1fr; }
+  .ma-summary__cell { border-right: none; border-bottom: 1px solid rgba(32, 30, 29, 0.12); }
+  /* Rows stack at 56px minimum, and the drawer becomes the full width it
+     has to be on a phone. */
+  .ma-table thead { display: none; }
+  .ma-table tr { display: block; min-height: 56px; padding: var(--space-2) 0; }
+  .ma-table td { display: block; border: none; padding: 1px var(--space-2); }
+  .ma-drawer { width: 100vw; border-left: none; }
+  .ma-strip { grid-template-columns: 1fr; }
+  .ma-clocks__pair { grid-template-columns: 1fr; }
+}
+
+/* §23.8's procurement column (Brief 105 + migration 044). */
+.procurement-line-card__approval { display: flex; flex-direction: column; gap: 2px; }
+.procurement-line-card__approval-detail { font-size: 12px; color: var(--wf-text-2); }
+/* Both "no package covers this line" and "this line has no BOQ link" render
+   here, and they are DIFFERENT statements — the copy keeps them apart, not
+   the styling, so neither is dressed up as the other. */
+.procurement-line-card__approval-none { font-size: 12px; color: var(--wf-text-2); }

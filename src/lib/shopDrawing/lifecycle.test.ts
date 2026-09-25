@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { deriveLifecycle, originLine, type LifecycleInput, type SubmissionRecord } from './lifecycle'
+import { daysSinceICT } from '@/lib/format/datetime'
 
 const NOW = new Date('2026-09-24T00:00:00Z')
 
@@ -203,5 +204,49 @@ describe('the origin line (§9.3)', () => {
       startedAt: '2026-09-18T00:00:00Z',
       afterCReturn: true,
     })
+  })
+})
+
+/**
+ * Brief 105 — the regression this fix exists for.
+ *
+ * computeClocks used to floor elapsed milliseconds into 24-hour buckets, so
+ * a drawing sent yesterday EVENING and read this MORNING reported 0 days
+ * with the reviewer, while the matrix, the age ladder and every
+ * cross-project list reported 1. The drawer's two numbers were the only
+ * figures in the app counting differently, and they read short — which
+ * §9.4 says is the one thing these particular numbers must not do.
+ */
+describe('the clocks count ICT calendar days, not 24-hour buckets', () => {
+  const sentYesterdayEvening = '2026-09-24T18:00:00+07:00'
+  const thisMorning = new Date('2026-09-25T09:00:00+07:00')
+
+  it('reports a day for an overnight wait, not zero', () => {
+    const l = deriveLifecycle({
+      status: 'in_progress',
+      preSubmissionStage: null,
+      draftingStartedAt: '2026-09-24T08:00:00+07:00',
+      legacyDoneNoHistory: false,
+      checks: [],
+      submissions: [
+        {
+          id: 's1',
+          revision: 0,
+          reviewerParty: 'consultant',
+          reviewerOrg: 'Meinhardt',
+          submittedAt: sentYesterdayEvening,
+          returnedAt: null,
+          code: null,
+          comments: null,
+        },
+      ],
+      now: thisMorning,
+    })
+    // 15 elapsed hours. The old floor(ms / 86_400_000) gave 0.
+    expect(l.clocks.withReviewerDays).toBe(1)
+  })
+
+  it('agrees with daysSinceICT, which the rest of the app uses', () => {
+    expect(daysSinceICT(sentYesterdayEvening, thisMorning)).toBe(1)
   })
 })
