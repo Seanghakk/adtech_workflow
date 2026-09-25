@@ -33,7 +33,7 @@ export default function UpdateProgressError({
       <p
         style={{
           margin: '0 0 var(--space-5)',
-          color: 'var(--text-muted)',
+          color: 'rgba(32, 30, 29, 0.62)',
           font: '400 14px/1.6 var(--font-body)',
         }}
       >
