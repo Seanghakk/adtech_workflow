@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatMemberName, getUserProfilesByIds } from '@/lib/auth/user-profiles'
 import { daysSinceICT, formatDateICT } from '@/lib/format/datetime'
@@ -365,7 +366,19 @@ function ProjectExceptionCard({
         )}{' '}
         <span className="stream-tag">{project.stream.toUpperCase()}</span>
       </div>
-      <div className="exception-card__title">{project.name}</div>
+      {/* Brief 103 / v7.4 §22.10 point 5 — this is the fourth incoming
+          link. The board named projects in trouble and, until now, gave
+          no way to reach any of them: not one <Link> on the whole page.
+          A card is project-level and carries no floor, so it goes to the
+          update page plain and lets §22.5's default-open rule decide
+          what opens — the same shape the Floor progress list uses when
+          it has no stalled floor to name. */}
+      <Link
+        href={`/projects/${project.id}/update`}
+        className="exception-card__title exception-card__title--link"
+      >
+        {project.name}
+      </Link>
       {showPercent && (
         <div className="exception-card__figures">
           <span className="exception-card__percent">{project.percentComplete}%</span>
