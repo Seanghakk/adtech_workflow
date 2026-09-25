@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -9,11 +10,16 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_BOARD } from '@/lib/breadcrumbs'
 import { UpdateProgressForm } from './UpdateProgressForm'
 import { FloorTrackedProgress } from './FloorTrackedProgress'
-import { FloorBreakdown, type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
+import { type DrawingRow, type FloorRow, type SubStageRow } from './FloorBreakdown'
+import { UpdateRegisters, type UpdateFloor } from './UpdateRegisters'
+import { orderFloors, computeCellState } from '../floor-matrix'
+import { getAgeLabelBand } from '@/lib/age'
+import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import type { DrawerDrawing } from './ShopDrawingDrawer'
 import type { DrawingActor } from '@/lib/shopDrawing/permissions'
 import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { computeSubStageQcFields } from './subStageQcFields'
+import { resolveLatestInspection } from '@/lib/subStageDisplayState'
 
 /**
  * Fable Brief 002 §2.1 — "the unassigned-project state, required not
@@ -111,7 +117,7 @@ export default async function UpdateProgressPage({
   // exactly today's code path, untouched.
   const { data: floorRows } = await supabase
     .from('project_floors')
-    .select('id, label, sort_order')
+    .select('id, label, sort_order, tower_id')
     .eq('project_id', project.id)
     .order('sort_order')
 
@@ -129,7 +135,7 @@ export default async function UpdateProgressPage({
       floorIds.length > 0
         ? supabase
             .from('floor_sub_stages')
-            .select('id, floor_id, stage, sub_stage, sequence, status, photo_url')
+            .select('id, floor_id, stage, sub_stage, sequence, status, photo_url, updated_at, updated_by')
             .in('floor_id', floorIds)
             .order('sequence')
         : Promise.resolve({ data: [] }),
@@ -268,6 +274,18 @@ export default async function UpdateProgressPage({
     .filter((r) => r.scope === 'project')
     .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status, drawer: buildDrawing(r) }))
 
+  // Brief 103 §22.2 — towers, for the jump grid's per-tower grouping and
+  // §6.2 building order. Error captured per Brief 094.
+  const { data: towerRows, error: towersError } = await supabase
+    .from('project_towers')
+    .select('id, label, sort_order')
+    .eq('project_id', project.id)
+    .order('sort_order')
+
+  if (towersError) return <UpdateProgressLoadFailed t={t} />
+
+  const towerLabelById = new Map((towerRows ?? []).map((tw) => [tw.id, tw.label]))
+
   const floors: FloorRow[] = (floorRows ?? []).map((floor) => {
     const subStages: SubStageRow[] = (subStageRows ?? [])
       .filter((s) => s.floor_id === floor.id)
@@ -292,6 +310,89 @@ export default async function UpdateProgressPage({
       .map((r) => ({ id: r.id, drawingType: r.drawing_type, status: r.status, drawer: buildDrawing(r) }))
 
     return { id: floor.id, label: floor.label, shopDrawing, subStages }
+  })
+
+  // ---- Brief 103 §22: the data the two registers derive from --------
+  //
+  // Cell state comes from the MATRIX's own computeCellState over the
+  // shared display-state function (§11.1), not a second derivation —
+  // §22.2 says the bar is that function "over every floor × sub-stage
+  // cell", and the matrix and this page disagreeing about a cell is the
+  // exact failure that helper exists to prevent.
+  const subStageById = new Map((subStageRows ?? []).map((r) => [r.id, r]))
+
+  // §6.2 building order, towers included — the same helper the matrix
+  // orders its rows with, so the jump grid and the matrix cannot
+  // disagree about what "building order" means.
+  const orderedFloors = orderFloors(
+    (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
+    (floorRows ?? []).map((f) => ({
+      id: f.id,
+      label: f.label,
+      sortOrder: f.sort_order,
+      towerId: f.tower_id ?? null,
+    })),
+  )
+
+  // Ages are computed HERE, in ICT, and passed down as a lookup — the
+  // client never re-derives a day count in the browser's own timezone.
+  const ageOfIso: Record<string, number> = {}
+  const noteAge = (iso: string | null) => {
+    if (iso && !(iso in ageOfIso)) ageOfIso[iso] = daysSinceICT(iso)
+  }
+
+  const updateFloors: UpdateFloor[] = orderedFloors.map((of) => {
+    const base = floors.find((f) => f.id === of.id)!
+    const cellBySubStageId: UpdateFloor['cellBySubStageId'] = {}
+    let doneCount = 0
+    let applicableCount = 0
+
+    for (const s of base.subStages) {
+      const raw = subStageById.get(s.id)
+      // The map stores every inspection status including 'pending';
+      // resolveLatestInspection only ever considers pass/fail, which is
+      // the shared rule's own contract.
+      const latest = resolveLatestInspection(
+        (inspectionsBySubStage.get(s.id) ?? [])
+          .filter((i) => i.status === 'pass' || i.status === 'fail')
+          .map((i) => ({ result: i.status as 'pass' | 'fail', date: i.date })),
+      )
+      const state = computeCellState({
+        row: raw
+          ? {
+              id: raw.id,
+              floorId: raw.floor_id,
+              stage: raw.stage,
+              subStage: raw.sub_stage,
+              status: raw.status,
+              updatedAt: raw.updated_at,
+            }
+          : undefined,
+        latestInspection: latest,
+        daysSince: (isoDate) => daysSinceICT(isoDate),
+        isStale: (days) => getAgeLabelBand(days) === 'stalled',
+      })
+      // §11.4 — a failed cell's clock runs from the failed inspection,
+      // not the last status change, which never moves on a fail.
+      const clockDate = state === 'qc_failed' && latest ? latest.date : (raw?.updated_at ?? null)
+      noteAge(clockDate)
+      cellBySubStageId[s.id] = {
+        state,
+        clockDate,
+        holderName: raw?.updated_by ? drawerName(raw.updated_by) : null,
+        updatedAt: raw?.updated_at ?? null,
+      }
+      if (state !== 'not_applicable') applicableCount += 1
+      if (raw?.status === 'done') doneCount += 1
+    }
+
+    return {
+      ...base,
+      towerLabel: base.id && orderedFloors.length ? (towerLabelById.get((floorRows ?? []).find((f) => f.id === of.id)?.tower_id ?? '') ?? null) : null,
+      cellBySubStageId,
+      doneCount,
+      applicableCount,
+    }
   })
 
   const handoverItems = (handoverRows ?? []).map((r) => ({ deliverable: r.deliverable, status: r.status }))
@@ -378,37 +479,101 @@ export default async function UpdateProgressPage({
         ]}
         current={t('navUpdateProgress')}
       />
+      <h1 className="update-screen__heading">{t('updateHeading')}</h1>
       <div className="update-screen">
-      {tracksFloors ? (
-        <FloorTrackedProgress percentCalculated={project.percent_calculated} overrideActive={Boolean(project.percent_override_at)}>
-          {updateForm}
-        </FloorTrackedProgress>
-      ) : (
-        updateForm
-      )}
+        {/* §22.1 REMOVED: the "Calculated" column as built. The figure
+            itself is not gone — it moved into the summary register's
+            Complete block (§22.2), where it finally states its own basis.
+            FloorTrackedProgress' Override path is kept: it is the only
+            way a PIC can enter a percent on a floor-tracked project, and
+            §22 does not touch it. */}
+        {tracksFloors ? (
+          <FloorTrackedProgress
+            percentCalculated={project.percent_calculated}
+            overrideActive={Boolean(project.percent_override_at)}
+          >
+            {updateForm}
+          </FloorTrackedProgress>
+        ) : (
+          updateForm
+        )}
 
-      {/* Always rendered, even at zero floor rows — "Add floor" (Brief
-          024 §2.2) is the only path from a today-ordinary, entered-
-          percent project into floor tracking, and it must be reachable
-          before any floor exists, not just after. FloorTrackedProgress
-          above stays gated on tracksFloors (Amendment §2.1: a project
-          with zero floor rows keeps percent ENTERED, unchanged), but the
-          breakdown section itself — including its own empty state and
-          Add-floor form — is not. */}
-      <FloorBreakdown
-        projectId={project.id}
-        isPic={isCurrentUserPic}
-        isQcMember={isQcMember}
-        isProjectTeamMember={isProjectTeamMember}
-        isTncTeamMember={isTncTeamMember}
-        floors={floors}
-        projectShopDrawing={projectShopDrawing}
-        handoverItems={handoverItems}
-        drawingActor={drawingActor}
-        systems={(systemRows ?? []).map((r) => ({ id: r.id, name: r.name, cadCode: r.cad_code }))}
-        systemsReadFailed={Boolean(systemsError)}
-      />
-    </div>
+        {floors.length === 0 ? (
+          // §22.9 — no floors set up. The work register carries the 4.5
+          // empty state; the summary still renders, with "—" and
+          // "Nothing to calculate until floors exist".
+          <div className="update-registers">
+            <UpdateRegisters
+              projectId={project.id}
+              soLabel={project.so_number ?? t('soRecordNoSoYet')}
+              soIsPending={!project.so_number}
+              projectName={project.name}
+              picName={picLabel}
+              stream={project.stream}
+              percentCalculated={project.percent_calculated}
+              floors={[]}
+              projectShopDrawing={projectShopDrawing}
+              isPic={isCurrentUserPic}
+              isQcMember={isQcMember}
+              isProjectTeamMember={isProjectTeamMember}
+              isTncTeamMember={isTncTeamMember}
+              drawingActor={drawingActor}
+              systems={(systemRows ?? []).map((r) => ({ id: r.id, name: r.name, cadCode: r.cad_code }))}
+              systemsReadFailed={Boolean(systemsError)}
+              ageOfIso={ageOfIso}
+              handoverItems={handoverItems}
+            />
+            <div className="wf-empty-state-card update-empty">
+              <p className="wf-empty-state-card__headline">
+                {t('updateEmptyNoFloorsPrefix')} {project.so_number ?? t('soRecordNoSoYet')}
+              </p>
+              <p className="wf-empty-state-card__body">{t('updateEmptyNoFloorsBody')}</p>
+              <div className="wf-empty-state-card__actions">
+                <Link href={`/projects/${project.id}/setup#structure`} className="btn btn--primary">
+                  {t('updateEmptyNoFloorsAction')}
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <UpdateRegisters
+            projectId={project.id}
+            soLabel={project.so_number ?? t('soRecordNoSoYet')}
+            soIsPending={!project.so_number}
+            projectName={project.name}
+            picName={picLabel}
+            stream={project.stream}
+            percentCalculated={project.percent_calculated}
+            floors={updateFloors}
+            projectShopDrawing={projectShopDrawing}
+            isPic={isCurrentUserPic}
+            isQcMember={isQcMember}
+            isProjectTeamMember={isProjectTeamMember}
+            isTncTeamMember={isTncTeamMember}
+            drawingActor={drawingActor}
+            systems={(systemRows ?? []).map((r) => ({ id: r.id, name: r.name, cadCode: r.cad_code }))}
+            systemsReadFailed={Boolean(systemsError)}
+            ageOfIso={ageOfIso}
+            handoverItems={handoverItems}
+          />
+        )}
+      </div>
     </>
+  )
+}
+
+/**
+ * §21.0 — a read that failed is never rendered as an empty page. Brief
+ * 103 §4 requires this survive the rebuild, alongside Brief 094's
+ * verified writes.
+ */
+function UpdateProgressLoadFailed({ t }: { t: (key: DictionaryKey) => string }) {
+  return (
+    <div className="update-screen">
+      <div className="wf-load-failed-card" role="alert">
+        <p style={{ margin: 0, fontWeight: 700 }}>{t('updateLoadFailedHeadline')}</p>
+        <p style={{ margin: 'var(--space-2) 0 0' }}>{t('setupLoadFailedBody')}</p>
+      </div>
+    </div>
   )
 }

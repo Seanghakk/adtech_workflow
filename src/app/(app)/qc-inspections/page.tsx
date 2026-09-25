@@ -138,7 +138,11 @@ export default async function QcInspectionsPage({
       ageBand: getAgeLabelBand(ageDays),
       holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
       ageContext,
-      href: `/projects/${project.id}/update`,
+      // Brief 103 §22.10 — carry the floor this row is actually about,
+      // so the link opens it rather than the whole project.
+      href: waiting[0] || failed[0]
+        ? `/projects/${project.id}/update?floor=${(waiting[0] ?? failed[0]).floorId}`
+        : `/projects/${project.id}/update`,
       waitingCount: waiting.length,
       failedCount: failed.length,
       summary: (

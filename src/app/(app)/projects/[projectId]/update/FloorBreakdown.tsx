@@ -19,12 +19,9 @@
  * now supersedes it. Floor DISPLAY and every sub-stage/drawing/handover
  * status control below are unchanged — only the add-a-floor path moved.
  */
-import Link from 'next/link'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import {useRef, useState, useTransition} from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { formatDateICT } from '@/lib/format/datetime'
-import { AddDrawingForm } from './AddDrawingForm'
-import { canAddDrawing } from '@/lib/shopDrawing/addDrawing'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { updateShopDrawingStatus, updateSubStageStatus, upsertHandoverItem } from './floor-actions'
@@ -59,7 +56,9 @@ const HANDOVER_KEYS: Record<string, DictionaryKey> = {
   warranty_documents: 'handoverWarrantyDocuments',
 }
 
-const HANDOVER_ORDER = Object.keys(HANDOVER_KEYS)
+/** Brief 103 — the handover deliverables' fixed order, kept when the
+ *  old shell was deleted so the checklist does not reorder itself. */
+export const HANDOVER_ORDER = Object.keys(HANDOVER_KEYS)
 
 const INSPECTION_STATUS_KEYS: Record<string, DictionaryKey> = {
   pass: 'inspectionStatusPass',
@@ -111,324 +110,24 @@ export interface HandoverItem {
   status: string
 }
 
-export function FloorBreakdown({
-  projectId,
-  isPic,
-  isQcMember,
-  isProjectTeamMember,
-  isTncTeamMember,
-  floors,
-  projectShopDrawing,
-  handoverItems,
-  drawingActor,
-  systems,
-  systemsReadFailed,
-}: {
-  projectId: string
-  isPic: boolean
-  isQcMember: boolean
-  /** Migration 022 / Brief 050 §C — gates installation-stage sub-stage
-   *  status (workflow.teams.code = 'project_management'). */
-  isProjectTeamMember: boolean
-  /** Migration 022 / Brief 050 §C — gates tnc-stage sub-stage status
-   *  (workflow.teams.code = 'tnc'). */
-  isTncTeamMember: boolean
-  floors: FloorRow[]
-  projectShopDrawing: DrawingRow[]
-  handoverItems: HandoverItem[]
-  /** Brief 100 Part B — who the signed-in person is, for §9.5's gates. */
-  drawingActor: DrawingActor
-  /** Brief 102 follow-up — the project's systems, for the add form. */
-  systems: { id: string; name: string; cadCode: string | null }[]
-  /** Brief 094 — a failed systems read must not read as "no systems". */
-  systemsReadFailed: boolean
-}) {
-  // §9.1 — one drawer at a time across the whole screen, so opening a
-  // second drawing closes the first rather than stacking panels.
-  const [openDrawingId, setOpenDrawingId] = useState<string | null>(null)
-  const { t } = useLanguage()
-  const [expanded, setExpanded] = useState(false)
+/**
+ * Brief 103 / v7.4 §22.10 — the old page shell is DELETED, and with it
+ * the three things §22.1 lists as replaced:
+ *   · the "Calculated" column as built (the figure moved into the
+ *     summary register's Complete block, where it states its basis)
+ *   · the "Hide floor breakdown" toggle (floors now open and close
+ *     individually, and the URL carries which)
+ *   · the page-level strip of "No passed inspection" chips (§22.6: the
+ *     inline QC marker on a row "is the only place the QC state appears
+ *     on a row; it is not repeated above the list")
+ *
+ * What remains in this file is the machinery §22 says is unchanged —
+ * the status dropdown and its save, the photo gate, the inspection
+ * recorder, the drawing row and its drawer — now rendered by
+ * UpdateRegisters inside §22's layout.
+ */
 
-  // Brief 056 §6 — the matrix's drill-through target. This panel is
-  // collapsed by default (above), so a bare #substage-<id> link from the
-  // matrix would otherwise land on nothing visible. Reading
-  // window.location.hash MUST start from `false` (matching SSR, which
-  // has no window at all) and update after mount, not from a lazy
-  // useState initializer that would read the hash during the CLIENT's
-  // first render — that would disagree with the server-rendered `false`
-  // and cause a real hydration mismatch, not just an eslint complaint.
-  // This is exactly react-hooks/set-state-in-effect's own carve-out
-  // ("subscribe for updates from an external system... calling setState
-  // when external state changes"): window.location.hash is that external
-  // system, unavailable at SSR time by definition, so there is no
-  // non-effect way to read it once after mount.
-  useEffect(() => {
-    if (!window.location.hash.startsWith('#substage-')) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above the effect
-    setExpanded(true)
-  }, [])
-
-  useEffect(() => {
-    if (!expanded) return
-    const hash = window.location.hash
-    if (!hash.startsWith('#substage-')) return
-    const id = window.requestAnimationFrame(() => {
-      document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'center' })
-    })
-    return () => window.cancelAnimationFrame(id)
-  }, [expanded])
-
-  // Brief 081 — a done sub-stage is an exception whenever its shared
-  // display state is anything OTHER than qc_passed: either no pass/fail
-  // inspection exists yet (qcDisplayState stays 'done' — see below) or
-  // the LATEST one failed (qc_failed). Previously this only checked
-  // hasPassedInspection, so a fail recorded after an old pass silently
-  // stopped being an exception — the exact bug this brief fixes.
-  const exceptions = floors.flatMap((floor) =>
-    floor.subStages
-      .filter((s) => s.status === 'done' && s.qcDisplayState !== 'qc_passed')
-      .map((s) => ({ floorLabel: floor.label, subStage: s.subStage, qcDisplayState: s.qcDisplayState })),
-  )
-
-  const handoverByDeliverable = new Map(handoverItems.map((h) => [h.deliverable, h.status]))
-
-  return (
-    <div className="floor-breakdown">
-      <button type="button" className="btn btn--outline floor-breakdown__toggle" onClick={() => setExpanded((v) => !v)}>
-        {expanded ? t('floorBreakdownCollapse') : t('floorBreakdownExpand')}
-      </button>
-
-      {expanded && (
-        <div className="floor-breakdown__body">
-          {!isPic && !isQcMember && !isProjectTeamMember && !isTncTeamMember && (
-            <p className="floor-breakdown__note">{t('floorBreakdownPicOnlyNote')}</p>
-          )}
-
-          <section className="floor-breakdown__section">
-            <h3 className="floor-breakdown__section-title">{t('floorBreakdownProjectLevelTitle')}</h3>
-            {projectShopDrawing.length === 0 && (
-              <div className="wf-empty-state-card">
-                <p className="wf-empty-state-card__headline">{t('drawerRegisterEmptyProjectHeadline')}</p>
-                <p className="wf-empty-state-card__body">
-                  {floors.length} {t('drawerRegisterEmptyProjectBodyPrefix')}
-                </p>
-                {/* Brief 100 Part B stopped here and said plainly that the
-                    screen had no add action. Brief 102 built it, so the
-                    sentence is replaced by the action itself. */}
-                <AddDrawingForm
-                  projectId={projectId}
-                  floors={floors.map((f) => ({ id: f.id, label: f.label }))}
-                  canAdd={canAddDrawing(drawingActor)}
-                  defaultScope="project"
-                  systems={systems}
-                  systemsReadFailed={systemsReadFailed}
-                />
-              </div>
-            )}
-            <div className="floor-breakdown__drawing-list">
-              {projectShopDrawing.map((item) => (
-                <DrawingRowView
-                  key={item.id}
-                  projectId={projectId}
-                  item={item}
-                  isPic={isPic}
-                  actor={drawingActor}
-                  isOpen={openDrawingId === item.id}
-                  onOpen={() => setOpenDrawingId(item.id)}
-                  onClose={() => setOpenDrawingId(null)}
-                />
-              ))}
-            </div>
-            {projectShopDrawing.length > 0 && (
-              <AddDrawingForm
-                projectId={projectId}
-                floors={floors.map((f) => ({ id: f.id, label: f.label }))}
-                canAdd={canAddDrawing(drawingActor)}
-                defaultScope="project"
-                systems={systems}
-                systemsReadFailed={systemsReadFailed}
-              />
-            )}
-            {isQcMember && (
-              <MaterialInspectionRecorder projectId={projectId} floors={floors.map((f) => ({ id: f.id, label: f.label }))} />
-            )}
-          </section>
-
-          <section className="floor-breakdown__section">
-            <h3 className="floor-breakdown__section-title">{t('floorBreakdownExceptionsTitle')}</h3>
-            {exceptions.length === 0 ? (
-              <p className="empty-state">{t('floorBreakdownExceptionsEmpty')}</p>
-            ) : (
-              <ul className="floor-breakdown__exception-list">
-                {exceptions.map((e, i) => (
-                  <li key={i} className="floor-breakdown__exception-item">
-                    {/* Brief 081 — distinguish "never inspected" from "latest
-                        inspection failed": "No passed inspection" reads wrong
-                        for a sub-stage that WAS passed once and later failed a
-                        re-inspection. Reuses the matrix's own exact wording
-                        (floorMatrixLegendQcFailed, Brief 078) for the failed
-                        case so the same state reads identically on both
-                        screens, rather than inventing a second label. */}
-                    <span className="floor-breakdown__exception-flag">
-                      {e.qcDisplayState === 'qc_failed'
-                        ? t('floorMatrixLegendQcFailed')
-                        : t('floorBreakdownExceptionFlag')}
-                    </span>
-                    {e.floorLabel} — {t(SUB_STAGE_KEYS[e.subStage] ?? 'subStageFirstFix')}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {floors.length === 0 ? (
-            <p className="empty-state">{t('floorBreakdownNoFloors')}</p>
-          ) : (
-            floors.map((floor) => (
-              <FloorCard
-                key={floor.id}
-                projectId={projectId}
-                floor={floor}
-                isPic={isPic}
-                isQcMember={isQcMember}
-                isProjectTeamMember={isProjectTeamMember}
-                isTncTeamMember={isTncTeamMember}
-                drawingActor={drawingActor}
-                openDrawingId={openDrawingId}
-                setOpenDrawingId={setOpenDrawingId}
-                systems={systems}
-                systemsReadFailed={systemsReadFailed}
-              />
-            ))
-          )}
-
-          {isPic && (
-            <p className="floor-breakdown__note">
-              <Link href={`/projects/${projectId}/floors`}>{t('floorBreakdownGoToFloorConfig')}</Link>
-            </p>
-          )}
-
-          <section className="floor-breakdown__section">
-            <h3 className="floor-breakdown__section-title">{t('floorBreakdownHandoverTitle')}</h3>
-            <div className="floor-breakdown__handover-list">
-              {HANDOVER_ORDER.map((deliverable) => (
-                <HandoverRowView
-                  key={deliverable}
-                  projectId={projectId}
-                  deliverable={deliverable}
-                  status={handoverByDeliverable.get(deliverable) ?? 'not_started'}
-                  isQcMember={isQcMember}
-                />
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FloorCard({
-  projectId,
-  floor,
-  isPic,
-  isQcMember,
-  isProjectTeamMember,
-  isTncTeamMember,
-  drawingActor,
-  openDrawingId,
-  setOpenDrawingId,
-  systems,
-  systemsReadFailed,
-}: {
-  projectId: string
-  floor: FloorRow
-  systems: { id: string; name: string; cadCode: string | null }[]
-  systemsReadFailed: boolean
-  drawingActor: DrawingActor
-  openDrawingId: string | null
-  setOpenDrawingId: (id: string | null) => void
-  isPic: boolean
-  isQcMember: boolean
-  isProjectTeamMember: boolean
-  isTncTeamMember: boolean
-}) {
-  const { t } = useLanguage()
-  const installation = floor.subStages.filter((s) => s.stage === 'installation')
-  const tnc = floor.subStages.filter((s) => s.stage === 'tnc')
-
-  return (
-    <section className="floor-breakdown__section floor-breakdown__floor-card">
-      <h3 className="floor-breakdown__section-title">{floor.label}</h3>
-
-      <div className="floor-breakdown__subsection">
-        <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownShopDrawingTitle')}</h4>
-        {floor.shopDrawing.length === 0 && (
-          <div className="wf-empty-state-card">
-            <p className="wf-empty-state-card__headline">
-              {t('drawerRegisterEmptyFloorPrefix')} {floor.label}
-            </p>
-            <p className="wf-empty-state-card__body">{t('drawerRegisterEmptyFloorBody')}</p>
-          </div>
-        )}
-        <div className="floor-breakdown__drawing-list">
-          {floor.shopDrawing.map((item) => (
-            <DrawingRowView
-              key={item.id}
-              projectId={projectId}
-              item={item}
-              isPic={isPic}
-              actor={drawingActor}
-              isOpen={openDrawingId === item.id}
-              onOpen={() => setOpenDrawingId(item.id)}
-              onClose={() => setOpenDrawingId(null)}
-            />
-          ))}
-        </div>
-        {/* Brief 102 — on this floor, pre-selected, in both states. */}
-        <AddDrawingForm
-          projectId={projectId}
-          floors={[{ id: floor.id, label: floor.label }]}
-          canAdd={canAddDrawing(drawingActor)}
-          defaultScope="floor"
-          defaultFloorId={floor.id}
-          systems={systems}
-          systemsReadFailed={systemsReadFailed}
-        />
-      </div>
-
-      <div className="floor-breakdown__subsection">
-        <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownInstallationTitle')}</h4>
-        {installation.map((s) => (
-          <SubStageRowView
-            key={s.id}
-            projectId={projectId}
-            subStage={s}
-            canWrite={isProjectTeamMember}
-            isQcMember={isQcMember}
-            inspectionType="installation"
-          />
-        ))}
-      </div>
-
-      <div className="floor-breakdown__subsection">
-        <h4 className="floor-breakdown__subsection-title">{t('floorBreakdownTncTitle')}</h4>
-        {tnc.map((s) => (
-          <SubStageRowView
-            key={s.id}
-            projectId={projectId}
-            subStage={s}
-            canWrite={isTncTeamMember}
-            isQcMember={isQcMember}
-            inspectionType="commissioning"
-          />
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function DrawingRowView({
+export function DrawingRowView({
   projectId,
   item,
   isPic,
@@ -538,7 +237,7 @@ function PossessionChip({ drawing }: { drawing: DrawerDrawing }) {
   )
 }
 
-function SubStageRowView({
+export function SubStageRowView({
   projectId,
   subStage,
   canWrite,
@@ -848,7 +547,7 @@ function InspectionForm({
   )
 }
 
-function MaterialInspectionRecorder({ projectId, floors }: { projectId: string; floors: { id: string; label: string }[] }) {
+export function MaterialInspectionRecorder({ projectId, floors }: { projectId: string; floors: { id: string; label: string }[] }) {
   const { t } = useLanguage()
   const [recording, setRecording] = useState(false)
   const [selectedFloors, setSelectedFloors] = useState<string[]>([])
@@ -896,7 +595,7 @@ function MaterialInspectionRecorder({ projectId, floors }: { projectId: string; 
   )
 }
 
-function HandoverRowView({
+export function HandoverRowView({
   projectId,
   deliverable,
   status,

@@ -261,3 +261,45 @@ export function completeBasis(floors: FloorSummary[], projectDrawings: number, f
     buckets: floors.length + (projectDrawings > 0 ? 1 : 0),
   }
 }
+
+// ---------------------------------------------------------------------------
+// §22.8 the 390px floor picker
+// ---------------------------------------------------------------------------
+
+export type FloorOptionKind = 'stalled' | 'open' | 'awaiting' | 'all_passed' | 'not_started'
+
+export interface FloorOption {
+  kind: FloorOptionKind
+  holderName: string | null
+  ageDays: number
+}
+
+/**
+ * §22.8: the native select's options state each floor's condition IN
+ * WORDS, because a colour band means nothing in a system dropdown.
+ *
+ * §22.8 writes one example, for the stalled case only ("L7 — Dara Kim,
+ * 19d, stalled"); Seanghakk supplied the other four in chat on 25 Sep
+ * 2026 and they are listed in the Result doc. This returns the parts so
+ * the words themselves stay in the dictionary.
+ */
+export function floorOption(floor: FloorSummary, ageOf: (iso: string | null) => number): FloorOption {
+  const open = floor.cells.filter((c) => isOpenState(c.state))
+  const allPassed =
+    floor.cells.length > 0 && floor.cells.every((c) => c.state === 'qc_passed' || c.state === 'not_applicable')
+  if (open.length === 0) {
+    return { kind: allPassed ? 'all_passed' : 'not_started', holderName: null, ageDays: 0 }
+  }
+
+  let oldest = open[0]
+  for (const c of open) if (ageOf(c.clockDate) > ageOf(oldest.clockDate)) oldest = c
+  const ageDays = ageOf(oldest.clockDate)
+
+  if (oldest.state === 'stalled') return { kind: 'stalled', holderName: oldest.holderName, ageDays }
+  // Awaiting QC is about the inspection queue, not about a person still
+  // working, so it names the state rather than a holder and an age.
+  if (open.every((c) => c.state === 'awaiting_qc')) {
+    return { kind: 'awaiting', holderName: null, ageDays }
+  }
+  return { kind: 'open', holderName: oldest.holderName, ageDays }
+}

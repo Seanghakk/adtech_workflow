@@ -9,6 +9,7 @@ import {
   needsAttentionIsClear,
   defaultOpenFloorIds,
   completeBasis,
+  floorOption,
   type FloorSummary,
   type FloorCell,
 } from './summary'
@@ -167,5 +168,83 @@ describe('the Complete block’s basis (open item 21)', () => {
     // bucket rather than scoring it zero, so the count must match.
     const basis = completeBasis([floor('f1', 'L1', [cell('qc_passed')])], 0, 0)
     expect(basis.buckets).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// §22.8 floor picker options
+// ---------------------------------------------------------------------------
+
+describe('floorOption', () => {
+  // Ages: the fixture dates map to fixed day counts so the assertions
+  // do not move with the clock.
+  const ageOf = (iso: string | null) => (iso === null ? 0 : Number(iso))
+
+  function floor(cells: Partial<FloorCell>[]): FloorSummary {
+    return {
+      floorId: 'f1',
+      label: 'L7',
+      towerLabel: null,
+      cells: cells.map((c, i) => ({
+        subStageId: `s${i}`,
+        stage: 'rough_in',
+        subStage: 'first_fix',
+        state: 'not_started',
+        clockDate: '0',
+        holderName: null,
+        ...c,
+      })) as FloorCell[],
+    }
+  }
+
+  it('names the holder and the age of the oldest open cell when stalled', () => {
+    const o = floorOption(
+      floor([
+        { state: 'stalled', clockDate: '19', holderName: 'Dara Kim' },
+        { state: 'in_progress', clockDate: '4', holderName: 'Someone Else' },
+      ]),
+      ageOf,
+    )
+    expect(o).toEqual({ kind: 'stalled', holderName: 'Dara Kim', ageDays: 19 })
+  })
+
+  it('drops the stalled word when the oldest open cell is merely in progress', () => {
+    const o = floorOption(floor([{ state: 'in_progress', clockDate: '4', holderName: 'Dara Kim' }]), ageOf)
+    expect(o).toEqual({ kind: 'open', holderName: 'Dara Kim', ageDays: 4 })
+  })
+
+  it('names the queue, not a person, when every open cell is awaiting QC', () => {
+    const o = floorOption(
+      floor([
+        { state: 'awaiting_qc', clockDate: '3', holderName: 'Dara Kim' },
+        { state: 'qc_passed', clockDate: '1' },
+      ]),
+      ageOf,
+    )
+    expect(o.kind).toBe('awaiting')
+    expect(o.holderName).toBeNull()
+  })
+
+  it('reports a failed cell as open work with its holder, not as awaiting', () => {
+    const o = floorOption(
+      floor([
+        { state: 'awaiting_qc', clockDate: '2' },
+        { state: 'qc_failed', clockDate: '9', holderName: 'Dara Kim' },
+      ]),
+      ageOf,
+    )
+    expect(o).toEqual({ kind: 'open', holderName: 'Dara Kim', ageDays: 9 })
+  })
+
+  it('says all QC passed only when nothing is left, counting not-applicable as settled', () => {
+    expect(floorOption(floor([{ state: 'qc_passed' }, { state: 'not_applicable' }]), ageOf).kind).toBe('all_passed')
+  })
+
+  it('says not started when a passed cell sits beside an untouched one', () => {
+    expect(floorOption(floor([{ state: 'qc_passed' }, { state: 'not_started' }]), ageOf).kind).toBe('not_started')
+  })
+
+  it('says not started, not all-passed, for a floor with no cells at all', () => {
+    expect(floorOption(floor([]), ageOf).kind).toBe('not_started')
   })
 })
