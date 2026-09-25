@@ -1676,6 +1676,12 @@ const en = {
   drawerJustCreatedAddedPrefix: 'added',
   drawerJustCreatedAddedBy: 'by',
   drawerJustCreatedNobody: 'nobody has started drafting',
+  // Brief 102. §21.4 writes "added <date> by <name>" but says nothing
+  // about a row that has no name, which every trigger-seeded drawing and
+  // every row predating migration 039 does not. DRAFTED, flagged in the
+  // Result doc. The brief's own instruction was to "say so in words
+  // rather than showing 'by unknown'".
+  drawerAddedByNotRecorded: 'who added it was not recorded',
   drawerClocksNotStarted: 'Not started',
   drawerClocksNeverSent: 'Never sent',
   drawerHistoryEmpty: 'No revisions recorded yet. Rev 0 is the first entry once drafting starts.',
@@ -1765,15 +1771,38 @@ const en = {
   drawerRegisterEmptyFloorPrefix: 'No drawings for',
   drawerRegisterEmptyFloorBody:
     'Add one here, or add a project-level drawing that covers every floor.',
-  // Brief 100 Part B stopped here: §21.4 says "Add a shop drawing" is the
-  // update screen's EXISTING add action, and to stop and flag if the
-  // screen has none. It has none — no code path anywhere creates a
-  // shop_drawing_items row; they are seeded by the floor trigger only.
-  // So the empty states carry their exact copy and say plainly that the
-  // way to add one does not exist yet, rather than inventing a control.
+  // RETIRED by Brief 102, which built the add action this sentence
+  // existed to apologise for. Kept, not deleted — the same convention
+  // every other superseded key in this file follows, so a stale import
+  // fails loudly at the call site rather than silently resolving to
+  // nothing. Nothing reads it.
   drawerRegisterEmptyNoAddAction:
     'There is no way to add a shop drawing by hand yet. Floor drawings appear automatically when a floor is added in Project setup.',
 
+  // Brief 102 — the add action itself. v7.2 §21.4 names the action
+  // ("Add a shop drawing") and that exact string is used; it writes no
+  // copy for the FORM, so every key below marked DRAFTED is mine and is
+  // flagged in the Result doc.
+  addDrawingAction: 'Add a shop drawing',
+  addDrawingHeading: 'Add a shop drawing',
+  // DRAFTED
+  addDrawingScopeLabel: 'Where does it belong?',
+  addDrawingScopeProject: 'The project as a whole',
+  addDrawingScopeFloor: 'One floor',
+  addDrawingTypeLabel: 'Drawing type',
+  addDrawingFloorLabel: 'Floor',
+  addDrawingFloorPlaceholder: 'Pick a floor',
+  addDrawingNoFloorsNote:
+    'This project has no floors yet, so a drawing can only be added for the project as a whole.',
+  addDrawingNoFloorsAction: 'Open Project setup',
+  addDrawingTitlePreviewLabel: 'It will be called',
+  addDrawingNumberNote:
+    'The drawing number is assigned by the project’s numbering rules — you do not type one.',
+  addDrawingSubmit: 'Add drawing',
+  addDrawingCancel: 'Cancel',
+  addDrawingRefusedNote:
+    'Only the Shop Drawing team, A&A, or this project’s PIC can add a drawing here.',
+  addDrawingSaved: 'Drawing added.',
   // §21.4 failed to load, exact.
   drawerLoadFailedHeadline: 'This drawing did not load',
   drawerTryAgain: 'Try again',

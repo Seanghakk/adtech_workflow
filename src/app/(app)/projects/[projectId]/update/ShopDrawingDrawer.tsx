@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { formatDateICT } from '@/lib/format/datetime'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import {
   deriveLifecycle,
@@ -25,6 +26,9 @@ export interface DrawerDrawing {
   typeLabel: string
   floorLabel: string | null
   createdAt: string
+  /** Brief 102 — NULL for trigger-seeded rows and anything predating
+   *  migration 039. Rendered as an explicit sentence, never "unknown". */
+  createdByName: string | null
   status: 'not_started' | 'in_progress' | 'done'
   preSubmissionStage: 'drafting' | 'internal_check' | null
   draftingStartedAt: string | null
@@ -48,7 +52,13 @@ const PARTY_KEYS: Record<string, DictionaryKey> = {
 }
 
 const today = () => new Date().toISOString().slice(0, 10)
-const shortDate = (iso: string) => new Date(iso).toLocaleDateString()
+/* Brief 102 — was new Date(iso).toLocaleDateString(), which renders with
+   the SERVER's locale and timezone on the server and the DEVICE's on the
+   client. That mismatch is what silently regenerated the whole client
+   tree on the phone floor page in Brief 100 Part E, taking component
+   state with it. formatDateICT is what this app pins dates to for
+   exactly that reason. */
+const shortDate = (iso: string) => formatDateICT(iso)
 
 /**
  * Brief 100 Part B — the shop drawing drawer (v7.2 §9).
@@ -132,8 +142,17 @@ export function ShopDrawingDrawer({
           </p>
           {life.stage === 'not_started' && (
             <p className="sd-drawer__origin">
-              {t('drawerJustCreatedAddedPrefix')} {shortDate(drawing.createdAt)} ·{' '}
-              {t('drawerJustCreatedNobody')}
+              {t('drawerJustCreatedAddedPrefix')} {shortDate(drawing.createdAt)}
+              {/* §21.4 asks for "added <date> by <name>". Part B could
+                  only ever render the date — there was no created_by.
+                  Rows that still have none are the trigger-seeded ones:
+                  they say so, rather than reading "by unknown". */}
+              {drawing.createdByName ? (
+                <> {t('drawerJustCreatedAddedBy')} {drawing.createdByName}</>
+              ) : (
+                <> · {t('drawerAddedByNotRecorded')}</>
+              )}{' '}
+              · {t('drawerJustCreatedNobody')}
             </p>
           )}
 

@@ -43,3 +43,6 @@ next-env.d.ts
 .claude/settings.local.json
 .brief092-screenshots/
 .brief095-screenshots/
+
+# Supabase CLI scratch — not ours to commit
+supabase/.temp/
