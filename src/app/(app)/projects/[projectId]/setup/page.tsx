@@ -14,6 +14,7 @@ import { AddFloorRow } from './AddFloorRow'
 import { AddTowerRow } from './AddTowerRow'
 import { SystemsSection, type ProjectSystemRow } from './SystemsSection'
 import { canImportTier } from '@/lib/boq/permissions'
+import { BOQ_TIERS } from '@/lib/boq/tiers'
 import { getCurrentMember } from '@/lib/auth/current-member'
 
 export const metadata: Metadata = {
@@ -61,6 +62,19 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
   // Brief 099 §3 — the BOQ section's own "Import a BOQ" links follow each
   // tier's owner, exactly as the import screen itself does.
   const who = { isPic, isSuperadmin: Boolean(member?.isSuperadmin), teamCode: member?.teamCode ?? '' }
+  // Brief 104 — the tier THIS person may import, in a fixed order, or
+  // null if none. Both empty states below used to hardcode 'contract',
+  // which was right while contract was the only tier anyone but a
+  // superadmin could import. It stopped being right when the Shop
+  // Drawing and A&A teams got the shop drawing tier (Brief 099) and
+  // became visibly wrong when the Tender team got its own (Brief 104):
+  // a Tender member on a project with no BOQ lines at all saw no way in,
+  // and no sentence either. Contract first, so a PIC who also sits on
+  // another team still lands on their own tier.
+  const importableTier = (['contract', 'shop_drawing', 'tender'] as const).find((tier) =>
+    canImportTier(tier, who),
+  )
+  const importableTierSlug = importableTier ? BOQ_TIERS[importableTier].slug : null
   const client = Array.isArray(project.clients) ? project.clients[0] : project.clients
   const site = Array.isArray(project.sites) ? project.sites[0] : project.sites
 
@@ -292,9 +306,12 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                   every other control in this section, even on an empty
                   project: a non-PIC gets the §6.4 sentence, never an
                   inviting button for something they cannot do. */}
-              {canImportTier('contract', who) && (
+              {importableTierSlug && (
                 <div className="wf-empty-state-card__actions">
-                  <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
+                  <Link
+                    href={`/projects/${project.id}/boq-import/${importableTierSlug}`}
+                    className="btn btn--primary"
+                  >
                     {t('setupStructureEmptyImport')}
                   </Link>
                 </div>
@@ -360,9 +377,12 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
             <div className="wf-empty-state-card">
               <p className="wf-empty-state-card__headline">{t('setupBoqEmptyHeadline')}</p>
               <p className="wf-empty-state-card__body">{t('setupBoqEmptyBody')}</p>
-              {canImportTier('contract', who) && (
+              {importableTierSlug && (
                 <div className="wf-empty-state-card__actions">
-                  <Link href={`/projects/${project.id}/boq-import/contract`} className="btn btn--primary">
+                  <Link
+                    href={`/projects/${project.id}/boq-import/${importableTierSlug}`}
+                    className="btn btn--primary"
+                  >
                     {t('setupBoqEmptyImport')}
                   </Link>
                 </div>

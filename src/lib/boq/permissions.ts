@@ -9,7 +9,7 @@
  *
  * The three cases below are deliberately literal transcriptions of the
  * INSERT policies on contract_boq_lines, shop_drawing_boq_lines and
- * tender_boq_lines, and they mirror workflow.commit_boq_import()'s own
+ * tender_boq_lines (the last widened by Brief 104 / migration 042), and they mirror workflow.commit_boq_import()'s own
  * internal check (migration 037) one-for-one. This is the app-layer half
  * of the same belt-and-suspenders convention every other gate in this app
  * uses — the function and the policies are the real enforcement. If a
@@ -18,6 +18,11 @@
 import type { BoqTier } from './tiers'
 
 export const SHOP_DRAWING_WRITE_TEAMS = ['shop_drawing', 'a_and_a'] as const
+
+/** Brief 104 — the Tender team may write its own tier (migration 042).
+ *  Until then tender_boq_lines was superadmin-only, which meant the team
+ *  that prepares a tender could not touch the tender BOQ. */
+export const TENDER_WRITE_TEAMS = ['tender'] as const
 
 export interface BoqImporter {
   isPic: boolean
@@ -33,7 +38,7 @@ export function canImportTier(tier: BoqTier, who: BoqImporter): boolean {
     case 'shop_drawing':
       return (SHOP_DRAWING_WRITE_TEAMS as readonly string[]).includes(who.teamCode)
     case 'tender':
-      return false
+      return (TENDER_WRITE_TEAMS as readonly string[]).includes(who.teamCode)
   }
 }
 

@@ -1497,16 +1497,17 @@ const en = {
   // Brief 099 §3 — the sentence names whoever actually owns that TIER,
   // never "the PIC" by default, because sending someone to the wrong
   // person is worse than saying nothing. Contract belongs to the project's
-  // PIC; the shop drawing BOQ to Shop Drawing and A&A; the tender BOQ has
-  // no team rule behind it at all today, only superadmin, so it says that
-  // plainly rather than naming a team that cannot actually help.
+  // PIC; the shop drawing BOQ to Shop Drawing and A&A; the tender BOQ to
+  // the Tender team (Brief 104 / migration 042). Until then the tender
+  // tier had no team rule at all and this sentence had to say "a
+  // superadmin" — honest, but it named nobody who could actually help.
   boqImportRefusedContractPrefix: 'Only the PIC,',
   boqImportRefusedContractSuffix:
     ', can import the contract BOQ on this project. You can read everything here.',
   boqImportRefusedShopDrawing:
     'Only the Shop Drawing and A&A teams can import the shop drawing BOQ. You can read everything here.',
   boqImportRefusedTender:
-    'Only a superadmin can import the tender BOQ. Ask a project manager if it needs importing. You can read everything here.',
+    'Only the Tender team can import the tender BOQ. You can read everything here.',
   boqImportRefusedNotPic: 'Only the PIC can import a BOQ on this project.',
 
   // Brief 099 §2 — an importer who may write this tier but is not the PIC

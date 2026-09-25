@@ -13,7 +13,7 @@ const tenderTeam: BoqImporter = { isPic: false, isSuperadmin: false, teamCode: '
  * must keep mirroring them. Each expectation below is the policy restated:
  *   contract      = superadmin OR pic
  *   shop_drawing  = superadmin OR team in (shop_drawing, a_and_a)
- *   tender        = superadmin
+ *   tender        = superadmin OR team in (tender)   [Brief 104]
  */
 describe('canImportTier — permission follows each tier’s owner', () => {
   it('contract BOQ belongs to the project’s PIC', () => {
@@ -30,13 +30,22 @@ describe('canImportTier — permission follows each tier’s owner', () => {
     expect(canImportTier('shop_drawing', outsider)).toBe(false)
   })
 
-  it('tender BOQ is superadmin-only — the Tender team has no rule behind it today', () => {
+  it('tender BOQ belongs to the Tender team (Brief 104)', () => {
+    // This assertion was inverted until migration 042: the Tender team —
+    // the people who actually prepare a tender — could not write the
+    // tender BOQ, and only a superadmin could. Widened, not replaced, so
+    // superadmin keeps what it had.
+    expect(canImportTier('tender', tenderTeam)).toBe(true)
     expect(canImportTier('tender', superadmin)).toBe(true)
+    // and nobody else, including the owners of the other two tiers
     expect(canImportTier('tender', pic)).toBe(false)
     expect(canImportTier('tender', shopDrawing)).toBe(false)
-    // Named explicitly: it would be easy to assume the Tender team owns
-    // this tier, and the policy says otherwise.
-    expect(canImportTier('tender', tenderTeam)).toBe(false)
+    expect(canImportTier('tender', outsider)).toBe(false)
+  })
+
+  it('widening tender did not touch the other two tiers', () => {
+    expect(canImportTier('contract', tenderTeam)).toBe(false)
+    expect(canImportTier('shop_drawing', tenderTeam)).toBe(false)
   })
 
   it('a superadmin may import every tier', () => {
