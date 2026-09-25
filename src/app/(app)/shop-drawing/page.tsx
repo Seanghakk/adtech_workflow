@@ -21,9 +21,16 @@ export const metadata: Metadata = {
 
 /**
  * Brief 080 / Handoff Addendum v6.1 §2, CORRECTED BY BRIEF 082 §4 — Shop
- * drawing cross-project list. DESTINATION: the project's existing
- * shop-drawing-boq route (unambiguous — a real per-project route already
- * exists).
+ * drawing cross-project list.
+ *
+ * DESTINATION, RE-POINTED (Brief 102 follow-up): each row opens the
+ * project's DRAWING REGISTER on /projects/[projectId]/update, not its
+ * shop-drawing BOQ. Brief 080 chose the BOQ because it was "a real
+ * per-project route that already exists" — true at the time, and the
+ * register did not yet. It does now (Brief 100 Part B). These rows count
+ * DRAWINGS by status, so the BOQ was answering a question the row had
+ * not asked. The BOQ keeps its own route from Project setup's BOQ
+ * section.
  *
  * BRIEF 082 CORRECTION: Brief 080's original version mapped the 3-state
  * status (not_started/in_progress/done, migration 008) onto "drawn /
@@ -153,7 +160,12 @@ export default async function ShopDrawingPage({
         ageBand: getAgeLabelBand(oldestWaitAge),
         holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
         ageContext,
-        href: `/projects/${project.id}/shop-drawing-boq`,
+        // The Shop drawing list opens each project's DRAWING REGISTER,
+        // not its BOQ. This row counts drawings by status — not BOQ
+        // lines — so landing on the BOQ answered a question the row had
+        // not asked. The BOQ keeps its own route from Project setup's
+        // BOQ section, which is where someone goes looking for it.
+        href: `/projects/${project.id}/update`,
         summary: (
           <div className="cross-list__row-summary-line">
             {counts.not_started} {t('crossListShopDrawingNotStarted')} · {counts.in_progress}{' '}
