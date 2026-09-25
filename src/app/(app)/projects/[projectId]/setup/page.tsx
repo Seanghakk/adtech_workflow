@@ -411,15 +411,29 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 {floors.length} {t('setupDrawingsReadyPrefix')} {systems.length} {t('setupDrawingsReadySuffix')}
               </p>
               <div className="wf-empty-state-card__actions">
-                <Link href={`/projects/${project.id}/shop-drawing-boq`} className="btn btn--primary">
+                {/* The register, not the BOQ. This section summarises
+                    drawings; its own action should open them. */}
+                <Link href={`/projects/${project.id}/update`} className="btn btn--primary">
                   {t('setupDrawingsOpenShopDrawings')}
                 </Link>
               </div>
             </div>
           ) : (
-            <p>
-              {drawingCount} {t('setupDrawingsCount')} · {floorsWithLayoutsCount} {t('setupDrawingsFloorsWithLayouts')}
-            </p>
+            <>
+              <p>
+                {drawingCount} {t('setupDrawingsCount')} · {floorsWithLayoutsCount}{' '}
+                {t('setupDrawingsFloorsWithLayouts')}
+              </p>
+              {/* The populated state carried NO link at all, so anything
+                  pointed at #drawings dead-ended on a count the moment a
+                  project had its first drawing. Same action as the empty
+                  state, same destination. */}
+              <p>
+                <Link href={`/projects/${project.id}/update`}>
+                  {t('setupDrawingsOpenShopDrawings')}
+                </Link>
+              </p>
+            </>
           )}
           <p>
             {t('setupDrawingsNumberingLabel')}{' '}

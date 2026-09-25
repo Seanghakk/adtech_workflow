@@ -628,11 +628,17 @@ export default async function SoRecordPage({
               href={`/projects/${project.id}/setup#boq`}
               linkText={setupStatus.boqLineCount === 0 ? t('soHubImportABoq') : t('soHubOpen')}
             />
+            {/* The DRAWINGS tile goes to the REGISTER, not to Project
+                setup's summary of it. It used to land on
+                /setup#drawings, which shows a count and — once any
+                drawing exists — carries no onward link at all, so the
+                one tile in this hub that says "drawings" dead-ended on a
+                number. The register is on the update screen. */}
             <HubTile
               label={t('soHubTileDrawings')}
               value={String(setupStatus.drawingCount)}
               detail={t('soHubRegisteredSuffix')}
-              href={`/projects/${project.id}/setup#drawings`}
+              href={`/projects/${project.id}/update`}
               linkText={setupStatus.drawingCount === 0 ? t('soHubOpenShopDrawings') : t('soHubOpen')}
             />
             <HubTile
