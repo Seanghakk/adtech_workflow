@@ -44,8 +44,11 @@ const LEGEND_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting
  * only inside every cell (§5: "No text, no counts, no percentages") — the
  * state is carried entirely by the cell's own class, nothing rendered as
  * content. Every non-'not_applicable' cell is a link (§6) to that
- * SPECIFIC sub-stage on /update, landing on the anchor FloorBreakdown.tsx
- * gives that row.
+ * floor on /update. Brief 103 §22.10: the incoming links all use
+ * ?floor= now, which opens that floor and scrolls its header to the top
+ * of the work register. It used to be #substage-<id>, an anchor into a
+ * flat list that no longer exists — §22.4 opens and closes floors, so a
+ * bare hash would have landed on a collapsed row.
  *
  * Brief 101 — REBUILT ON THE SHARED DATA TABLE (v7.2/v7.3 §4.2).
  *
@@ -131,7 +134,7 @@ export function FloorMatrix({
               return (
                 <div key={key} role="cell">
                   <Link
-                    href={`/projects/${projectId}/update#substage-${cell.subStageId}`}
+                    href={`/projects/${projectId}/update?floor=${row.floorId}`}
                     className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
                     aria-label={`${row.label} · ${t(LEGEND_KEYS[cell.state])}`}
                   />

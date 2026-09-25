@@ -2125,8 +2125,15 @@ button {
    Screen 6a — update-progress card
    ----------------------------------------------------------------------- */
 .update-screen {
+  /* Brief 103 §22.1 — was `display:flex; justify-content:center`, which
+     centred the one update card the page used to be. With two registers
+     below it that flex row put the form and the registers side by side
+     and squeezed the registers to 622px of a 984px page. The page now
+     stacks: heading, the progress form, then the two registers. */
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  align-items: stretch;
 }
 .update-card {
   width: 720px;
@@ -7916,5 +7923,583 @@ a.floor-matrix__cell {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
+  }
+}
+
+/* ===================================================================
+   Brief 103 — Update progress rebuilt (v7.4 §22)
+
+   Two registers, per §22.1: a 300px summary that sticks at 1024px of
+   content width and above, and the work register taking the rest. Below
+   that the summary stacks above the work register and stops sticking.
+
+   No new token, no new colour, no sixth shared part (§22.10). The bar,
+   the jump-grid bands and the QC swatches all reuse the matrix's own
+   .floor-matrix__cell--* fills, so if Brief 101 changes a fill this
+   follows rather than drifting.
+   =================================================================== */
+
+.update-screen__heading {
+  font: 800 var(--wf-t-h3, 22px)/1.2 var(--font-heading);
+  color: var(--ink);
+  margin: 0 0 var(--space-4);
+}
+
+.update-registers {
+  display: grid;
+  /* minmax(0, 1fr), NOT 1fr. A bare 1fr is minmax(auto, 1fr) and floors
+     the work register at its own min-content width — the four-column
+     sub-stage grid inside it — so the page overflowed by 94px at 1300px.
+     The same trap Brief 101 hit on the matrix. */
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.update-work {
+  min-width: 0;
+}
+
+.update-summary {
+  position: sticky;
+  top: 0;
+  /* §22.1: "scrolling itself if taller than the window". */
+  max-height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+}
+
+.update-summary__block {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(32, 30, 29, 0.16);
+}
+.update-summary__block:last-child {
+  border-bottom: none;
+}
+
+.update-summary__kicker {
+  font: 800 12px/1.2 var(--font-heading);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(32, 30, 29, 0.62);
+  margin-bottom: var(--space-2);
+}
+
+/* ---- Identity ---- */
+.update-summary__identity-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.update-summary__so {
+  font: 600 12.5px/1.2 var(--font-body);
+  color: var(--navy);
+}
+.update-summary__stream {
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-summary__project {
+  font: 800 16px/1.3 var(--font-heading);
+  color: var(--ink);
+  margin: 4px 0;
+  line-height: var(--wf-lh-mixed);
+}
+.update-summary__pic-label {
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-summary__pic-name {
+  font: 600 15px/1.3 var(--font-body);
+  color: var(--navy);
+}
+
+/* ---- Complete ---- */
+.update-summary__figure-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.update-summary__figure {
+  font: 800 var(--wf-t-figure, 44px)/1 var(--font-heading);
+  color: var(--ink);
+}
+/* §22.9's "Every cell QC passed" row: 100% goes blue. The same --navy
+   the matrix's qc_passed cell uses, so the figure and the bar beneath it
+   agree — at 100% the bar is one solid navy band and a black figure
+   above it would read as a different fact. */
+.update-summary__figure--complete {
+  color: var(--navy);
+}
+/* Open item 21 — the figure's real basis. Deliberately not shortened:
+   "QC not counted" is the clause that stops 20% reading as 20% accepted. */
+.update-summary__basis {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(32, 30, 29, 0.62);
+}
+
+.update-summary__legend {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.update-summary__legend-row {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.floor-matrix__cell.update-summary__legend-swatch {
+  width: 18px;
+  height: 12px;
+  flex: none;
+}
+.update-summary__legend-label {
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-summary__legend-count {
+  font: 800 13px/1 var(--font-heading);
+  text-align: right;
+}
+
+/* ---- Needs attention ---- */
+.update-summary__needs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+/* §22.2 — "a 5px left rule in the band of what it names". */
+.update-summary__need {
+  border-left: 5px solid var(--grey);
+  padding-left: var(--space-3);
+}
+.update-summary__need--in_progress { border-left-color: var(--navy); }
+.update-summary__need--awaiting_qc { border-left-color: var(--warning); }
+.update-summary__need--qc_failed { border-left-color: var(--ink); }
+.update-summary__need--stalled { border-left-color: var(--danger); }
+
+.update-summary__need-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-summary__need-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: 400 13.5px/1.5 var(--font-body);
+  line-height: var(--wf-lh-mixed);
+  color: var(--ink);
+}
+.update-summary__holder {
+  font-weight: 600;
+  color: var(--navy);
+  margin-right: 6px;
+}
+.update-summary__age {
+  font: 800 16px/1 var(--font-heading);
+  margin-right: 6px;
+}
+/* §22.2/§22.4 — red ink at 16+ days, the same threshold the matrix uses. */
+.update-summary__age--stalled,
+.update-floor__age--stalled {
+  color: #8e1620;
+}
+.update-summary__need-where {
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-summary__need-link {
+  margin-left: 6px;
+  font-size: 13px;
+}
+.update-summary__clear,
+.update-summary__note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0;
+}
+
+/* ---- Go to floor ---- */
+.update-summary__tower-label {
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: var(--space-3) 0 4px;
+}
+.update-summary__grid {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+/* §22.8's phone picker — 56px so it is a comfortable touch target, and
+   hidden above the phone breakpoint where the grid is the control. */
+.update-summary__select {
+  display: none;
+  width: 100%;
+  min-height: 56px;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-2);
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  border-radius: 2px;
+  font: 400 15px/1.3 var(--font-body);
+  color: var(--ink);
+}
+.update-summary__jump {
+  min-height: 36px;
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  border-left: 5px solid transparent;
+  font: 800 13px/1 var(--font-heading);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.update-summary__jump--in_progress { border-left-color: var(--navy); }
+.update-summary__jump--awaiting_qc { border-left-color: var(--warning); }
+.update-summary__jump--qc_failed { border-left-color: var(--ink); }
+.update-summary__jump--stalled { border-left-color: var(--danger); }
+/* §22.2 — an open floor is active navigation, not a status. */
+.update-summary__jump--open {
+  background: var(--wf-blue-tint);
+  border-color: var(--wf-blue-edge);
+  color: var(--navy);
+}
+
+/* ---- §22.3 the work register ---- */
+.update-work__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.update-work__filter {
+  display: flex;
+  border: 1px solid var(--ink);
+}
+.update-work__seg {
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--ink);
+  padding: 8px 14px;
+  font: 600 13px/1 var(--font-body);
+  color: var(--ink);
+  cursor: pointer;
+}
+.update-work__seg:last-child { border-right: none; }
+.update-work__seg--on {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 800;
+}
+.update-work__bulk button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: 400 13px/1 var(--font-body);
+  color: var(--navy);
+  cursor: pointer;
+}
+.update-work__section { margin-bottom: var(--space-5); }
+.update-work__heading {
+  font: 800 15px/1.2 var(--font-heading);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.update-work__subline {
+  font-size: 13px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0 0 var(--space-3);
+}
+
+/* ---- §22.4 a floor, closed ---- */
+.update-floor {
+  background: var(--surface);
+  border: 1px solid rgba(32, 30, 29, 0.2);
+  border-left: 5px solid transparent;
+  margin-bottom: 4px;
+}
+.update-floor[data-band='in_progress'] { border-left-color: var(--navy); }
+.update-floor[data-band='awaiting_qc'] { border-left-color: var(--warning); }
+.update-floor[data-band='qc_failed'] { border-left-color: var(--ink); }
+.update-floor[data-band='stalled'] { border-left-color: var(--danger); }
+
+.update-floor__head {
+  display: grid;
+  grid-template-columns: 22px 92px minmax(0, 1fr) 190px 90px;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  scroll-margin-top: var(--space-4);
+}
+.update-floor__chevron { font-size: 14px; color: rgba(32, 30, 29, 0.62); }
+.update-floor__label {
+  font: 800 16px/1.2 var(--font-heading);
+  color: var(--ink);
+  line-height: var(--wf-lh-mixed);
+}
+.update-floor__tower {
+  display: block;
+  font: 400 12px/1.3 var(--font-body);
+  color: rgba(32, 30, 29, 0.62);
+}
+.update-floor__holder { font-size: 14px; line-height: var(--wf-lh-mixed); }
+.update-floor__holder-name { font-weight: 600; color: var(--navy); margin-right: 6px; }
+.update-floor__age { font: 800 15px/1 var(--font-heading); margin-right: 6px; }
+.update-floor__on,
+.update-floor__nothing { font-size: 12.5px; color: rgba(32, 30, 29, 0.62); }
+.update-floor__flags { display: flex; flex-direction: column; gap: 4px; }
+.update-floor__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.update-floor__flag--awaiting { color: #8a4b00; }
+.update-floor__hatch {
+  width: 18px; height: 12px; flex: none;
+  background: var(--wf-hatch-ink);
+  border: 1px solid var(--ink);
+}
+.update-floor__amber {
+  width: 12px; height: 12px; flex: none;
+  background: var(--warning);
+}
+.update-floor__done {
+  font-size: 12.5px;
+  color: rgba(32, 30, 29, 0.62);
+  text-align: right;
+}
+
+/* ---- §22.6 a floor, open ---- */
+.update-floor__body {
+  border-top: 2px solid rgba(32, 30, 29, 0.4);
+  padding: var(--space-4);
+}
+.update-floor__kicker {
+  font: 800 12px/1.2 var(--font-heading);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(32, 30, 29, 0.62);
+  margin-bottom: var(--space-2);
+}
+.update-floor__no-drawings {
+  font-size: 13px;
+  color: rgba(32, 30, 29, 0.62);
+  margin: 0 0 var(--space-3);
+}
+.update-group { margin-top: var(--space-4); }
+.update-group__title {
+  font: 600 14px/1.2 var(--font-body);
+  margin: 0 0 var(--space-2);
+}
+.update-group__refused {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+  border-left: 5px solid var(--ink);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-2);
+}
+/* §22.6's columns: Sub-stage / Status / Photo / QC. The header and the
+   rows share one template so they line up. */
+.update-group__head,
+.update-group .floor-breakdown__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 150px 200px;
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.update-group__head {
+  font: 600 11.5px/1 var(--font-body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(32, 30, 29, 0.6);
+  padding: 10px 14px;
+  border-bottom: 2px solid rgba(32, 30, 29, 0.4);
+}
+.update-group .floor-breakdown__row {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(32, 30, 29, 0.25);
+}
+.update-group .floor-breakdown__row:last-child { border-bottom: none; }
+
+/* ---- §22.7 photos ---- */
+.update-photo__row { display: flex; gap: 4px; align-items: flex-start; }
+.update-photo__thumb,
+.update-photo__box,
+.update-photo__more {
+  width: 64px;
+  height: 48px;
+  flex: none;
+  padding: 0;
+  border-radius: 0;
+  cursor: pointer;
+  /* Open item 22 — never black. The photographs themselves are dark;
+     the container must not add to it. */
+  background: var(--wf-surface-2);
+  border: 1px solid rgba(32, 30, 29, 0.3);
+  overflow: hidden;
+}
+.update-photo__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.update-photo__more {
+  background: var(--surface);
+  font: 800 13.5px/1 var(--font-heading);
+}
+.update-photo__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-size: 12px;
+  color: rgba(32, 30, 29, 0.62);
+  cursor: default;
+  background: var(--surface);
+}
+.update-photo__box--none { border: 1px dashed rgba(32, 30, 29, 0.35); }
+.update-photo__box--failed { border: 1px solid var(--ink); }
+.update-photo__retry {
+  background: none; border: none; padding: 0;
+  color: var(--navy); font-size: 11px; cursor: pointer;
+}
+.update-photo__meta { font-size: 12px; color: rgba(32, 30, 29, 0.62); margin-top: 4px; }
+.update-photo__dash { color: rgba(32, 30, 29, 0.62); }
+
+/* Viewer (15d): a full-window ink field, no blur, no shadow. */
+.update-viewer {
+  position: fixed;
+  inset: 0;
+  background: #201e1d;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5);
+  gap: var(--space-4);
+}
+.update-viewer__head { display: flex; justify-content: space-between; align-items: flex-start; }
+.update-viewer__kicker { font-size: 12px; color: rgba(243, 242, 242, 0.7); }
+.update-viewer__count { font: 800 18px/1.2 var(--font-heading); color: var(--bg); }
+.update-viewer__close {
+  background: none; border: none; color: var(--bg);
+  font-size: 20px; cursor: pointer; padding: 0 var(--space-2);
+}
+.update-viewer__img {
+  flex: 1;
+  min-height: 0;
+  object-fit: contain;
+  align-self: center;
+  max-width: 100%;
+}
+.update-viewer__facts { display: flex; gap: var(--space-5); margin: 0; flex-wrap: wrap; }
+.update-viewer__facts dt { font-size: 12px; color: rgba(243, 242, 242, 0.7); }
+/* §22.7 — the member name in --wf-blue-edge, since blue on ink fails contrast. */
+.update-viewer__facts dd { margin: 0; font-size: 14px; color: var(--wf-blue-edge); }
+.update-viewer__nav { display: flex; gap: var(--space-3); }
+.update-viewer__nav button {
+  background: none;
+  border: 1px solid var(--wf-blue-edge);
+  color: var(--wf-blue-edge);
+  padding: 8px var(--space-3);
+  font: 600 13px/1 var(--font-body);
+  cursor: pointer;
+}
+.update-viewer__nav button:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- §22.1 / §22.8 below 1024px of content width ---- */
+@media (max-width: 1100px) {
+  .update-registers {
+    grid-template-columns: 1fr;
+  }
+  .update-summary {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  /* §22.8 — summary blocks become full-bleed white bands (§12.1). */
+  .update-summary {
+    border-left: none;
+    border-right: none;
+  }
+  .update-floor__head {
+    grid-template-columns: 22px 1fr auto;
+    grid-template-areas:
+      'chev label done'
+      '. holder holder'
+      '. flags flags';
+    min-height: 56px;
+    row-gap: 4px;
+  }
+  .update-floor__chevron { grid-area: chev; }
+  .update-floor__label { grid-area: label; }
+  .update-floor__done { grid-area: done; }
+  .update-floor__holder { grid-area: holder; }
+  .update-floor__flags { grid-area: flags; flex-direction: row; flex-wrap: wrap; }
+  /* An open floor stacks each sub-stage rather than keeping four columns. */
+  .update-group__head { display: none; }
+  .update-group .floor-breakdown__row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .update-work__filter { width: 100%; }
+  .update-work__seg { flex: 1; min-height: 48px; }
+  /* §22.8 — at phone width the jump grid gives way to the native
+     select. Both are in the markup and CSS picks one: a media query
+     cannot swap one element for another, and choosing in JS by window
+     width would guess wrong on the first paint. The tower headings go
+     with the grid, since the select is one flat list. */
+  .update-summary__grid,
+  .update-summary__tower-label { display: none; }
+  .update-summary__select { display: block; }
+}
+
+/* §22.8 — the progress form's three figures sat in a fixed
+   `1fr 1fr 1fr` with 24px side padding each, which cannot fit 360px:
+   this is the horizontal overflow the page has had all along (28px on a
+   project with no floors, measured before this brief). At phone width
+   they stack instead. */
+@media (max-width: 560px) {
+  .update-card__figures {
+    grid-template-columns: 1fr;
+  }
+  .update-card__figure {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-3) var(--space-4);
+    min-width: 0;
+  }
+  .update-card__figure:last-child {
+    border-bottom: none;
+  }
+  .update-card__figure-value {
+    font-size: 28px;
+    min-width: 0;
   }
 }

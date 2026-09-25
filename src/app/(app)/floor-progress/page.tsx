@@ -188,7 +188,13 @@ export default async function FloorProgressPage({
         ageBand: getAgeLabelBand(oldestStalledAge),
         holderLabel: project.picId ? formatMemberName(picProfiles.get(project.picId), t('membersNoProfile')) : t('dashboardUnassigned'),
         ageContext,
-        href: `/projects/${project.id}?view=matrix`,
+        // Brief 103 §22.10 — the update page, opened on the floor this
+        // row names. The matrix stays reachable from the SO record; this
+        // row is about a floor's own progress, which is what ?floor=
+        // opens.
+        href: oldestStalledFloorId
+          ? `/projects/${project.id}/update?floor=${oldestStalledFloorId}`
+          : `/projects/${project.id}/update`,
         summary: (
           <>
             <div className="cross-list__bar" aria-hidden="true">

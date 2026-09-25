@@ -979,6 +979,118 @@ const en = {
   // team codes and reason codes, which never go through this dictionary.
   floorBreakdownExpand: 'Floor breakdown',
   floorBreakdownCollapse: 'Hide floor breakdown',
+
+  // ==== Brief 103 / v7.4 §22 — the rebuilt Update progress page ====
+  // Copy is §22's own wherever §22 writes it out. FIVE strings that §22
+  // describes in prose but never writes were SUPPLIED BY SEANGHAKK IN
+  // CHAT on 25 Sep 2026, not taken from v7.4 — each is marked CHAT
+  // below and listed in the Result doc so they can be folded back into
+  // the handoff document.
+  updateHeading: 'Update progress',
+  updateLoadFailedHeadline: 'This page did not load',
+
+  // §22.2 summary register
+  updateSummaryCompleteKicker: 'Complete',
+  // CHAT — §22.2 leaves this to open item 21, whose answer is that the
+  // section's own example ("22 of 150 sub-stages QC passed") is not what
+  // this app computes. The last clause is the point: it stops 20% being
+  // read as 20% accepted.
+  updateSummaryBasisMiddle: 'sub-stages and',
+  updateSummaryBasisSuffix: 'drawings · in progress counts half · QC not counted',
+  updateSummaryNeedsKicker: 'Needs attention',
+  updateSummaryOldestLabel: 'Oldest unmoved',
+  updateSummaryFailedLabel: 'QC failed, waiting for rework',
+  updateSummaryAwaitingLabel: 'Done, awaiting QC',
+  updateSummaryAwaitingLink: 'QC inspections',
+  updateSummaryAllClear: 'Nothing is late, failed or waiting for QC.',
+  updateSummaryGoToFloorKicker: 'Go to floor',
+  updateSummaryGoToFloorNote: 'Building order. Opens the floor and scrolls to it.',
+  updateSummaryNothingToCalculate: 'Nothing to calculate until floors exist',
+
+  // §22.3 work register
+  updateFilterAll: 'All floors',
+  updateFilterOpen: 'Floors with open work',
+  updateOpenAll: 'Open all',
+  updateCloseAll: 'Close all',
+  updateProjectLevelHeading: 'Project level',
+  updateProjectLevelSubline:
+    'Schematics and typical drawings. Floor layouts sit in each floor below.',
+  updateFloorsHeading: 'Floors',
+  updateFloorsSublineSuffix: 'floors in building order. Open one to update it.',
+
+  // §22.4 a floor, closed
+  updateFloorOnPrefix: 'on',
+  updateFloorAllPassedPrefix: 'All',
+  updateFloorAllPassedSuffix: 'QC passed · nothing open',
+  updateFloorNotStarted: 'Not started · nobody holds anything here',
+  updateFloorDoneCountMiddle: 'of',
+  updateFloorDoneCountSuffix: 'done',
+  updateFloorFlagFailed: 'QC failed',
+  updateFloorFlagAwaiting: 'awaiting QC',
+
+  // §22.6 a floor, open
+  updateFloorDrawingsKicker: 'Shop drawings — this floor',
+  updateFloorNoDrawingsPrefix: 'No shop drawings registered for',
+  updateColSubStage: 'Sub-stage',
+  updateColStatus: 'Status',
+  updateColPhoto: 'Photo',
+  updateColQc: 'QC',
+  updateSubStageSincePrefix: 'since',
+  updateSubStageDonePrefix: 'Done by',
+  updateSubStageNotStarted: 'Not started',
+  updateSubStageNotApplicable: 'Not applicable on this floor',
+  updateQcPassed: 'QC passed',
+  updateQcLastInspectionPrefix: 'Last inspection',
+  updateQcAwaiting: 'Awaiting QC',
+  updateQcNoInspectionPrefix: 'No inspection yet · done',
+  updateQcFailed: 'QC failed',
+  updateQcStalledPrefix: 'Stalled — no change in',
+  // §22.9, and the sentence §22.6 refers to by rule number
+  updateGroupRefusedPrefix: 'Only the',
+  updateGroupRefusedSuffix: 'team can change these. You can read everything here.',
+
+  // §22.7 photos
+  updatePhotoNone: 'No photo',
+  updatePhotoDoneBeforeTracking: 'done before tracking',
+  updatePhotoDidNotLoad: 'Did not load',
+  updatePhotoRetry: 'Retry',
+  updatePhotoCountSuffix: 'photos · latest',
+  // CHAT — §22.7 gives "3 photos · latest 21 Sep" but never writes the
+  // date-only variant.
+  updatePhotoLatestPrefix: 'latest',
+  updatePhotoViewerOf: 'Photo',
+  updatePhotoViewerOfMiddle: 'of',
+  updatePhotoTakenBy: 'Taken by',
+  updatePhotoWhen: 'When',
+  updatePhotoRecordedWith: 'Recorded with',
+  // CHAT — §22.7 names the label but describes its VALUE only in prose
+  // ("the status change or inspection it came with").
+  updatePhotoEventDone: 'Marked done',
+  updatePhotoEventInProgress: 'Marked in progress',
+  updatePhotoEventQcPassed: 'QC inspection — passed',
+  updatePhotoEventQcFailed: 'QC inspection — failed',
+  updatePhotoPrevious: '← Previous',
+  updatePhotoNext: 'Next →',
+  updatePhotoClose: 'Close',
+
+  // §22.8 at 390px
+  // CHAT — §22.8 gives one example option, for the stalled case only.
+  updateSelectAwaitingSuffix: 'awaiting QC',
+  updateSelectAllPassedSuffix: 'all QC passed',
+  updateSelectNotStartedSuffix: 'not started',
+  updateSelectStalledSuffix: 'stalled',
+  updateDeskWorkNote:
+    'Recording a shop drawing step is desk work — open this project on a computer.',
+
+  // §22.9 states
+  updateEmptyNoFloorsPrefix: 'No floors are set up for',
+  updateEmptyNoFloorsBody:
+    'Progress is recorded per floor. Floors come from Project setup — a BOQ import can propose them.',
+  updateEmptyNoFloorsAction: 'Open Project setup',
+  updateEmptyNoOpenPrefix: 'No floor on',
+  updateEmptyNoOpenSuffix: 'has open work',
+  updateEmptyNoOpenBody: 'Every floor is either not started or fully QC passed.',
+  updateEmptyNoOpenAction: 'Show all floors',
   floorBreakdownCalculated: 'Calculated',
   floorBreakdownOverride: 'Override',
   floorBreakdownOverrideActive: 'Overridden',
