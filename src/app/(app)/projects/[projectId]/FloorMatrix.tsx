@@ -2,18 +2,6 @@ import Link from 'next/link'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { MATRIX_COLUMNS, type MatrixCellState, type MatrixRow } from './floor-matrix'
 
-/** Same sub-stage label keys FloorBreakdown.tsx's SUB_STAGE_KEYS already
- *  uses — kept as its own local copy rather than a cross-route-folder
- *  import (this app's own established convention: page-local helpers stay
- *  page-local, confirmed by grepping every existing import under
- *  projects/[projectId]/ before writing this file). */
-const SUB_STAGE_KEYS: Record<string, DictionaryKey> = {
-  first_fix: 'subStageFirstFix',
-  second_fix: 'subStageSecondFix',
-  third_fix: 'subStageThirdFix',
-  pre_commissioning: 'subStagePreCommissioning',
-  commissioning: 'subStageCommissioning',
-}
 
 const LEGEND_KEYS: Record<MatrixCellState, DictionaryKey> = {
   not_applicable: 'floorMatrixLegendNotApplicable',
@@ -28,6 +16,27 @@ const LEGEND_KEYS: Record<MatrixCellState, DictionaryKey> = {
 /** Brief 078 / v6 §7.4 — the seven-item legend, in the handoff's exact
  *  order (previously six items, 'not_applicable' first; v6 puts it last
  *  and adds 'qc_failed' between 'qc_passed' and 'stalled'). */
+/**
+ * Brief 101 — the matrix's own column labels, taken from mockup 9a,
+ * which abbreviates them: "First fix", "Second fix", "Third fix",
+ * "Pre-comm", "Comm". NOT invented here — 9a draws these exact words.
+ *
+ * The full dictionary names ("First fix — cable containment") are still
+ * what every other screen shows, and still what the legend and the
+ * update screen use. They cannot be used HERE: with five equal columns
+ * they wrap to three or four lines at 1024px and are unreadable at
+ * 390px, and it was precisely their length that used to size the
+ * columns. A column of colour swatches needs a short label; the long
+ * name belongs where there is room for it.
+ */
+const MATRIX_COL_KEYS: Record<string, DictionaryKey> = {
+  first_fix: 'floorMatrixColFirstFix',
+  second_fix: 'floorMatrixColSecondFix',
+  third_fix: 'floorMatrixColThirdFix',
+  pre_commissioning: 'floorMatrixColPreCommissioning',
+  commissioning: 'floorMatrixColCommissioning',
+}
+
 const LEGEND_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting_qc', 'qc_passed', 'qc_failed', 'stalled', 'not_applicable']
 
 /**
@@ -36,10 +45,28 @@ const LEGEND_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting
  * state is carried entirely by the cell's own class, nothing rendered as
  * content. Every non-'not_applicable' cell is a link (§6) to that
  * SPECIFIC sub-stage on /update, landing on the anchor FloorBreakdown.tsx
- * gives that row (Migration 024-era SubStageRowView, extended this round
- * with `id={"substage-" + subStage.id}` plus an auto-expand-on-hash
- * effect, since that panel is collapsed by default and a bare #hash link
- * would otherwise land on nothing visible).
+ * gives that row.
+ *
+ * Brief 101 — REBUILT ON THE SHARED DATA TABLE (v7.2/v7.3 §4.2).
+ *
+ * This was an HTML <table> with border-collapse and its own
+ * .floor-matrix__table/__col-head/__row-head/__cell-wrap rules: a
+ * near-copy of the shared part, which is the sprawl §4 exists to stop.
+ * Three of the review's observations came straight out of that copy —
+ * columns sized by header text, header padding that never applied, and
+ * a 1px hairline where §4.2 wants a 2px rule under the header.
+ *
+ * It is now .wf-data-table, the part Brief 097 built to §4.2, with
+ * grid-template-columns "96px repeat(5, 1fr)" exactly as mockup 9a
+ * draws it: a fixed floor column and FIVE EQUAL sub-stage columns. The
+ * header chrome, the row rules and the "no rule after the last row"
+ * behaviour all now come from the shared part rather than from here.
+ *
+ * TABLE SEMANTICS ARE KEPT. §4.2 says "CSS grid, not table layout", and
+ * 9a is divs — but a matrix read by a screen reader still needs row and
+ * column headers, so the grid carries explicit ARIA roles (table / row /
+ * columnheader / rowheader / cell). Dropping <th scope> for layout
+ * without replacing it would have traded one defect for a worse one.
  */
 export function FloorMatrix({
   projectId,
@@ -72,43 +99,47 @@ export function FloorMatrix({
         ))}
       </div>
 
-      <div className="floor-matrix__scroll">
-        <table className="floor-matrix__table">
-          <thead>
-            <tr>
-              <th className="floor-matrix__corner">{t('floorMatrixFloorColumnHeader')}</th>
-              {MATRIX_COLUMNS.map((col) => (
-                <th key={`${col.stage}-${col.subStage}`} className="floor-matrix__col-head">
-                  {t(SUB_STAGE_KEYS[col.subStage] ?? 'subStageFirstFix')}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.floorId}>
-                <th scope="row" className="floor-matrix__row-head">
-                  {row.label}
-                </th>
-                {row.cells.map((cell, i) => {
-                  const key = `${row.floorId}-${i}`
-                  if (cell.state === 'not_applicable' || !cell.subStageId) {
-                    return <td key={key} className="floor-matrix__cell-wrap" aria-hidden="true" />
-                  }
-                  return (
-                    <td key={key} className="floor-matrix__cell-wrap">
-                      <Link
-                        href={`/projects/${projectId}/update#substage-${cell.subStageId}`}
-                        className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
-                        aria-label={t(LEGEND_KEYS[cell.state])}
-                      />
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* The shared §4.2 data table. Every row repeats the same
+          grid-template-columns, which is what makes the five sub-stage
+          columns equal instead of sized by their own header text. */}
+      <div className="wf-data-table floor-matrix__grid" role="table" aria-label={t('floorMatrixLegendTitle')}>
+        <div className="wf-data-table__row wf-data-table__row--head" role="row">
+          <div className="wf-data-table__head-cell" role="columnheader">
+            {t('floorMatrixFloorColumnHeader')}
+          </div>
+          {MATRIX_COLUMNS.map((col) => (
+            <div
+              key={`${col.stage}-${col.subStage}`}
+              className="wf-data-table__head-cell"
+              role="columnheader"
+            >
+              {t(MATRIX_COL_KEYS[col.subStage] ?? 'floorMatrixColFirstFix')}
+            </div>
+          ))}
+        </div>
+
+        {rows.map((row) => (
+          <div key={row.floorId} className="wf-data-table__row wf-data-table__row--body" role="row">
+            <div className="floor-matrix__row-head" role="rowheader">
+              {row.label}
+            </div>
+            {row.cells.map((cell, i) => {
+              const key = `${row.floorId}-${i}`
+              if (cell.state === 'not_applicable' || !cell.subStageId) {
+                return <div key={key} role="cell" aria-hidden="true" />
+              }
+              return (
+                <div key={key} role="cell">
+                  <Link
+                    href={`/projects/${projectId}/update#substage-${cell.subStageId}`}
+                    className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
+                    aria-label={`${row.label} · ${t(LEGEND_KEYS[cell.state])}`}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        ))}
       </div>
     </div>
   )

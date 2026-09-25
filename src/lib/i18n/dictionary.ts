@@ -658,6 +658,15 @@ const en = {
   floorMatrixBackToSoRecord: 'Back to SO record',
   floorMatrixEmptyNoFloors: 'No floors configured yet.',
   floorMatrixFloorColumnHeader: 'Floor',
+  // Brief 101 — the matrix's own short column labels, exactly as mockup
+  // 9a draws them. The full sub-stage names (subStageFirstFix etc.) stay
+  // in use everywhere else; five equal columns of colour swatches have no
+  // room for "First fix — cable containment".
+  floorMatrixColFirstFix: 'First fix',
+  floorMatrixColSecondFix: 'Second fix',
+  floorMatrixColThirdFix: 'Third fix',
+  floorMatrixColPreCommissioning: 'Pre-comm',
+  floorMatrixColCommissioning: 'Comm',
   floorMatrixLegendTitle: 'Legend',
   floorMatrixLegendNotApplicable: 'Not applicable',
   floorMatrixLegendNotStarted: 'Not started',
