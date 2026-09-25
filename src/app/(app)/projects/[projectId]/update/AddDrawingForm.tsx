@@ -39,18 +39,24 @@ export function AddDrawingForm({
   canAdd,
   defaultScope = 'project',
   defaultFloorId = null,
+  systems,
+  systemsReadFailed,
 }: {
   projectId: string
   floors: { id: string; label: string }[]
   canAdd: boolean
   defaultScope?: DrawingScope
   defaultFloorId?: string | null
+  /** Brief 102 follow-up — the project's own systems (project_systems). */
+  systems: { id: string; name: string; cadCode: string | null }[]
+  systemsReadFailed: boolean
 }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [scope, setScope] = useState<DrawingScope>(defaultScope)
   const [drawingType, setDrawingType] = useState<string>(typesForScope(defaultScope)[0])
   const [floorId, setFloorId] = useState<string>(defaultFloorId ?? '')
+  const [systemId, setSystemId] = useState<string>('')
   const [state, action, pending] = useActionState(addShopDrawing, drawerInitialState)
 
   // A refusal is a sentence naming who can help, never a disabled button.
@@ -90,6 +96,7 @@ export function AddDrawingForm({
       <input type="hidden" name="scope" value={scope} />
       <input type="hidden" name="drawingType" value={drawingType} />
       <input type="hidden" name="floorId" value={scope === 'floor' ? floorId : ''} />
+      <input type="hidden" name="systemId" value={systemId} />
 
       <h4 className="add-drawing__heading">{t('addDrawingHeading')}</h4>
 
@@ -150,6 +157,37 @@ export function AddDrawingForm({
           ))}
         </select>
       </label>
+
+      {/* Brief 102 follow-up — the system, now that migration 040 gives
+          it somewhere to live. OPTIONAL: a drawing can exist before
+          anyone has decided which system it belongs to, and the floor
+          trigger has always created them without one. It is the
+          {SYSTEM} part of v7.2 §8.2's drawing-number format, via
+          project_systems.cad_code. */}
+      {systemsReadFailed ? (
+        // Brief 094 — a failed read must never read as "no systems",
+        // which would send someone to create ones that already exist.
+        <p className="add-drawing__note">{t('addDrawingSystemsUnavailable')}</p>
+      ) : systems.length === 0 ? (
+        <p className="add-drawing__note">
+          {t('addDrawingNoSystemsNote')}{' '}
+          <Link href={`/projects/${projectId}/setup#systems`}>
+            {t('addDrawingNoFloorsAction')}
+          </Link>
+        </p>
+      ) : (
+        <label className="add-drawing__field">
+          <span className="wf-form-row__label">{t('addDrawingSystemLabel')}</span>
+          <select value={systemId} onChange={(e) => setSystemId(e.target.value)}>
+            <option value="">{t('addDrawingSystemNone')}</option>
+            {systems.map((sys) => (
+              <option key={sys.id} value={sys.id}>
+                {sys.cadCode ? `${sys.name} · ${sys.cadCode}` : sys.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <p className="add-drawing__note">
         {t('addDrawingTitlePreviewLabel')}: <strong>{composeDrawingTitle({ typeLabel, floorLabel })}</strong>
