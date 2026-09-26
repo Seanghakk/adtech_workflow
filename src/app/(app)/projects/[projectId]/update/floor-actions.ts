@@ -128,8 +128,12 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
   // feeds the matrix and fixing them is not this brief's scope.
   const nowIso = new Date().toISOString()
   const supabase = await createClient()
+  // Brief 106b — the cell is per system now. The id passed in is a
+  // progress_cells id; nothing else about this action changes, because a
+  // status write was always "this one cell", and D096 only changed what one
+  // cell means.
   const { data, error } = await supabase
-    .from('floor_sub_stages')
+    .from('progress_cells')
     .update(
       status === 'done'
         ? { status, updated_by: gate.userId, photo_url: photoUrl, updated_at: nowIso }
@@ -144,7 +148,7 @@ export async function updateSubStageStatus(formData: FormData): Promise<{ error:
   // a mismatch, exactly the failure mode this brief exists to fix.
   const verdict = await verifyWriteAffectedRow(
     { data, error },
-    existsByColumn(supabase, 'floor_sub_stages', 'id', subStageId),
+    existsByColumn(supabase, 'progress_cells', 'id', subStageId),
   )
   if (!verdict.ok) {
     const t = await getServerTranslator()

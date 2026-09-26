@@ -69,6 +69,10 @@ const INSPECTION_STATUS_KEYS: Record<string, DictionaryKey> = {
 
 export interface SubStageRow {
   id: string
+  /** Brief 106b — a cell belongs to one system. Null only on a project with
+   *  no systems configured, where §22.6a renders no blocks at all. */
+  systemId: string | null
+  systemName: string | null
   stage: 'installation' | 'tnc'
   subStage: string
   status: string

@@ -2039,6 +2039,17 @@ const en = {
   overviewLoadFailedHeadline: 'The overview did not load',
 
 
+  // ==== Brief 106b / v7.4 §22.6a — a floor grouped by system ====
+  // §22.6a: "Not on L8: Car park management — covers B3, B2 and B1." One
+  // line, never rows.
+  updateNotOnFloorPrefix: 'Not on',
+  updateNotOnFloorCovers: 'covers',
+  // §22.4's "Also open: CCTV 6d · PA/VA 2d" — age only. The other systems'
+  // holders are deliberately not named here; they are in each system header.
+  updateAlsoOpenPrefix: 'Also open:',
+  updateFloorNothingOpen: 'nothing open',
+  updateFloorOnPrefix: 'on',
+
   // ==== Brief 106b / v7.4 §7 — coverage proposed by the import ====
   boqImportCoverageHeading: 'Floor coverage',
   boqImportCoverageIntro:

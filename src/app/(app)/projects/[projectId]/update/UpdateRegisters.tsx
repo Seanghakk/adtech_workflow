@@ -29,6 +29,7 @@ import {
   completeBasis,
   floorBand,
   floorHasOpenWork,
+  OPEN_STATES,
   floorOption,
   type FloorSummary,
 } from '@/lib/updatePage/summary'
@@ -47,6 +48,8 @@ import { AddDrawingForm } from './AddDrawingForm'
 import { canAddDrawing } from '@/lib/shopDrawing/addDrawing'
 import type { DrawingActor } from '@/lib/shopDrawing/permissions'
 import type { MatrixCellState } from '../floor-matrix'
+import type { FloorRowSummary } from '@/lib/progressPerSystem/floorRow'
+import type { SubStageRow } from './FloorBreakdown'
 
 export interface UpdateFloor extends FloorRow {
   towerLabel: string | null
@@ -54,6 +57,18 @@ export interface UpdateFloor extends FloorRow {
   cellBySubStageId: Record<string, { state: MatrixCellState; clockDate: string | null; holderName: string | null; updatedAt: string | null }>
   doneCount: number
   applicableCount: number
+  /** Brief 106b / §22.6a — one block per system covering this floor, in
+   *  Project setup order. Empty on a project with no systems. */
+  systemBlocks: {
+    systemId: string
+    systemName: string
+    subStages: SubStageRow[]
+    doneCount: number
+  }[]
+  /** §22.4 (D096) — the closed row's holder, age and "Also open" line. */
+  rowSummary: FloorRowSummary
+  /** §22.6a — the systems that do NOT cover this floor, one line. */
+  notOnFloor: { systemName: string; coversLabels: string[] }[]
 }
 
 export function UpdateRegisters({
@@ -69,6 +84,7 @@ export function UpdateRegisters({
   isPic,
   isQcMember,
   approvedPackages,
+  singleSystem,
   isProjectTeamMember,
   isTncTeamMember,
   drawingActor,
@@ -91,6 +107,9 @@ export function UpdateRegisters({
   /** Brief 105 §23.8 — approved material approval packages, for the QC
    *  material inspection block. */
   approvedPackages: ApprovedPackage[]
+  /** §22.6a — one system means no blocks, no selector; the page reads as
+   *  15a–15e and names the system once in the Identity block. */
+  singleSystem: boolean
   isProjectTeamMember: boolean
   isTncTeamMember: boolean
   drawingActor: DrawingActor
@@ -343,6 +362,8 @@ export function UpdateRegisters({
                   <FloorRowView
                     key={floor.id}
                     floor={floor}
+                    singleSystem={singleSystem}
+                    ageOfIso={ageOfIso}
                     summary={summary}
                     band={band}
                     isOpen={isOpen}
@@ -375,6 +396,8 @@ export function UpdateRegisters({
 /** §22.4 closed, §22.6 open. */
 function FloorRowView({
   floor,
+  singleSystem,
+  ageOfIso,
   summary,
   band,
   isOpen,
@@ -393,6 +416,8 @@ function FloorRowView({
   setOpenDrawingId,
 }: {
   floor: UpdateFloor
+  singleSystem: boolean
+  ageOfIso: Record<string, number>
   summary: FloorSummary
   band: MatrixCellState | null
   isOpen: boolean
@@ -470,10 +495,29 @@ function FloorRowView({
                 {oldestAge}d
               </span>
               <span className="update-floor__on">
-                {t('updateFloorOnPrefix')} {t(SUB_STAGE_KEYS[oldest.subStage] ?? 'subStageFirstFix')}
+                {t('updateFloorOnPrefix')}{' '}
+                {/* §22.4 (D096) — the sub-stage is named WITH its system once
+                    more than one system is open, because "19d on first fix"
+                    is ambiguous when three crews have a first fix. */}
+                {!singleSystem && floor.rowSummary.oldest?.systemName
+                  ? `${floor.rowSummary.oldest.systemName} `
+                  : ''}
+                {t(SUB_STAGE_KEYS[oldest.subStage] ?? 'subStageFirstFix')}
               </span>
             </>
           ) : null}
+          {/* §22.4 — every OTHER system with something open, AGE ONLY,
+              oldest first. Their holders are deliberately absent: they are
+              one click away in each system's header, and four names here
+              would bury the one that drives the band. */}
+          {!singleSystem && floor.rowSummary.alsoOpen.length > 0 && (
+            <span className="update-floor__also-open">
+              {t('updateAlsoOpenPrefix')}{' '}
+              {floor.rowSummary.alsoOpen
+                .map((a) => `${a.systemName} ${a.ageDays}d`)
+                .join(' · ')}
+            </span>
+          )}
         </span>
         <span className="update-floor__flags">
           {failedCount > 0 && (
@@ -529,24 +573,79 @@ function FloorRowView({
             systemsReadFailed={systemsReadFailed}
           />
 
-          <SubStageGroup
-            title={t('floorBreakdownInstallationTitle')}
-            rows={installation}
-            canWrite={isProjectTeamMember}
-            teamName="Project Management"
-            projectId={projectId}
-            isQcMember={isQcMember}
-            inspectionType="installation"
-          />
-          <SubStageGroup
-            title={t('floorBreakdownTncTitle')}
-            rows={tnc}
-            canWrite={isTncTeamMember}
-            teamName="TNC"
-            projectId={projectId}
-            isQcMember={isQcMember}
-            inspectionType="commissioning"
-          />
+          {/* §22.6a — one block per system covering this floor, in Project
+              setup order. On a ONE-SYSTEM project there are no blocks at
+              all: the system is named once in the Identity block's stream
+              line and the page reads exactly as 15a–15e. */}
+          {singleSystem ? (
+            <>
+              <SubStageGroup
+                title={t('floorBreakdownInstallationTitle')}
+                rows={installation}
+                canWrite={isProjectTeamMember}
+                teamName="Project Management"
+                projectId={projectId}
+                isQcMember={isQcMember}
+                inspectionType="installation"
+              />
+              <SubStageGroup
+                title={t('floorBreakdownTncTitle')}
+                rows={tnc}
+                canWrite={isTncTeamMember}
+                teamName="TNC"
+                projectId={projectId}
+                isQcMember={isQcMember}
+                inspectionType="commissioning"
+              />
+            </>
+          ) : (
+            floor.systemBlocks.map((block) => (
+              <div key={block.systemId} className="update-system">
+                <div className="update-system__head">
+                  <span className="update-system__name">{block.systemName}</span>
+                  <SystemHolderLine
+                    rows={block.subStages}
+                    cellBySubStageId={floor.cellBySubStageId}
+                    ageOfIso={ageOfIso}
+                  />
+                  <span className="update-system__done">
+                    {block.doneCount} {t('updateFloorDoneCountMiddle')} {block.subStages.length}{' '}
+                    {t('updateFloorDoneCountSuffix')}
+                  </span>
+                </div>
+                <SubStageGroup
+                  title={t('floorBreakdownInstallationTitle')}
+                  rows={block.subStages.filter((r) => r.stage === 'installation')}
+                  canWrite={isProjectTeamMember}
+                  teamName="Project Management"
+                  projectId={projectId}
+                  isQcMember={isQcMember}
+                  inspectionType="installation"
+                />
+                <SubStageGroup
+                  title={t('floorBreakdownTncTitle')}
+                  rows={block.subStages.filter((r) => r.stage === 'tnc')}
+                  canWrite={isTncTeamMember}
+                  teamName="TNC"
+                  projectId={projectId}
+                  isQcMember={isQcMember}
+                  inspectionType="commissioning"
+                />
+              </div>
+            ))
+          )}
+
+          {/* §22.6a — "Not on L8: Car park management — covers B3, B2 and
+              B1." ONE LINE, never rows: a column of dashed cells would
+              claim the work exists and is undone. */}
+          {!singleSystem && floor.notOnFloor.length > 0 && (
+            <p className="update-not-on-floor">
+              {t('updateNotOnFloorPrefix')} {floor.label}:{' '}
+              {floor.notOnFloor
+                .map((n) => `${n.systemName} — ${t('updateNotOnFloorCovers')} ${n.coversLabels.join(', ')}`)
+                .join(' · ')}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -602,5 +701,51 @@ function SubStageGroup({
         />
       ))}
     </div>
+  )
+}
+
+/**
+ * §22.6a — a system block's own holder line: "as §22.4, without the system
+ * name", because the block header already names it.
+ *
+ * This is where the OTHER systems' holders live. §22.4 keeps them off the
+ * closed floor row on purpose — one click away, here — so the row can name
+ * the one person who drives the band without burying them in four names.
+ */
+function SystemHolderLine({
+  rows,
+  cellBySubStageId,
+  ageOfIso,
+}: {
+  rows: SubStageRow[]
+  cellBySubStageId: UpdateFloor['cellBySubStageId']
+  ageOfIso: Record<string, number>
+}) {
+  const { t } = useLanguage()
+
+  let oldest: { holderName: string | null; subStage: string; age: number } | null = null
+  for (const r of rows) {
+    const cell = cellBySubStageId[r.id]
+    if (!cell || !OPEN_STATES.includes(cell.state)) continue
+    const age = cell.clockDate ? (ageOfIso[cell.clockDate] ?? 0) : 0
+    if (!oldest || age > oldest.age) {
+      oldest = { holderName: cell.holderName, subStage: r.subStage, age }
+    }
+  }
+
+  if (!oldest) {
+    return <span className="update-system__holder update-system__holder--idle">{t('updateFloorNothingOpen')}</span>
+  }
+
+  return (
+    <span className="update-system__holder">
+      {oldest.holderName && <span className="update-system__holder-name">{oldest.holderName}</span>}{' '}
+      <span className={`update-system__age${oldest.age >= 16 ? ' update-system__age--stalled' : ''}`}>
+        {oldest.age}d
+      </span>{' '}
+      <span className="update-system__on">
+        {t('updateFloorOnPrefix')} {t(SUB_STAGE_KEYS[oldest.subStage] ?? 'subStageFirstFix')}
+      </span>
+    </span>
   )
 }
