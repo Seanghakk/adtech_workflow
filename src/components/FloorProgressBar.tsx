@@ -4,6 +4,13 @@ import { barSegments, BAR_COUNT_LABEL_KEYS, type CellCounts } from '@/lib/update
 /**
  * Brief 103 — the §10 Floor progress bar, EXTRACTED so it can be reused.
  *
+ * Brief 106b reordered it. Segments now run by DONE-NESS, as mockup 10b
+ * draws them, with not started last as the unfilled tail. See BAR_ORDER in
+ * src/lib/updatePage/summary.ts for why the drawing wins over §10's
+ * "matrix order" sentence. Both callers change together, which is right:
+ * it is one component, and a bar that reads as unfilled reads that way on
+ * the Complete block too.
+ *
  * v7.4 §22.10 says of the Complete block: "reuse that component and the
  * display-state function; do not draw a second one." There was no
  * component — the bar was inline JSX inside /floor-progress's own page,
@@ -37,8 +44,23 @@ export function FloorProgressBar({
         {segments.map((s) => (
           <span
             key={s.state}
-            className={`floor-matrix__cell floor-matrix__cell--${s.state} cross-list__bar-segment`}
-            style={{ flex: s.count }}
+            className={[
+              'floor-matrix__cell',
+              `floor-matrix__cell--${s.state}`,
+              'cross-list__bar-segment',
+              // Not started is the UNFILLED TAIL, not a segment: mockup 10b
+              // draws it `flex:1; background:#fff` with no border of its
+              // own. Keeping the matrix cell's hairline here is what made a
+              // mostly-not-started bar read as an empty track — the rule is
+              // near-invisible against the track's own border, which is the
+              // same rgba(32,30,29,.25).
+              s.state === 'not_started' ? 'cross-list__bar-segment--tail' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            // flex-grow only for the tail, so it takes whatever remains
+            // rather than a share proportional to its count.
+            style={s.state === 'not_started' ? { flex: 1 } : { flex: s.count }}
           />
         ))}
       </div>

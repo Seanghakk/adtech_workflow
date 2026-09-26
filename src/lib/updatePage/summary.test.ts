@@ -39,15 +39,40 @@ describe('the bar (§22.2)', () => {
   it('omits zero-count segments', () => {
     const counts = countCellStates(['qc_passed', 'qc_passed', 'not_started'])
     expect(barSegments(counts).map((s) => [s.state, s.count])).toEqual([
-      ['not_started', 1],
       ['qc_passed', 2],
+      ['not_started', 1],
     ])
   })
 
-  it('keeps matrix order rather than count order', () => {
-    // not_started must come first even though qc_passed is larger.
-    const counts = countCellStates(['qc_passed', 'qc_passed', 'qc_passed', 'not_started'])
-    expect(barSegments(counts)[0].state).toBe('not_started')
+  /**
+   * Brief 106b — DONE-NESS order, not §11.2's legend order.
+   *
+   * §10's "segmented in matrix order" is the stale half of its own
+   * sentence: the same sentence promises "the SIX counts printed below",
+   * mockup 10b draws exactly six segments, and the matrix has SEVEN
+   * states. Ordered by done-ness with white as the tail, it cannot have
+   * seven — the seventh is a cell that does not exist.
+   */
+  it('orders by done-ness, not by the legend, and never by count', () => {
+    const counts = countCellStates(['not_started', 'not_started', 'not_started', 'qc_passed'])
+    const order = barSegments(counts).map((s) => s.state)
+    // qc_passed leads despite being the SMALLER count — not count order.
+    expect(order[0]).toBe('qc_passed')
+    // and not started is the tail, despite being the larger.
+    expect(order[order.length - 1]).toBe('not_started')
+  })
+
+  it('puts not started LAST, which is the whole point of the reorder', () => {
+    // The reported symptom: 26 not started · 3 awaiting QC · 1 QC passed.
+    // In legend order this drew 87% white on the LEFT and the bar read as
+    // failed-to-load, because bars fill from the left.
+    const counts = countCellStates([
+      ...Array(26).fill('not_started'),
+      ...Array(3).fill('awaiting_qc'),
+      'qc_passed',
+    ] as Parameters<typeof countCellStates>[0])
+    const order = barSegments(counts).map((s) => s.state)
+    expect(order).toEqual(['qc_passed', 'awaiting_qc', 'not_started'])
   })
 
   it('shows Not applicable only when above zero', () => {

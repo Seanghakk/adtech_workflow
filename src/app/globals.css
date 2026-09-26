@@ -8843,3 +8843,20 @@ a.floor-matrix__cell {
   .floor-matrix__phone-hidden { display: none; }
   .floor-matrix__cell { min-height: 16px; }
 }
+
+/* Brief 106b — the bar's unfilled tail (mockup 10b).
+   Not started carries no border of its own: at 26 of 30 the matrix cell's
+   hairline is near-invisible against the track's own rgba(32,30,29,.25)
+   border, and the whole bar read as an empty track. It is the remainder,
+   drawn as such. The track keeps §22.2's 1px separators between the
+   segments that DID move, and its 16px height — §10's text and §22.2
+   agree on 16px and only 10b's drawing differs. */
+.cross-list__bar-segment--tail {
+  background: #fff;
+  border: 0;
+}
+/* §22.2 — "1px rule between segments". On the filled segments only; the
+   tail needs no rule because nothing follows it. */
+.cross-list__bar-segment + .cross-list__bar-segment {
+  border-left: 1px solid rgba(32, 30, 29, 0.25);
+}

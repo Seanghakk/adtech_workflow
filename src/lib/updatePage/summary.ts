@@ -16,18 +16,35 @@ import type { MatrixCellState } from '@/app/(app)/projects/[projectId]/floor-mat
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
 /**
- * Matrix order (§11.2's legend order, minus 'not_applicable' which the
- * bar omits unless above zero). §22.2: "the seven matrix fills in matrix
- * order, 1px rule between segments, zero-count segments omitted".
+ * DONE-NESS ORDER, not §11.2's legend order — the order mockup 10b actually
+ * draws, with not-started last as the unfilled tail.
+ *
+ * §10's text says "segmented in matrix order", and that sentence is the
+ * stale half. The evidence is in the same sentence: it promises "the SIX
+ * counts printed below", 10b draws exactly six segments, and the matrix has
+ * SEVEN states. A bar ordered by done-ness with white as the tail cannot
+ * have seven, because the seventh — not applicable — is a cell that does
+ * not exist.
+ *
+ * The reasoning stands on its own too. Bars fill from the left, so a bar
+ * that is white on the left reads as unfilled whatever sits at the right
+ * edge. At 26 not started · 3 awaiting QC · 1 QC passed, legend order put
+ * 87% white on the left and the whole bar read as failed-to-load.
+ *
+ * 'not_applicable' stays in the list but should never be counted here: both
+ * bars are drawn over cells that EXIST, and after D096 a not-applicable
+ * cell is precisely one that does not (§11.2). Zero-count segments are
+ * omitted, so it costs nothing to keep it defensively in the "no work"
+ * half of the order.
  */
 export const BAR_ORDER: MatrixCellState[] = [
-  'not_started',
-  'in_progress',
-  'awaiting_qc',
   'qc_passed',
   'qc_failed',
+  'awaiting_qc',
   'stalled',
+  'in_progress',
   'not_applicable',
+  'not_started',
 ]
 
 export const BAR_COUNT_LABEL_KEYS: Partial<Record<MatrixCellState, DictionaryKey>> = {
