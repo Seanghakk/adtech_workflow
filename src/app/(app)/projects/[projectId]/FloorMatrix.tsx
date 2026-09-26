@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { MATRIX_COLUMNS, type MatrixCellState } from './floor-matrix'
 import type { SystemMatrixRow } from './floor-matrix'
+import { MatrixSystemSelect } from './MatrixSystemSelect'
 
 
 const LEGEND_KEYS: Record<MatrixCellState, DictionaryKey> = {
@@ -86,6 +87,7 @@ export function FloorMatrix({
   t,
   systemCaptions,
   systemsWithoutCoverage,
+  selectedSystemId,
 }: {
   projectId: string
   rows: SystemMatrixRow[]
@@ -96,6 +98,9 @@ export function FloorMatrix({
   /** §11.5 — systems covering nothing. Named in a sentence beneath the
    *  grid rather than drawn as a column of dashed cells. */
   systemsWithoutCoverage: { id: string; name: string }[]
+  /** §11.5 — ?system= carries the 390px choice. Defaults to the first
+   *  group, so the phone always shows a system rather than nothing. */
+  selectedSystemId: string | null
 }) {
   if (rows.length === 0) {
     return <p className="empty-state">{t('floorMatrixEmptyNoFloors')}</p>
@@ -104,6 +109,12 @@ export function FloorMatrix({
   // Every row carries the same groups in the same order, so the header can
   // read them off the first.
   const systems = rows[0].groups
+  // §11.5 — at 390px one system shows at a time. The choice is server-side
+  // so the class lands on the first paint; CSS then hides the rest ONLY at
+  // phone width, leaving the side-by-side grid untouched above it.
+  const phoneSystemId = selectedSystemId ?? systems[0]?.systemId ?? null
+  const phoneHidden = (systemId: string) =>
+    systemId === phoneSystemId ? '' : ' floor-matrix__phone-hidden'
 
   return (
     <div className="floor-matrix">
@@ -134,6 +145,21 @@ export function FloorMatrix({
         </span>
       </div>
 
+      {/* §11.5 — 390px only. Present in the markup at every width; CSS
+          shows it below 560px and the side-by-side grid above. */}
+      {systems.length > 1 && (
+        <MatrixSystemSelect
+          systems={systems.map((sys) => ({
+            systemId: sys.systemId,
+            systemName: sys.systemName,
+            caption: systemCaptions[sys.systemId]?.range
+              ? `${systemCaptions[sys.systemId].range}`
+              : `${systemCaptions[sys.systemId]?.count ?? 0} ${t('floorMatrixFloorsSuffix')}`,
+          }))}
+          selectedId={phoneSystemId ?? ''}
+        />
+      )}
+
       {/* The shared §4.2 data table. Every row repeats the same
           grid-template-columns, which is what makes the five sub-stage
           columns equal instead of sized by their own header text. */}
@@ -146,7 +172,11 @@ export function FloorMatrix({
             {t('floorMatrixFloorColumnHeader')}
           </div>
           {systems.map((sys) => (
-            <div key={sys.systemId} className="floor-matrix__system-group" role="columnheader">
+            <div
+              key={sys.systemId}
+              className={`floor-matrix__system-group${phoneHidden(sys.systemId)}`}
+              role="columnheader"
+            >
               <span className="floor-matrix__system-name">{sys.systemName}</span>
               <span className="floor-matrix__system-coverage">
                 {systemCaptions[sys.systemId]?.range
@@ -163,7 +193,7 @@ export function FloorMatrix({
             MATRIX_COLUMNS.map((col) => (
               <div
                 key={`${sys.systemId}-${col.stage}-${col.subStage}`}
-                className="wf-data-table__head-cell floor-matrix__col-abbr"
+                className={`wf-data-table__head-cell floor-matrix__col-abbr${phoneHidden(sys.systemId)}`}
                 role="columnheader"
               >
                 {/* §11.5 — abbreviated in each group, spelled out once
@@ -189,7 +219,7 @@ export function FloorMatrix({
                 // aligning; an empty div would collapse the grid.
                 if (cell.state === 'not_applicable' || !cell.subStageId) {
                   return (
-                    <div key={key} role="cell">
+                    <div key={key} role="cell" className={phoneHidden(group.systemId).trim()}>
                       <span
                         className="floor-matrix__cell floor-matrix__cell--not_applicable"
                         aria-label={`${row.label} · ${group.systemName} · ${t('floorMatrixLegendNotApplicable')}`}
@@ -198,7 +228,7 @@ export function FloorMatrix({
                   )
                 }
                 return (
-                  <div key={key} role="cell">
+                  <div key={key} role="cell" className={phoneHidden(group.systemId).trim()}>
                     <Link
                       href={`/projects/${projectId}/update?floor=${row.floorId}`}
                       className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}

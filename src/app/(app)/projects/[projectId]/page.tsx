@@ -235,7 +235,8 @@ export default async function SoRecordPage({
           <Link href={`/projects/${project.id}`}>{t('floorMatrixBackToSoRecord')}</Link>
         </div>
 
-        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} systemCaptions={systemCaptions} systemsWithoutCoverage={systemsWithoutCoverage} />
+        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} systemCaptions={systemCaptions} systemsWithoutCoverage={systemsWithoutCoverage}
+          selectedSystemId={typeof sp.system === 'string' ? sp.system : null} />
         </div>
       </>
     )

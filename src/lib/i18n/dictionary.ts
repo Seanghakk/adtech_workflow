@@ -2081,6 +2081,7 @@ const en = {
 
   // ==== Brief 106b / v7.4 §11.5 — systems side by side in the matrix ====
   floorMatrixFloorsSuffix: 'floors',
+  floorMatrixSystemSelectLabel: 'Which system to show',
   // §11.5 — "the sub-stage labels abbreviated in each group to
   // 1st · 2nd · 3rd · Pre · Comm, with one 12px line under the legend
   // spelling them out". Five full labels per system do not fit six systems
