@@ -17,7 +17,8 @@
 import { useActionState, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { coverageShape, removalWarnings, type CoverageFloor } from '@/lib/progressPerSystem/coverage'
-import { saveSystemCoverage, coverageInitialState } from './coverage-actions'
+import { saveSystemCoverage } from './coverage-actions'
+import { coverageInitialState } from './coverage-state'
 
 export interface CoverageFloorRow extends CoverageFloor {
   towerLabel: string | null

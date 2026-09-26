@@ -24,12 +24,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentMember } from '@/lib/auth/current-member'
 import { getServerTranslator } from '@/lib/i18n/server'
 
-export interface CoverageState {
-  error: string | null
-  savedAt: string | null
-}
-
-export const coverageInitialState: CoverageState = { error: null, savedAt: null }
+// A 'use server' file may export ONLY async functions. CoverageState and
+// coverageInitialState live in ./coverage-state because exporting the object
+// from here threw at module evaluation and took every server action on this
+// route down with it — see that file's header.
+import type { CoverageState } from './coverage-state'
 
 export async function saveSystemCoverage(
   _prev: CoverageState,
