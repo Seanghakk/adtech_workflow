@@ -16,7 +16,8 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { getSupabaseSecretKey, getSupabaseUrl } from './env'
+import type { Database } from './database.types'
 
 export function createServiceClient() {
-  return createClient(getSupabaseUrl(), getSupabaseSecretKey())
+  return createClient<Database>(getSupabaseUrl(), getSupabaseSecretKey())
 }

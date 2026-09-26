@@ -83,7 +83,28 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
     return { user: { id: user.id }, member: null }
   }
 
-  const { data: profile } = await supabase
+  // THE ONE CROSS-SCHEMA CALL IN THE APP, and the reason database.types.ts is
+  // generated for `workflow` only. user_profiles lives in `public`; every
+  // client here is pinned to `workflow`, so this is the single place that
+  // steps outside it.
+  //
+  // The cast is deliberate and narrow. Generating the types with
+  // `--schema public` as well would type this call — and would also make
+  // `public` the DEFAULT schema, so every other .from() in the app would
+  // resolve against public's empty table list: 1,624 errors instead of 137,
+  // measured on 26 Sep 2026. One cast here is the cheaper truth. See the
+  // header of src/lib/supabase/database.types.ts before changing either.
+  const { data: profile } = await (supabase as unknown as {
+    schema: (s: 'public') => {
+      from: (t: 'user_profiles') => {
+        select: (c: string) => {
+          eq: (col: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { full_name: string | null; username: string | null } | null }>
+          }
+        }
+      }
+    }
+  })
     .schema('public')
     .from('user_profiles')
     .select('full_name, username')
