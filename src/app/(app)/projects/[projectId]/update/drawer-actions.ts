@@ -131,6 +131,12 @@ export async function submitRevision(
   const { user } = await getCurrentMember()
   if (!user) return fail('You need to be signed in to do this.')
 
+  // checked_at and checked_by are NOT NULL and are omitted here ON PURPOSE:
+  // migration 027's BEFORE INSERT trigger copies them from the recorded
+  // check ("Guarantee 5" in its own comment), so the submission can never
+  // disagree with the check it followed. The generated types cannot see
+  // triggers, so they demand the columns; verified against the live
+  // function before casting rather than "fixing" working code.
   const { error } = await supabase.from('shop_drawing_submissions').insert({
     item_id: itemId,
     revision,
@@ -138,7 +144,7 @@ export async function submitRevision(
     reviewer_org: reviewerOrg || null,
     submitted_at: atEndOfDayIfToday(submittedAt),
     submitted_by: user.id,
-  })
+  } as never)
 
   if (error) {
     if (error.code === '42501') return fail(t('drawerRefusedSubmit'))

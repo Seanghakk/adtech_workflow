@@ -2039,6 +2039,14 @@ const en = {
   overviewLoadFailedHeadline: 'The overview did not load',
 
 
+  // ==== Brief 106b / v7.4 §22.2 — the completion figure's basis ====
+  // §22.2 (D096): with two or more systems the subline reads "⟨n⟩
+  // sub-stages across ⟨n⟩ systems and ⟨n⟩ drawings · in progress counts
+  // half · QC not counted". The last clause is what stops 20% being read
+  // as 20% accepted, and it survives D096 unchanged.
+  updateSummaryBasisAcross: 'across',
+  updateSummaryBasisSystems: 'systems and',
+
   // ==== Brief 106b / v7.4 §12.2a — the system step on the phone ====
   phoneSystemPickerKicker: 'Which system are you updating?',
   phoneSystemPickerHasPrefix: 'has',

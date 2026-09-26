@@ -331,8 +331,11 @@ export async function deleteFloor(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error }
 
+  // Brief 106b — the floor's cells now span every system covering it, so
+  // the pristine check asks the same question of more rows: has ANY system
+  // recorded anything on this floor.
   const { data: subStages } = await supabase
-    .from('floor_sub_stages')
+    .from('progress_cells')
     .select('id, status')
     .eq('floor_id', floorId)
 
@@ -371,7 +374,19 @@ export async function deleteFloor(
   // refused anything, so they are left as plain error checks. The final
   // delete below, by the floor's own id, is exactly the single-row case
   // this brief targets and gets the full verified-write treatment.
-  const { error: subStageError } = await supabase.from('floor_sub_stages').delete().eq('floor_id', floorId)
+  // Deleting the floor's coverage is what removes its cells: migration
+  // 045 cascades progress_cells from project_system_floors, so deleting
+  // coverage first leaves nothing orphaned. The cells are deleted here
+  // too for the case of a floor that was never covered by any system.
+  const { error: coverageError } = await supabase
+    .from('project_system_floors')
+    .delete()
+    .eq('floor_id', floorId)
+  if (coverageError) {
+    return { error: 'Could not remove this floor — try again.' }
+  }
+
+  const { error: subStageError } = await supabase.from('progress_cells').delete().eq('floor_id', floorId)
   if (subStageError) {
     return { error: 'Could not remove this floor — try again.' }
   }

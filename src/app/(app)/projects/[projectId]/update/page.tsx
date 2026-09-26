@@ -649,6 +649,7 @@ export default async function UpdateProgressPage({
               approvedPackages={approvedPackages}
               singleSystem={isSingleSystem}
               soleSystemName={isSingleSystem ? soleSystemName : null}
+              systemCount={(systemRows ?? []).length}
             />
             <div className="wf-empty-state-card update-empty">
               <p className="wf-empty-state-card__headline">
@@ -685,6 +686,7 @@ export default async function UpdateProgressPage({
             approvedPackages={approvedPackages}
             singleSystem={isSingleSystem}
             soleSystemName={isSingleSystem ? soleSystemName : null}
+            systemCount={(systemRows ?? []).length}
           />
         )}
       </div>

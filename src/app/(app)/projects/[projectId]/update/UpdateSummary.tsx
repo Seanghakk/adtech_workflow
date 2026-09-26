@@ -61,7 +61,7 @@ export function UpdateSummary({
   soleSystemName: string | null
   percent: number | null
   counts: CellCounts
-  basis: { subStageCells: number; drawings: number }
+  basis: { subStageCells: number; drawings: number; systemCount: number }
   needs: NeedsAttention
   floors: SummaryFloor[]
   qcListHref: string
@@ -120,8 +120,19 @@ export function UpdateSummary({
               </span>
               {/* open item 21 — the figure's real basis, in words. */}
               <span className="update-summary__basis">
-                {basis.subStageCells} {t('updateSummaryBasisMiddle')} {basis.drawings}{' '}
-                {t('updateSummaryBasisSuffix')}
+                {basis.subStageCells}{' '}
+                {/* §22.2 (D096) — "across n systems" only once there is
+                    more than one. On a one-system project the sentence is
+                    exactly as it was, because nothing about it changed. */}
+                {basis.systemCount > 1 ? (
+                  <>
+                    {t('updateSummaryBasisAcross')} {basis.systemCount}{' '}
+                    {t('updateSummaryBasisSystems')}{' '}
+                  </>
+                ) : (
+                  <>{t('updateSummaryBasisMiddle')} </>
+                )}
+                {basis.drawings} {t('updateSummaryBasisSuffix')}
               </span>
             </div>
             <FloorProgressBar counts={counts} t={t} showCounts={false} />

@@ -86,6 +86,7 @@ export function UpdateRegisters({
   approvedPackages,
   singleSystem,
   soleSystemName,
+  systemCount,
   isProjectTeamMember,
   isTncTeamMember,
   drawingActor,
@@ -112,6 +113,8 @@ export function UpdateRegisters({
    *  15a–15e and names the system once in the Identity block. */
   singleSystem: boolean
   soleSystemName: string | null
+  /** §22.2 — named in the basis subline once above one. */
+  systemCount: number
   isProjectTeamMember: boolean
   isTncTeamMember: boolean
   drawingActor: DrawingActor
@@ -170,8 +173,13 @@ export function UpdateRegisters({
         summaries,
         projectShopDrawing.length,
         floors.reduce((n, f) => n + f.shopDrawing.length, 0),
+        systemCount,
+        // §22.2 (D096) — one bucket per COVERED (system, floor) pair. Each
+        // floor contributes one per system block it actually has, which is
+        // exactly its coverage: a cell cannot exist outside it.
+        floors.reduce((n, f) => n + Math.max(1, f.systemBlocks.length), 0),
       ),
-    [summaries, projectShopDrawing.length, floors],
+    [summaries, projectShopDrawing.length, floors, systemCount],
   )
 
   /** §22.5 — replaceState, never a push: Back must not step through

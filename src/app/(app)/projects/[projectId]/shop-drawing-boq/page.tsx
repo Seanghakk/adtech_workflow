@@ -106,9 +106,15 @@ export default async function ShopDrawingBoqPage({
     (view === 'tower' || view === 'floor') && hasFloorConfig
       ? groupByFloorAndTower(
           lines.map((l) => ({ id: l.id, systemType: l.system_type, totalQuantity: l.total_quantity })),
-          (locationRows ?? []).map((r) => ({
+          // A location with no resolved floor cannot be grouped BY floor —
+          // it is a column header the import never matched to one. Dropped
+          // here rather than grouped under a null key, which would render
+          // as an unnamed floor.
+          (locationRows ?? [])
+            .filter((r) => r.floor_id !== null)
+            .map((r) => ({
             shopDrawingBoqLineId: r.shop_drawing_boq_line_id,
-            floorId: r.floor_id,
+            floorId: r.floor_id as string,
             quantity: r.quantity,
           })),
           towers,

@@ -5,7 +5,19 @@ import type { FloorSubStageRow } from './floorTrackData'
 const INSTALLATION_ORDER = ['first_fix', 'second_fix', 'third_fix']
 
 function row(floorId: string, subStage: string, status: 'not_started' | 'in_progress' | 'done', updatedAt: string): FloorSubStageRow {
-  return { id: `${floorId}-${subStage}`, floorId, stage: 'installation', subStage, status, updatedAt }
+  // Brief 106b — a cell carries its system. These buckets are per FLOOR
+  // (§10.1 keeps one row per project), so the fixture uses one system
+  // throughout; what is being tested is the floor-level rollup.
+  return {
+    id: `${floorId}-${subStage}`,
+    systemId: 'sys-1',
+    systemName: 'CCTV',
+    floorId,
+    stage: 'installation',
+    subStage,
+    status,
+    updatedAt,
+  }
 }
 
 describe('bucketFloorsByStage — Brief 080 judgment call', () => {

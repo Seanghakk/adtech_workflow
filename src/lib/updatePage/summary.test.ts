@@ -248,3 +248,51 @@ describe('floorOption', () => {
     expect(floorOption(floor([]), ageOf).kind).toBe('not_started')
   })
 })
+
+/**
+ * Brief 106b / §22.2 (D096) — the denominator changes, the meaning does not.
+ *
+ * The figure still means: work recorded, in progress counts half, QC not
+ * counted. What moves is the bucket — from one per FLOOR to one per COVERED
+ * (system, floor) PAIR. These pin the arithmetic so the change in the number
+ * is explainable to someone who watches it move.
+ */
+describe('completeBasis — §22.2 after D096', () => {
+  const floor = (cells: number): FloorSummary => ({
+    floorId: `f${cells}`,
+    label: 'L1',
+    towerLabel: null,
+    cells: Array.from({ length: cells }, (_, i) => ({
+      subStageId: `c${i}`,
+      stage: 'installation',
+      subStage: 'first_fix',
+      state: 'not_started' as MatrixCellState,
+      clockDate: null,
+      holderName: null,
+    })),
+  })
+
+  it('buckets one per floor on a one-system project, exactly as before', () => {
+    const b = completeBasis([floor(5), floor(5)], 0, 0)
+    expect(b.buckets).toBe(2)
+    expect(b.systemCount).toBe(1)
+  })
+
+  it('buckets one per COVERED (system, floor) pair once systems exist', () => {
+    // Three floors; CCTV covers all three, Car park covers one. Four pairs.
+    const b = completeBasis([floor(5), floor(5), floor(5)], 0, 0, 2, 4)
+    expect(b.buckets).toBe(4)
+  })
+
+  it('adds the project-drawing bucket only when there are drawings', () => {
+    expect(completeBasis([floor(5)], 0, 0, 2, 3).buckets).toBe(3)
+    expect(completeBasis([floor(5)], 2, 0, 2, 3).buckets).toBe(4)
+  })
+
+  it('does NOT count a floor outside a system s coverage against it', () => {
+    // Two systems, three floors, but only four covered pairs — not six.
+    // Counting six would drag the figure down for work never in scope.
+    const b = completeBasis([floor(5), floor(5), floor(5)], 0, 0, 2, 4)
+    expect(b.buckets).toBeLessThan(6)
+  })
+})

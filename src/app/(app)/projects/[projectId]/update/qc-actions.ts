@@ -55,7 +55,7 @@ export async function recordSubStageInspection(formData: FormData): Promise<{ er
   const { error } = await supabase.from('qc_inspections').insert({
     project_id: projectId,
     inspection_type: inspectionType,
-    floor_sub_stage_id: floorSubStageId,
+    progress_cell_id: floorSubStageId,
     status,
     inspector_id: gate.userId,
     inspected_at: status === 'pending' ? null : new Date().toISOString(),
@@ -98,7 +98,7 @@ export async function recordMaterialInspection(formData: FormData): Promise<{ er
     .insert({
       project_id: projectId,
       inspection_type: 'material',
-      floor_sub_stage_id: null,
+      progress_cell_id: null,
       status,
       inspector_id: gate.userId,
       inspected_at: status === 'pending' ? null : new Date().toISOString(),
