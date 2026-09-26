@@ -14,7 +14,7 @@
 --
 -- Run BEFORE applying 049 and the guard checks print FAIL. That is the point.
 --
--- Expected AFTER 049: 18 rows, all PASS.
+-- Expected AFTER 049: 22 rows, all PASS.
 --
 -- NOTE: this file proves the guards EXIST and are wired correctly. That they
 -- WORK — including that the app's own delete order cannot get around them —
@@ -25,7 +25,7 @@
 with checks as (
 
   -- ---- the opt-in ---------------------------------------------------------
-  select 1 as n, '049 · destructive deletes need an explicit opt-in (marker)' as check_name,
+  select 1::numeric as n, '049 · destructive deletes need an explicit opt-in (marker)' as check_name,
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'workflow' and p.proname = 'destructive_delete_allowed'
                and pg_get_functiondef(p.oid) like '%049 marker: destructive deletes require an explicit opt-in%') as ok
@@ -87,6 +87,32 @@ with checks as (
                and tgname = 'shop_drawing_items_refuse_delete_with_work'
                and not tgisinternal
                and (tgtype & 1) > 0 and (tgtype & 2) > 0 and (tgtype & 8) > 0)
+
+  -- ---- guard 2b: the pre-D096 archive is work too --------------------------
+  -- Staged 045 keeps floor_sub_stages because production holds real recorded
+  -- work in it. Archived work gets the same protection as a live cell.
+  union all select 11.1, '049 · archived pre-D096 work cannot be deleted (marker)',
+    exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'workflow' and p.proname = 'floor_sub_stages_refuse_delete_with_work'
+               and pg_get_functiondef(p.oid) like '%049 marker: archived pre-D096 work cannot be deleted either%')
+  union all select 11.2, '049 · the archive guard is wired BEFORE DELETE, per row',
+    exists (select 1 from pg_trigger
+             where tgrelid = to_regclass('workflow.floor_sub_stages')
+               and tgname = 'floor_sub_stages_refuse_delete_with_work'
+               and not tgisinternal
+               and (tgtype & 1) > 0 and (tgtype & 2) > 0 and (tgtype & 8) > 0)
+  -- An inspection still pointing at an archived row protects it, exactly as
+  -- an inspection protects a cell.
+  union all select 11.3, '049 · an inspection alone protects an archived row',
+    exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'workflow' and p.proname = 'floor_sub_stages_refuse_delete_with_work'
+               and pg_get_functiondef(p.oid) like '%qi.floor_sub_stage_id = old.id%')
+  -- The archive must be inert: nothing recomputes from it any more.
+  union all select 11.4, '049 · the old rollup trigger is off the archive',
+    not exists (select 1 from pg_trigger
+                 where tgrelid = to_regclass('workflow.floor_sub_stages')
+                   and tgname = 'floor_sub_stages_recalculate_rollup'
+                   and not tgisinternal)
 
   -- ---- guard 3: the readable error ----------------------------------------
   union all select 12, '049 · the floor-level message exists (marker)',

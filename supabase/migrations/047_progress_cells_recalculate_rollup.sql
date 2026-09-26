@@ -61,6 +61,7 @@ comment on function workflow.recalculate_rollup_from_progress_cell() is
 -- DELETE matters as much as UPDATE here. Removing a floor from a system
 -- takes its cells out of the figure's denominator, and §6.5 lets that
 -- happen from the coverage editor without any status ever changing.
+drop trigger if exists progress_cells_recalculate_rollup on workflow.progress_cells;
 create trigger progress_cells_recalculate_rollup
   after insert or update or delete on workflow.progress_cells
   for each row

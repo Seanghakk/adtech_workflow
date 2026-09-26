@@ -14,7 +14,7 @@ export interface ProjectSystemRow {
   /** Brief 106b / §6.5 — the floors this system covers, and how much work
    *  has moved on each, for the removal warning. */
   coveredFloorIds: string[]
-  coverageSource: 'import' | 'manual' | null
+  coverageSource: 'import' | 'manual' | 'migrated' | null
   recordedByFloor: Map<string, number>
 }
 
@@ -193,12 +193,25 @@ function SystemRow({
 
       {/* §6.5 — Set by. Blank until coverage exists: "by hand" would be a
           claim about something nobody has done yet. */}
-      <span className="setup-coverage__set-by">
+      {/* Migration 045's backfill is amber and says "check": it is a guess
+          the migration had to make so the matrix was not blank, not a
+          decision anyone took. Saying "By hand" here would be the same false
+          claim the blank case above refuses to make. It warns and does not
+          block — §6.2, as with the removal warning. */}
+      <span
+        className={
+          system.coverageSource === 'migrated'
+            ? 'setup-coverage__set-by setup-coverage__set-by--check'
+            : 'setup-coverage__set-by'
+        }
+      >
         {system.coveredFloorIds.length === 0
           ? '—'
           : system.coverageSource === 'import'
             ? t('setupCoverageSourceImport')
-            : t('setupCoverageSourceManual')}
+            : system.coverageSource === 'migrated'
+              ? t('setupCoverageSourceMigrated')
+              : t('setupCoverageSourceManual')}
       </span>
 
       {/* §6.4 — where a person cannot edit, a sentence stands in place of the

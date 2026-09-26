@@ -8860,3 +8860,17 @@ a.floor-matrix__cell {
 .cross-list__bar-segment + .cross-list__bar-segment {
   border-left: 1px solid rgba(32, 30, 29, 0.25);
 }
+
+/* Brief 106 — coverage that migration 045 assumed rather than anyone
+   choosing. §6.2: it warns, it does not block, and it is a word rather than
+   an icon so it survives being read aloud or printed. The ink token, not the
+   flat amber, because this sits in a dense table row where a solid swatch
+   would read as a status rather than a caveat. */
+.setup-coverage__set-by--check {
+  color: var(--wf-amber-ink);
+  background: var(--wf-amber-tint);
+  border: 1px solid var(--wf-amber-edge);
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+}

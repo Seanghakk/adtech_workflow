@@ -2136,6 +2136,10 @@ const en = {
   setupCoverageCancel: 'Cancel',
   setupCoverageSourceImport: 'Import',
   setupCoverageSourceManual: 'By hand',
+  // Migration 045 backfilled this when D096 landed, on the only rule it
+  // had: every system covers every floor. Amber, because it is a guess
+  // nobody has confirmed — not a decision someone made.
+  setupCoverageSourceMigrated: 'Assumed — check',
   // §6.5 — "No floors." in amber, then the sentence.
   setupCoverageNoFloors: 'No floors.',
   setupCoverageNoFloorsBodyPrefix: 'Progress cannot be recorded for',

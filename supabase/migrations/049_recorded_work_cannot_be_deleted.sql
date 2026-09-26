@@ -157,6 +157,7 @@ comment on function workflow.progress_cells_refuse_delete_with_work() is
    deletes coverage and cells before the floor, so a floor-level check runs
    after the evidence is gone. This one cannot be reordered around.';
 
+drop trigger if exists progress_cells_refuse_delete_with_work on workflow.progress_cells;
 create trigger progress_cells_refuse_delete_with_work
   before delete on workflow.progress_cells
   for each row
@@ -190,10 +191,59 @@ begin
 end;
 $function$;
 
+drop trigger if exists shop_drawing_items_refuse_delete_with_work on workflow.shop_drawing_items;
 create trigger shop_drawing_items_refuse_delete_with_work
   before delete on workflow.shop_drawing_items
   for each row
   execute function workflow.shop_drawing_items_refuse_delete_with_work();
+
+-- -----------------------------------------------------------------------------
+-- Guard 2b — the ARCHIVE is work too
+-- -----------------------------------------------------------------------------
+-- Staged 045 keeps workflow.floor_sub_stages rather than dropping it, because
+-- production holds real recorded work there. Archived work is still work, so
+-- it gets the same protection: nothing may delete a pre-D096 row that carries
+-- a status, or that a QC inspection still points at. Migration 050 re-points
+-- those rows and drops the table under the escape hatch; until then this is
+-- what stops them going quietly.
+
+create or replace function workflow.floor_sub_stages_refuse_delete_with_work()
+returns trigger
+language plpgsql
+security definer
+set search_path = workflow, pg_temp
+as $function$
+declare
+  v_inspections int;
+begin
+  -- 049 marker: archived pre-D096 work cannot be deleted either
+  if workflow.destructive_delete_allowed() then
+    return old;
+  end if;
+
+  select count(*) into v_inspections
+    from workflow.qc_inspections qi
+   where qi.floor_sub_stage_id = old.id;
+
+  if old.status <> 'not_started' or old.photo_url is not null or v_inspections > 0 then
+    raise exception
+      using errcode = 'restrict_violation',
+            message = 'This pre-D096 record carries work and cannot be deleted.',
+            detail  = format('floor_sub_stages %s: status %s, inspections %s',
+                             old.id, old.status, v_inspections),
+            hint    = 'Migration 050 re-points these onto progress cells. '
+                      'Until then they are kept, not removed.';
+  end if;
+
+  return old;
+end;
+$function$;
+
+drop trigger if exists floor_sub_stages_refuse_delete_with_work on workflow.floor_sub_stages;
+create trigger floor_sub_stages_refuse_delete_with_work
+  before delete on workflow.floor_sub_stages
+  for each row
+  execute function workflow.floor_sub_stages_refuse_delete_with_work();
 
 -- -----------------------------------------------------------------------------
 -- Guard 3 — the readable error, for the case people actually hit
@@ -249,6 +299,7 @@ begin
 end;
 $function$;
 
+drop trigger if exists project_floors_refuse_delete_with_work on workflow.project_floors;
 create trigger project_floors_refuse_delete_with_work
   before delete on workflow.project_floors
   for each row
@@ -257,10 +308,20 @@ create trigger project_floors_refuse_delete_with_work
 -- -----------------------------------------------------------------------------
 -- The orphan
 -- -----------------------------------------------------------------------------
--- No trigger references it (verified against the live schema before writing
--- this). Dropped without CASCADE deliberately: if anything DOES depend on it,
--- this migration should fail loudly rather than quietly remove that too.
+-- Staged 045 KEEPS workflow.floor_sub_stages, so unlike the first version of
+-- this migration the old rollup trigger is still attached to it and the
+-- function is NOT an orphan. Dropping the function alone would now fail on
+-- the dependency — caught here rather than on production.
+--
+-- The archive is meant to be inert: nothing writes it, so nothing should be
+-- recomputing from it either. The trigger goes first, which makes the
+-- function genuinely unreferenced, and then it goes.
+--
+-- Both drops are without CASCADE on purpose: if something else turns out to
+-- depend on either, this migration should stop and say so rather than
+-- quietly remove that too.
 
+drop trigger if exists floor_sub_stages_recalculate_rollup on workflow.floor_sub_stages;
 drop function if exists workflow.recalculate_rollup_from_sub_stage();
 
 commit;

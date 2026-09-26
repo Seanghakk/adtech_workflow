@@ -190,11 +190,19 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
     const sources = (coverageRows ?? [])
       .filter((c) => c.project_system_id === s.id)
       .map((c) => c.source)
+    // Migration 045 backfilled coverage for projects that predate D096, on
+    // the only rule available to it — every system covers every floor of its
+    // project. That is a guess, and it is ranked LAST here on purpose: any
+    // hand-set or imported row means a real decision has been made about
+    // this system, so the row stops asking to be checked. Only a system
+    // still entirely on the migration's guess keeps the amber.
     const coverageSource = sources.length === 0
       ? null
       : sources.some((x) => x === 'manual')
         ? ('manual' as const)
-        : ('import' as const)
+        : sources.some((x) => x === 'import')
+          ? ('import' as const)
+          : ('migrated' as const)
 
     const recordedByFloor = new Map<string, number>()
     for (const floorId of covered) {

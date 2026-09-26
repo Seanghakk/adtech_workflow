@@ -16,18 +16,32 @@
 -- its migration. Run this file BEFORE applying and most checks print FAIL —
 -- that is the point, and it is how you know the file is testing anything.
 --
--- Expected AFTER 045, 046, 047 and 048: 34 rows, all PASS.
+-- Expected AFTER 045, 046, 047 and 048: 41 rows. Check 39 is a PRECONDITION
+-- for migration 050 and may legitimately FAIL — read its comment.
+--
+-- 045 IS STAGED since it failed on production: it no longer drops
+-- floor_sub_stages or floor_sub_stage_id, it accepts either model on an
+-- inspection, and it backfills coverage so no project lands on a blank
+-- matrix. Checks 3, 3.1, 16, 16.1 and 35-38 are the ones that say so.
 -- =============================================================================
 
 with checks as (
 
   -- ---- 045: the reshape ---------------------------------------------------
-  select 1 as n, '045 · progress_cells exists' as check_name,
+  select 1::numeric as n, '045 · progress_cells exists' as check_name,
     (to_regclass('workflow.progress_cells') is not null) as ok
   union all select 2, '045 · project_system_floors exists',
     (to_regclass('workflow.project_system_floors') is not null)
-  union all select 3, '045 · floor_sub_stages is GONE',
-    (to_regclass('workflow.floor_sub_stages') is null)
+  -- STAGED. The first version of 045 dropped this table, and on production
+  -- that meant deleting 30 rows, 4 of them carrying recorded work. It is now
+  -- kept as a frozen archive until migration 050 re-points what points at it.
+  union all select 3, '045 · floor_sub_stages is PRESERVED (frozen archive)',
+    (to_regclass('workflow.floor_sub_stages') is not null)
+  union all select 3.1, '045 · nothing writes the archive any more (seed trigger gone)',
+    (not exists (select 1 from pg_trigger
+                  where tgname = 'project_floors_seed_children' and not tgisinternal)
+     and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                      where n.nspname = 'workflow' and p.proname = 'seed_floor_children'))
 
   -- A cell cannot exist outside coverage — 17a item 20's composite FK, the
   -- rule that makes "not applicable" mean something.
@@ -101,10 +115,19 @@ with checks as (
     exists (select 1 from information_schema.columns
              where table_schema = 'workflow' and table_name = 'qc_inspections'
                and column_name = 'progress_cell_id')
-  union all select 16, '045 · floor_sub_stage_id is gone from inspections',
-    not exists (select 1 from information_schema.columns
-                 where table_schema = 'workflow' and table_name = 'qc_inspections'
-                   and column_name = 'floor_sub_stage_id')
+  -- STAGED. Dropping this column is what made 045 fail on production: it
+  -- destroyed the only link an existing inspection had, and then demanded a
+  -- replacement link that could not exist yet. It stays until 050.
+  union all select 16, '045 · floor_sub_stage_id is KEPT, so the old link survives',
+    exists (select 1 from information_schema.columns
+             where table_schema = 'workflow' and table_name = 'qc_inspections'
+               and column_name = 'floor_sub_stage_id')
+  union all select 16.1, '045 · the shape check accepts EITHER model (the staging rule)',
+    exists (select 1 from pg_constraint
+             where conrelid = to_regclass('workflow.qc_inspections')
+               and conname = 'qc_inspections_shape_check'
+               and pg_get_constraintdef(oid) like '%floor_sub_stage_id%'
+               and pg_get_constraintdef(oid) like '%progress_cell_id%')
   union all select 17, '045 · material inspection still carries NO cell',
     exists (
       select 1 from pg_constraint
@@ -234,6 +257,89 @@ with checks as (
             false, true, ''
           )
         )
+      )[1]::text::bigint = 0
+    end
+
+  -- ---- the coverage backfill (045 section 9) -------------------------------
+  union all select 35, '045 · ''migrated'' is an allowed coverage source',
+    exists (select 1 from pg_constraint
+             where conrelid = to_regclass('workflow.project_system_floors')
+               and conname = 'project_system_floors_source_check'
+               and pg_get_constraintdef(oid) like '%migrated%')
+
+  -- THE ONE THAT MATTERS. After 045, no project that has both floors and
+  -- systems may be left without coverage — that is the blank matrix and the
+  -- drawings-only completion figure. Same query_to_xml guard as check 34, so
+  -- a pre-migration run prints FAIL instead of aborting the file.
+  union all select 36, '045 · NO project with floors and systems is left uncovered',
+    case
+      when to_regclass('workflow.project_system_floors') is null then false
+      else (
+        xpath('/row/c/text()', query_to_xml(
+          'select count(*) as c
+             from (select distinct ps.project_id
+                     from workflow.project_systems ps
+                     join workflow.project_floors f on f.project_id = ps.project_id) p
+            where not exists (
+                    select 1 from workflow.project_system_floors psf
+                      join workflow.project_systems ps2 on ps2.id = psf.project_system_id
+                     where ps2.project_id = p.project_id
+                       and psf.removed_at is null)',
+          false, true, ''))
+      )[1]::text::bigint = 0
+    end
+
+  -- Every (system, floor) pair inside a project should have coverage after
+  -- the backfill. A gap here means the backfill did not reach something.
+  union all select 37, '045 · every system covers every floor of its project',
+    case
+      when to_regclass('workflow.project_system_floors') is null then false
+      else (
+        xpath('/row/c/text()', query_to_xml(
+          'select count(*) as c
+             from workflow.project_systems ps
+             join workflow.project_floors f on f.project_id = ps.project_id
+            where not exists (
+                    select 1 from workflow.project_system_floors psf
+                     where psf.project_system_id = ps.id
+                       and psf.floor_id = f.id)',
+          false, true, ''))
+      )[1]::text::bigint = 0
+    end
+
+  -- The archive must still hold whatever it held. Zero is a legitimate
+  -- answer on a database that never had the old model; what would NOT be
+  -- legitimate is rows having disappeared, which check 3 guards by keeping
+  -- the table. This reports the count so the number is visible in the run.
+  union all select 38, '045 · archived rows carrying work are still readable',
+    case
+      when to_regclass('workflow.floor_sub_stages') is null then false
+      else true
+    end
+
+  -- ---- the DATA PRECONDITION, which is what 045 was missing ---------------
+  -- Migration 050 has to re-point every inspection still on the old model
+  -- onto a progress cell. It can only do that if the inspection's project
+  -- HAS a system to attach a cell to. This is that precondition, written as
+  -- a check instead of as a sentence in a comment — which is the whole
+  -- lesson of 045 (see docs/rollback-test-sync.md, "Data preconditions").
+  --
+  -- EXPECT THIS TO FAIL ON PRODUCTION TODAY. There is one installation
+  -- inspection on a project with zero systems. That is not a reason to
+  -- delete it; it is the work item: create that project's system in setup,
+  -- and this turns PASS. 050 must not run while it is FAIL.
+  union all select 39, '050 precondition · every old-model inspection has a system to move to',
+    case
+      when to_regclass('workflow.floor_sub_stages') is null then true
+      else (
+        xpath('/row/c/text()', query_to_xml(
+          'select count(*) as c
+             from workflow.qc_inspections qi
+            where qi.floor_sub_stage_id is not null
+              and qi.progress_cell_id is null
+              and not exists (select 1 from workflow.project_systems ps
+                               where ps.project_id = qi.project_id)',
+          false, true, ''))
       )[1]::text::bigint = 0
     end
 )

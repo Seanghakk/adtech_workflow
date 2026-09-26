@@ -11,11 +11,32 @@
 -- After this migration a cell is ONE SYSTEM, ONE FLOOR, ONE SUB-STAGE, and each
 -- system carries the floors it covers.
 --
--- THIS MIGRATION DROPS AND RECREATES THE PROGRESS TABLES. That is deliberate
--- and is a reversal of the no-backfill rule that governed migrations 029–044:
--- 17a item 18 records that everything in the app today is test data, so there
--- is nothing to preserve and no backfill question arises. Rows are not
--- protected because they protect nothing.
+-- THIS MIGRATION IS STAGED. IT DESTROYS NOTHING. Read this before changing it.
+--
+-- The first version dropped workflow.floor_sub_stages and
+-- qc_inspections.floor_sub_stage_id outright, on the strength of 17a item 18
+-- — "everything in the app today is test data". IT FAILED ON PRODUCTION, and
+-- the failure was the smaller half of the problem.
+--
+-- Measured on production afterwards: floor_sub_stages held 30 rows, FOUR OF
+-- THEM CARRYING RECORDED WORK, and a QC inspection pointed into it. 17a item
+-- 18 was true of rollback-test and false of production, and I had written it
+-- into this file as though it were a fact about the system. A migration does
+-- not get to delete work because a design note said there would not be any.
+--
+-- So now:
+--   * the old table and the old column STAY, as a frozen archive that
+--     nothing writes to (section 6);
+--   * the inspection constraint accepts EITHER model while the app crosses
+--     over (section 5);
+--   * existing projects get coverage, so nobody opens the app to a blank
+--     matrix (section 9);
+--   * migration 050 re-points the archived rows once coverage exists, and
+--     only then drops anything.
+--
+-- Every trigger here is dropped-if-exists before being created, so this file
+-- can be re-run safely after a failed attempt. That is not hypothetical: it
+-- already happened once.
 --
 -- WHAT "NOT APPLICABLE" NOW IS. It is the ABSENCE of a cell — a floor outside
 -- a system's coverage. Brief 101 found the app could not produce §11.2's
@@ -58,7 +79,12 @@ create table if not exists workflow.project_system_floors (
   removed_at        timestamptz,
 
   constraint project_system_floors_unique unique (project_system_id, floor_id),
-  constraint project_system_floors_source_check check (source in ('import', 'manual'))
+  -- 'migrated' is this migration's own backfill (section 9). It is a third
+  -- value on purpose: calling it 'manual' would claim a person chose these
+  -- floors, and nobody did. The setup screen renders it in amber and asks
+  -- for it to be checked.
+  constraint project_system_floors_source_check
+    check (source in ('import', 'manual', 'migrated'))
 );
 
 comment on table workflow.project_system_floors is
@@ -169,6 +195,7 @@ begin
 end;
 $function$;
 
+drop trigger if exists project_system_floors_after_insert on workflow.project_system_floors;
 create trigger project_system_floors_after_insert
   after insert on workflow.project_system_floors
   for each row
@@ -189,6 +216,7 @@ begin
 end;
 $function$;
 
+drop trigger if exists project_system_floors_after_update on workflow.project_system_floors;
 create trigger project_system_floors_after_update
   after update of removed_at on workflow.project_system_floors
   for each row
@@ -237,6 +265,7 @@ comment on function workflow.project_floors_extend_full_coverage() is
    basement does not silently acquire L27. The screen states which systems it
    joined and which it did not, so the rule is visible rather than surprising.';
 
+drop trigger if exists project_floors_extend_full_coverage on workflow.project_floors;
 create trigger project_floors_extend_full_coverage
   after insert on workflow.project_floors
   for each row
@@ -250,22 +279,53 @@ alter table workflow.qc_inspections
   add column if not exists progress_cell_id uuid
     references workflow.progress_cells (id) on delete cascade;
 
--- The old shape keyed inspections to floor + sub-stage, which cannot say which
--- system was inspected. Nothing is carried over: there are no inspections to
--- carry (checked before writing this migration, and the verification asserts
--- it again).
+-- STAGED, AND THIS IS THE CORRECTION THAT MATTERS.
+--
+-- The first version of this migration dropped floor_sub_stage_id here and
+-- then demanded progress_cell_id be NOT NULL for installation and
+-- commissioning inspections. It FAILED ON PRODUCTION, and it could never
+-- have succeeded:
+--
+--   * progress_cell_id is a brand new column, so it is null on every
+--     existing row; and
+--   * nothing in this migration creates coverage for a project that has no
+--     systems, so at this point in the transaction there may be NO
+--     progress_cells at all — there is no cell for an inspection to point
+--     at. The constraint was unsatisfiable by construction, not merely
+--     unsatisfied.
+--
+-- The comment that used to sit here said "there are no inspections to carry
+-- (checked before writing this migration, and the verification asserts it
+-- again)". Both halves were wrong. It was checked on rollback-test, which
+-- has zero inspections, and written as though it were a fact about the
+-- system; and no check in the verification file counted inspection rows.
+-- Production had one installation inspection and it stopped the migration.
+--
+-- So the old link is KEPT, not dropped. floor_sub_stage_id stays, the old
+-- rows stay, and the constraint accepts EITHER model while the app moves
+-- across. Migration 050 re-points the rows once coverage exists and then
+-- tightens this to progress_cell_id alone. Nothing is destroyed to make a
+-- constraint pass.
 alter table workflow.qc_inspections
   drop constraint if exists qc_inspections_shape_check;
 
 alter table workflow.qc_inspections
-  drop column if exists floor_sub_stage_id;
-
-alter table workflow.qc_inspections
   add constraint qc_inspections_shape_check
     check (
-      (inspection_type = 'material' and progress_cell_id is null)
-      or (inspection_type in ('installation', 'commissioning') and progress_cell_id is not null)
+      (inspection_type = 'material'
+        and progress_cell_id is null
+        and floor_sub_stage_id is null)
+      or (inspection_type in ('installation', 'commissioning')
+        and (progress_cell_id is not null or floor_sub_stage_id is not null))
     );
+
+comment on constraint qc_inspections_shape_check on workflow.qc_inspections is
+  'Migration 045, STAGED. An installation or commissioning inspection must
+   point at something — the new cell OR the old sub-stage — and a material
+   inspection at neither. Deliberately accepts both models: this migration
+   cannot re-point existing rows, because coverage (and therefore any cell to
+   point at) may not exist yet. Migration 050 tightens this to
+   progress_cell_id alone once the re-pointing has actually happened.';
 
 comment on column workflow.qc_inspections.progress_cell_id is
   'Migration 045 / 17a item 21. Replaces floor_sub_stage_id: an inspection is
@@ -275,12 +335,39 @@ comment on column workflow.qc_inspections.progress_cell_id is
    null for it and the shape constraint still says so.';
 
 -- -----------------------------------------------------------------------------
--- 6. Out with the old
+-- 6. The old model stops being WRITTEN to. It is not destroyed.
 -- -----------------------------------------------------------------------------
+--
+-- The seeding trigger goes, so a new floor no longer creates old-model rows:
+-- from here on, cells come from coverage. But workflow.floor_sub_stages
+-- ITSELF STAYS, with every row in it.
+--
+-- The first version of this migration dropped it with CASCADE. On production
+-- that table holds 30 rows, FOUR OF THEM CARRYING RECORDED WORK, and one QC
+-- inspection points into it. The justification for dropping was 17a item 18
+-- — "everything in the app today is test data" — which is true of
+-- rollback-test and is NOT true of production. A migration does not get to
+-- delete work because a design note said there would not be any.
+--
+-- The table is now a frozen archive: nothing writes to it, migration 050
+-- reads it to re-point the inspections and the recorded statuses once
+-- coverage exists, and only then does it go.
+--
+-- The CASCADE is also what silently took the rollup trigger (migration 047)
+-- and the shape check and write policies (migration 048). Not dropping the
+-- table removes that whole class of loss from this migration.
 
 drop trigger if exists project_floors_seed_children on workflow.project_floors;
 drop function if exists workflow.seed_floor_children() cascade;
-drop table if exists workflow.floor_sub_stages cascade;
+
+comment on table workflow.floor_sub_stages is
+  'FROZEN ARCHIVE as of migration 045. The pre-D096 model: one status per
+   floor per sub-stage, with no system, which is why it is being replaced by
+   workflow.progress_cells. NOTHING WRITES TO THIS TABLE ANY MORE — the
+   seeding trigger was removed by 045. It is kept, with its rows, because
+   production holds real recorded work here and one QC inspection still
+   points at it. Migration 050 re-points those and then drops this table.
+   Do not add new readers.';
 
 -- -----------------------------------------------------------------------------
 -- 7. The completion figure — 17a item 23
@@ -422,6 +509,45 @@ create policy progress_cells_write on workflow.progress_cells
          and p.pic_id = (select auth.uid())
     )
   );
+
+-- -----------------------------------------------------------------------------
+-- 9. Existing projects get coverage, so nobody opens the app to a blank screen
+-- -----------------------------------------------------------------------------
+--
+-- Without this, every project that existed before D096 has no coverage, and
+-- therefore no cells: an empty matrix and a completion figure computed from
+-- drawings alone. That is not an acceptable state to land people in.
+--
+-- THE RULE: every system covers every floor of its own project. That is the
+-- most that is knowable here, and it is the safe direction to be wrong in.
+-- Over-covering shows a floor that may not be that system's work — visible,
+-- and corrected in setup in seconds. Under-covering HIDES work, and nothing
+-- on screen would say so. So the default is maximal, flagged, and easy to
+-- narrow, rather than minimal and silent.
+--
+-- The 'migrated' source is what makes it honest: the setup screen shows
+-- these in amber with "check this", instead of claiming a person set them.
+--
+-- MEASURED ON PRODUCTION BEFORE WRITING THIS: it will insert ZERO rows
+-- today, because no project on production has any systems at all
+-- (project_systems is empty). This is still correct, and it is still
+-- necessary — it is what keeps any project that DOES have systems whole,
+-- here and in every other environment. But it does not by itself prevent
+-- the blank screen on production: nothing can, until that project's systems
+-- exist. Creating them in setup is the step, and it is a small one.
+--
+-- Idempotent, so re-running this migration cannot double up or overwrite a
+-- correction someone has already made.
+
+insert into workflow.project_system_floors (project_system_id, floor_id, source)
+select ps.id, f.id, 'migrated'
+  from workflow.project_systems ps
+  join workflow.project_floors f on f.project_id = ps.project_id
+on conflict (project_system_id, floor_id) do nothing;
+
+-- The insert trigger from section 3 has now seeded five cells for each pair,
+-- so the matrix and the figure have something to show the moment this
+-- migration commits.
 
 create index if not exists project_system_floors_system_idx
   on workflow.project_system_floors (project_system_id);

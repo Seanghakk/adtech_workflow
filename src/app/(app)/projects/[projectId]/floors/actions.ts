@@ -358,6 +358,18 @@ export async function deleteFloor(
     .eq('floor_id', floorId)
     .eq('scope', 'floor')
 
+  // Brief 106, staged 045: workflow.floor_sub_stages is no longer dropped —
+  // it is a frozen archive of the pre-D096 model, and production really does
+  // hold recorded work in it. Its floor_id FK is ON DELETE RESTRICT, so a
+  // floor with archived rows cannot be deleted while they exist; and archived
+  // work is still work, so it counts towards "pristine" exactly as a cell
+  // does. Migration 050 re-points these and drops the table, and this block
+  // goes with it.
+  const { data: archived } = await supabase
+    .from('floor_sub_stages')
+    .select('id, status')
+    .eq('floor_id', floorId)
+
   const { count: materialInspectionCount } = await supabase
     .from('qc_inspection_floors')
     .select('qc_inspection_id', { count: 'exact', head: true })
@@ -388,6 +400,7 @@ export async function deleteFloor(
   const isPristine =
     (subStages ?? []).every((s) => s.status === 'not_started') &&
     (drawingItems ?? []).every((d) => d.status === 'not_started') &&
+    (archived ?? []).every((a) => a.status === 'not_started') &&
     materialInspectionCount === 0 &&
     subStageInspectionCount === 0
 
@@ -415,6 +428,14 @@ export async function deleteFloor(
 
   const { error: subStageError } = await supabase.from('progress_cells').delete().eq('floor_id', floorId)
   if (subStageError) {
+    return { error: 'Could not remove this floor — try again.' }
+  }
+
+  // The archived rows go too, but only because everything above proved they
+  // are untouched. Their FK is ON DELETE RESTRICT, so without this the floor
+  // delete below simply fails.
+  const { error: archivedError } = await supabase.from('floor_sub_stages').delete().eq('floor_id', floorId)
+  if (archivedError) {
     return { error: 'Could not remove this floor — try again.' }
   }
 

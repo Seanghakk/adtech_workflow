@@ -30,6 +30,7 @@
  * what makes tsc mean anything across a reshape this size.
  */
 
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -273,6 +274,25 @@ isOneToOne: false
       columns: ["project_id"]
 isOneToOne: false
       referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"floor_sub_stages": {
+                  Row: {
+                    "created_at": string,"floor_id": string,"id": string,"photo_url": string | null,"sequence": number,"stage": string,"status": string,"sub_stage": string,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"floor_id": string,"id"?: string,"photo_url"?: string | null,"sequence": number,"stage": string,"status"?: string,"sub_stage": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"floor_id"?: string,"id"?: string,"photo_url"?: string | null,"sequence"?: number,"stage"?: string,"status"?: string,"sub_stage"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "floor_sub_stages_floor_id_fkey"
+      columns: ["floor_id"]
+isOneToOne: false
+      referencedRelation: "project_floors"
       referencedColumns: ["id"]
     }
                   ]
@@ -792,13 +812,13 @@ isOneToOne: false
                   ]
                 },"qc_inspections": {
                   Row: {
-                    "approval_package_id": string | null,"created_at": string,"id": string,"inspected_at": string | null,"inspection_type": string,"inspector_id": string | null,"notes": string | null,"progress_cell_id": string | null,"project_id": string,"status": string,"updated_at": string
+                    "approval_package_id": string | null,"created_at": string,"floor_sub_stage_id": string | null,"id": string,"inspected_at": string | null,"inspection_type": string,"inspector_id": string | null,"notes": string | null,"progress_cell_id": string | null,"project_id": string,"status": string,"updated_at": string
                   }
                   Insert: {
-                    "approval_package_id"?: string | null,"created_at"?: string,"id"?: string,"inspected_at"?: string | null,"inspection_type": string,"inspector_id"?: string | null,"notes"?: string | null,"progress_cell_id"?: string | null,"project_id": string,"status"?: string,"updated_at"?: string
+                    "approval_package_id"?: string | null,"created_at"?: string,"floor_sub_stage_id"?: string | null,"id"?: string,"inspected_at"?: string | null,"inspection_type": string,"inspector_id"?: string | null,"notes"?: string | null,"progress_cell_id"?: string | null,"project_id": string,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "approval_package_id"?: string | null,"created_at"?: string,"id"?: string,"inspected_at"?: string | null,"inspection_type"?: string,"inspector_id"?: string | null,"notes"?: string | null,"progress_cell_id"?: string | null,"project_id"?: string,"status"?: string,"updated_at"?: string
+                    "approval_package_id"?: string | null,"created_at"?: string,"floor_sub_stage_id"?: string | null,"id"?: string,"inspected_at"?: string | null,"inspection_type"?: string,"inspector_id"?: string | null,"notes"?: string | null,"progress_cell_id"?: string | null,"project_id"?: string,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -806,6 +826,12 @@ isOneToOne: false
       columns: ["approval_package_id"]
 isOneToOne: false
       referencedRelation: "material_approval_packages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "qc_inspections_floor_sub_stage_id_fkey"
+      columns: ["floor_sub_stage_id"]
+isOneToOne: false
+      referencedRelation: "floor_sub_stages"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "qc_inspections_progress_cell_id_fkey"
@@ -1280,6 +1306,9 @@ isOneToOne: false
                            },
 "current_team":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"destructive_delete_allowed":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "get_user_profiles":
 { Args: { "p_ids": (string)[] }; Returns: {
