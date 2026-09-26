@@ -37,8 +37,24 @@ with checks as (
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'workflow' and p.proname = 'destructive_delete_allowed'
                and pg_get_functiondef(p.oid) like '%current_setting(''workflow.allow_destructive_delete'', true)%')
+  -- SAME DEFECT CLASS AS CHECK 39 IN THE 045-048 FILE, and it aborted this
+  -- file the same way. Calling workflow.destructive_delete_allowed() directly
+  -- resolves the FUNCTION NAME at parse time, so before 049 exists the whole
+  -- file died with "function does not exist" instead of printing its FAIL
+  -- table. A CASE guard cannot help: the branch is parsed whether or not it
+  -- is taken. Deferred through query_to_xml, which parses its string only
+  -- when it executes — after the guard above has already answered.
   union all select 3, '049 · the opt-in is OFF right now (nothing set it)',
-    (workflow.destructive_delete_allowed() = false)
+    case
+      when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                        where n.nspname = 'workflow' and p.proname = 'destructive_delete_allowed')
+        then false
+      else (
+        xpath('/row/c/text()', query_to_xml(
+          'select (workflow.destructive_delete_allowed() = false)::int as c',
+          false, true, ''))
+      )[1]::text::int = 1
+    end
 
   -- ---- guard 1: the progress cell, which is where the work lives ----------
   union all select 4, '049 · a cell carrying work cannot be deleted (marker)',

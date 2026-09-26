@@ -339,15 +339,41 @@ with checks as (
   -- inspection on a project with zero systems. That is not a reason to
   -- delete it; it is the work item: create that project's system in setup,
   -- and this turns PASS. 050 must not run while it is FAIL.
+  --
+  -- THE GUARD HERE IS ON THE COLUMN, NOT THE TABLE, and that distinction is
+  -- the whole point. An earlier version guarded on floor_sub_stages, which
+  -- EXISTS before the migration — so the guard passed, query_to_xml ran, and
+  -- the query inside it named qi.progress_cell_id, which 045 creates. The
+  -- file aborted with 42703 on precisely the pre-migration run that needs to
+  -- be readable. Deferring the TABLE does nothing when the COLUMN is what is
+  -- missing; query_to_xml parses its string when it executes, and a column
+  -- that does not exist fails at parse just as a table does.
+  --
+  -- So the progress_cell_id predicate is CONCATENATED IN only when that
+  -- column exists. Before 045 it is simply absent, and the check still asks
+  -- the right question: every inspection on the old model needs a system to
+  -- move to. After 045 the predicate narrows it to the ones not yet
+  -- re-pointed. The string is built at execution time, so nothing in it is
+  -- parsed until the column question has already been answered.
   union all select 39, '050 precondition · every old-model inspection has a system to move to',
     case
       when to_regclass('workflow.floor_sub_stages') is null then true
+      when not exists (select 1 from information_schema.columns
+                        where table_schema = 'workflow' and table_name = 'qc_inspections'
+                          and column_name = 'floor_sub_stage_id') then true
       else (
         xpath('/row/c/text()', query_to_xml(
           'select count(*) as c
              from workflow.qc_inspections qi
             where qi.floor_sub_stage_id is not null
-              and qi.progress_cell_id is null
+              '
+          || case when exists (select 1 from information_schema.columns
+                                where table_schema = 'workflow'
+                                  and table_name = 'qc_inspections'
+                                  and column_name = 'progress_cell_id')
+                  then 'and qi.progress_cell_id is null'
+                  else '' end
+          || '
               and not exists (select 1 from workflow.project_systems ps
                                where ps.project_id = qi.project_id)',
           false, true, ''))
