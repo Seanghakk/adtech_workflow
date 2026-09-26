@@ -352,6 +352,26 @@ precondition and it needs a check.
   re-points the data. A migration does not get to delete work because a
   design note said there would not be any.
 
+### The corollary: a data check cannot be predicted from an empty stack
+
+Added 26 Sep 2026, after predicting the wrong number for a production run.
+
+The pglite harness (`supabase/tests/_support/`) builds a SCHEMA-ONLY stack:
+every table exists and every one is empty. That is correct for what it is
+for — proving migrations apply and verification files parse — but it makes
+every data precondition of the form "no rows violate this" pass **vacuously**.
+
+A verification file run there reported 32 FAIL. The same file on production
+reported 33, and the extra failure was the data precondition itself (check
+39), doing exactly its job: production had the row it looks for, and the
+empty stack had nothing.
+
+So: quote a pre-migration FAIL count only for the environment it was measured
+in, and derive the production expectation from a read of production — the
+diagnostic that establishes the precondition already tells you the answer.
+Saying "the pre-migration run shows N FAIL" without naming the database is
+the same category error as asserting a data fact from rollback-test.
+
 ### Also: migrations must be re-runnable
 
 045 failed halfway and had to be re-run. Several migrations in this repo
