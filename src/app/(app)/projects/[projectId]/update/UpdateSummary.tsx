@@ -40,6 +40,7 @@ export function UpdateSummary({
   projectName,
   picName,
   stream,
+  soleSystemName,
   percent,
   counts,
   basis,
@@ -54,9 +55,13 @@ export function UpdateSummary({
   projectName: string
   picName: string | null
   stream: string
+  /** §22.6a — on a ONE-SYSTEM project the system is named once, here, and
+   *  there are no per-system blocks anywhere on the page. Null when the
+   *  project has several systems (each block names its own) or none. */
+  soleSystemName: string | null
   percent: number | null
   counts: CellCounts
-  basis: { subStageCells: number; drawings: number }
+  basis: { subStageCells: number; drawings: number; systemCount: number }
   needs: NeedsAttention
   floors: SummaryFloor[]
   qcListHref: string
@@ -87,7 +92,12 @@ export function UpdateSummary({
           ) : (
             <span className="update-summary__so">{soLabel}</span>
           )}
-          <span className="update-summary__stream">{stream.toUpperCase()}</span>
+          <span className="update-summary__stream">
+            {stream.toUpperCase()}
+            {/* §22.6a — "the system is named once in the Identity block's
+                stream line (ELV · CCTV)". */}
+            {soleSystemName && ` · ${soleSystemName}`}
+          </span>
         </div>
         <div className="update-summary__project">{projectName}</div>
         <div className="update-summary__pic">
@@ -110,8 +120,19 @@ export function UpdateSummary({
               </span>
               {/* open item 21 — the figure's real basis, in words. */}
               <span className="update-summary__basis">
-                {basis.subStageCells} {t('updateSummaryBasisMiddle')} {basis.drawings}{' '}
-                {t('updateSummaryBasisSuffix')}
+                {basis.subStageCells}{' '}
+                {/* §22.2 (D096) — "across n systems" only once there is
+                    more than one. On a one-system project the sentence is
+                    exactly as it was, because nothing about it changed. */}
+                {basis.systemCount > 1 ? (
+                  <>
+                    {t('updateSummaryBasisAcross')} {basis.systemCount}{' '}
+                    {t('updateSummaryBasisSystems')}{' '}
+                  </>
+                ) : (
+                  <>{t('updateSummaryBasisMiddle')} </>
+                )}
+                {basis.drawings} {t('updateSummaryBasisSuffix')}
               </span>
             </div>
             <FloorProgressBar counts={counts} t={t} showCounts={false} />

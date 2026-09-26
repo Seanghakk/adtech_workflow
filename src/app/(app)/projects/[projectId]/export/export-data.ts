@@ -213,7 +213,10 @@ export async function loadExportData(
       ? {
           at: lastExportRow.exported_at,
           byName: nameOf(lastExportRow.exported_by) ?? t('membersNoProfile'),
-          snapshot: lastExportRow.snapshot as ExportSnapshot,
+          // Reading the same jsonb column back. `as unknown` first, because
+          // Json and ExportSnapshot do not overlap structurally — the value
+          // is this app's own write, from the action above.
+          snapshot: lastExportRow.snapshot as unknown as ExportSnapshot,
         }
       : null,
   }

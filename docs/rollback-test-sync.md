@@ -300,6 +300,86 @@ line endings.
     project's own fixture data (test project, floors, shop drawing items).
     Never touch these to make a diff cleaner.
 
+## Data preconditions — the rule migration 045 cost us
+
+**This comparison is schema-only, and it always will be.** Every query in
+`docs/catalog-queries.sql` reads `information_schema` and `pg_catalog` and
+nothing else. That is deliberate: fixture data is *supposed* to differ from
+production, so a row-level diff would be noise. See "Fixtures that must
+survive any repair" below.
+
+The consequence is that **a structural comparison cannot validate a claim
+about data**, and on 26 Sep 2026 that gap stopped a migration in production.
+
+Migration 045 was written around a sentence in its own header: "there are no
+inspections to carry". That was checked against rollback-test, which has zero
+`qc_inspections` rows, and written into the file as though it were a fact
+about the system. Production had one. The migration added a constraint those
+rows could not satisfy and rolled back. The same file also claimed "the
+verification asserts it again" — it did not; no check in the verification
+counted inspection rows. A citation was written for a guarantee that did not
+exist.
+
+The wider damage was worse than the failure. The same assumption — 17a item
+18's "everything in the app today is test data" — had justified dropping
+`workflow.floor_sub_stages` outright. On production that table held 30 rows,
+four of them carrying recorded work.
+
+### The rule
+
+**If a migration is only safe because of a fact about the DATA, that fact
+must be a check in the migration's verification file, and the verification
+must be run against PRODUCTION before the migration is.**
+
+A data precondition is any sentence of the form "there are no rows that…",
+"every row already has…", "nothing points at…", or "all of this is test
+data". If removing that sentence would make the migration unsafe, it is a
+precondition and it needs a check.
+
+- Write it as a check that **fails loudly** when the precondition does not
+  hold, phrased so the FAIL row names what is in the way — a count is more
+  use than a boolean here.
+- Run the verification against production **first**. Step 1 of every
+  walkthrough already says to do this, and it is exactly what would have
+  caught 045: the precondition check would have printed FAIL with a count of
+  1 before anything was applied.
+- Never promote a rollback-test observation to a claim about "the app".
+  Rollback-test is a fixture database; its emptiness is a property of the
+  fixtures, not evidence about production.
+- If the precondition turns out not to hold, **stage the migration** rather
+  than deleting rows to make it hold. 045 now keeps the old table and column
+  as a frozen archive and accepts either model until a later migration
+  re-points the data. A migration does not get to delete work because a
+  design note said there would not be any.
+
+### The corollary: a data check cannot be predicted from an empty stack
+
+Added 26 Sep 2026, after predicting the wrong number for a production run.
+
+The pglite harness (`supabase/tests/_support/`) builds a SCHEMA-ONLY stack:
+every table exists and every one is empty. That is correct for what it is
+for — proving migrations apply and verification files parse — but it makes
+every data precondition of the form "no rows violate this" pass **vacuously**.
+
+A verification file run there reported 32 FAIL. The same file on production
+reported 33, and the extra failure was the data precondition itself (check
+39), doing exactly its job: production had the row it looks for, and the
+empty stack had nothing.
+
+So: quote a pre-migration FAIL count only for the environment it was measured
+in, and derive the production expectation from a read of production — the
+diagnostic that establishes the precondition already tells you the answer.
+Saying "the pre-migration run shows N FAIL" without naming the database is
+the same category error as asserting a data fact from rollback-test.
+
+### Also: migrations must be re-runnable
+
+045 failed halfway and had to be re-run. Several migrations in this repo
+created triggers with a bare `create trigger`, which fails the second time
+with "trigger already exists" — turning one fixable problem into two. Follow
+migration 008's convention: `drop trigger if exists … ;` immediately before
+every `create trigger`. 045, 047 and 049 were corrected on 26 Sep 2026.
+
 ## What this tool does NOT do
 
 - It does not decide whether a migration that only exists on rollback-test

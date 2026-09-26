@@ -47,12 +47,18 @@ export async function updateProjectIdentity(
     .eq('id', projectId)
     .maybeSingle()
 
+  // Brief 106b — the generated types emit every `text` RPC parameter as
+  // `string`, because Postgres function arguments carry no nullability the
+  // generator can read. These three genuinely accept NULL (the function's own
+  // signature is plain `text`), and passing null is the documented way to
+  // leave a field unset. The cast is on the ARGUMENTS only, so the function
+  // name and its return type stay checked.
   const { error } = await supabase.rpc('set_project_cad_identity', {
     p_project_id: projectId,
     p_cad_owner_name: ownerNameRaw || null,
     p_cad_consultant_name: consultantNameRaw || null,
     p_drawing_numbering_mode: project?.drawing_numbering_mode ?? null,
-  })
+  } as unknown as { p_project_id: string; p_cad_owner_name: string; p_cad_consultant_name: string; p_drawing_numbering_mode: string })
 
   if (error) {
     const t = await getServerTranslator()
@@ -82,12 +88,13 @@ export async function updateNumberingMode(
     .eq('id', projectId)
     .maybeSingle()
 
+  // Same generator limitation as above: `text` params emit as `string`.
   const { error } = await supabase.rpc('set_project_cad_identity', {
     p_project_id: projectId,
     p_cad_owner_name: project?.cad_owner_name ?? null,
     p_cad_consultant_name: project?.cad_consultant_name ?? null,
     p_drawing_numbering_mode: mode,
-  })
+  } as unknown as { p_project_id: string; p_cad_owner_name: string; p_cad_consultant_name: string; p_drawing_numbering_mode: string })
 
   if (error) {
     const t = await getServerTranslator()

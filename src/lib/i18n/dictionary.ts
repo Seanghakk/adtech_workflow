@@ -2038,6 +2038,128 @@ const en = {
 
   overviewLoadFailedHeadline: 'The overview did not load',
 
+
+  // ==== Brief 106b / v7.4 §22.2 — the completion figure's basis ====
+  // §22.2 (D096): with two or more systems the subline reads "⟨n⟩
+  // sub-stages across ⟨n⟩ systems and ⟨n⟩ drawings · in progress counts
+  // half · QC not counted". The last clause is what stops 20% being read
+  // as 20% accepted, and it survives D096 unchanged.
+  updateSummaryBasisAcross: 'across',
+  updateSummaryBasisSystems: 'systems and',
+
+  // ==== Brief 106b / v7.4 §12.2a — the system step on the phone ====
+  phoneSystemPickerKicker: 'Which system are you updating?',
+  phoneSystemPickerHasPrefix: 'has',
+  // §12.2a's own sentence — the promise that answers §4.2 before anyone
+  // has to wonder: changing system never means walking back to the label.
+  phoneSystemPickerHasSuffix: 'systems. You can change system at any time without scanning again.',
+  phoneSystemBandKicker: 'System',
+  phoneSystemChange: 'Change system',
+  phoneSystemOfPrefix: 'of',
+  phoneSystemOnFloorSuffix: 'systems on',
+  phoneSystemOnlyOnProject: 'The only system on this project',
+  phoneSystemNotStarted: 'Not started',
+  phoneSystemAwaitingQc: 'awaiting QC',
+  phoneSystemDoneMiddle: 'of',
+  phoneSystemDoneSuffix: 'done',
+  phoneSystemOnPrefix: 'on',
+  // §12.2a — read-only, never tappable.
+  phoneSystemNotOnPrefix: 'Not on',
+  phoneSystemNotOnCovers: 'covers',
+  phoneSystemPicLinePrefix: 'The PIC,',
+  phoneSystemPicLineSuffix: ', can add this floor to a system in Project setup.',
+  // §12.2a — a remembered system that does not cover this floor. Explained
+  // rather than silently reset: a silent reset reads as the app forgetting,
+  // and they would choose the same wrong system again.
+  phoneSystemWrongFloorMiddle: 'is not on',
+  phoneSystemWrongFloorCovers: 'It covers',
+  phoneSystemWrongFloorChoose: 'Choose the system you are updating here.',
+  phoneSystemNoneHeadlinePrefix: 'No system covers',
+  phoneSystemNoneHeadlineSuffix: 'yet',
+  phoneSystemNoneBodyPrefix: 'Progress is recorded per system. The PIC,',
+  phoneSystemNoneBodySuffix: ', sets which floors each system covers in Project setup.',
+
+  // ==== Brief 106b / v7.4 §11.5 — systems side by side in the matrix ====
+  floorMatrixFloorsSuffix: 'floors',
+  floorMatrixSystemSelectLabel: 'Which system to show',
+  // §11.5 — "the sub-stage labels abbreviated in each group to
+  // 1st · 2nd · 3rd · Pre · Comm, with one 12px line under the legend
+  // spelling them out". Five full labels per system do not fit six systems
+  // at 1024px.
+  floorMatrixAbbrFirstFix: '1st',
+  floorMatrixAbbrSecondFix: '2nd',
+  floorMatrixAbbrThirdFix: '3rd',
+  floorMatrixAbbrPreCommissioning: 'Pre',
+  floorMatrixAbbrCommissioning: 'Comm',
+  // §11.5 — a system with no coverage shows a sentence, never a column of
+  // dashed cells: "not applicable" means a floor outside coverage, and a
+  // system covering nothing has no floors to be outside of.
+  floorMatrixSystemNoCoveragePrefix: 'covers no floors yet, so it has nothing to show.',
+  floorMatrixSystemNoCoverageAction: 'Set its floors in Project setup',
+
+  // ==== Brief 106b / v7.4 §22.6a — a floor grouped by system ====
+  // §22.6a: "Not on L8: Car park management — covers B3, B2 and B1." One
+  // line, never rows.
+  updateNotOnFloorPrefix: 'Not on',
+  updateNotOnFloorCovers: 'covers',
+  // §22.4's "Also open: CCTV 6d · PA/VA 2d" — age only. The other systems'
+  // holders are deliberately not named here; they are in each system header.
+  updateAlsoOpenPrefix: 'Also open:',
+  updateFloorNothingOpen: 'nothing open',
+
+  // ==== Brief 106b / v7.4 §7 — coverage proposed by the import ====
+  boqImportCoverageHeading: 'Floor coverage',
+  boqImportCoverageIntro:
+    'The file names floors for each system. Importing only ADDS coverage — a floor this file does not name stays where it is.',
+  boqImportCoverageColSystem: 'System',
+  boqImportCoverageColNow: 'Now',
+  boqImportCoverageColFile: 'This file',
+  boqImportCoverageColCommit: 'On commit',
+  boqImportCoverageNone: '—',
+  boqImportCoverageNewSystem: 'new',
+  boqImportCoverageKept: 'not in this file, kept',
+
+  // ==== Brief 106b / v7.4 §6.5 — floor coverage per system ====
+  // §6.5's exact copy. Where it gives a sentence it is transcribed whole
+  // rather than assembled, because assembling is where drift starts.
+  setupCoverageColumn: 'Floors covered',
+  setupCoverageSetBy: 'Set by',
+  setupCoverageEdit: 'Edit floors',
+  setupCoverageAllPrefix: 'All',
+  setupCoverageAllSuffix: 'floors',
+  setupCoverageOf: 'of',
+  setupCoverageRangeTo: 'to',
+  setupCoverageAllFloors: 'All floors',
+  setupCoverageNone: 'None',
+  setupCoverageSavePrefix: 'Save coverage —',
+  setupCoverageSaveSuffix: 'floors',
+  setupCoverageCancel: 'Cancel',
+  setupCoverageSourceImport: 'Import',
+  setupCoverageSourceManual: 'By hand',
+  // Migration 045 backfilled this when D096 landed, on the only rule it
+  // had: every system covers every floor. Amber, because it is a guess
+  // nobody has confirmed — not a decision someone made.
+  setupCoverageSourceMigrated: 'Assumed — check',
+  // §6.5 — "No floors." in amber, then the sentence.
+  setupCoverageNoFloors: 'No floors.',
+  setupCoverageNoFloorsBodyPrefix: 'Progress cannot be recorded for',
+  setupCoverageNoFloorsBodySuffix: 'until it covers at least one.',
+  setupCoverageSetFloors: 'Set floors',
+  // §6.5's amber warning before a floor with recorded work is removed. It
+  // states the consequence and does NOT block — §6.2 item 2's rule.
+  setupCoverageRemovalWarnMiddle: 'has recorded work for',
+  setupCoverageRemovalWarnCountSuffix: 'sub-stages.',
+  setupCoverageRemovalWarnBody:
+    'Removing it keeps those records but takes them out of progress; adding it back restores them.',
+  // §6.5's setup strip.
+  setupCoverageStripPrefix: 'Partly ·',
+  setupCoverageStripSuffixOne: 'system covers no floors',
+  setupCoverageStripSuffixMany: 'systems cover no floors',
+  // §6.4's refusal shape — a sentence naming who can, never a disabled control.
+  setupCoverageRefused:
+    'Only the PIC can change which floors a system covers. You can read everything here.',
+  setupCoverageCouldNotSave: 'Could not save the coverage. Nothing was changed — try again.',
+
   // ==== Brief 105 / v7.4 §23 — material approval ====
   // §23's exact copy. Where §23 gives a sentence, it is transcribed whole
   // rather than assembled from fragments, because assembling is where drift

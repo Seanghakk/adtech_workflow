@@ -97,15 +97,15 @@ export default async function ExecutionOverviewPage({
   const [{ data: subStageRows, error: subStageError }, { data: inspectionRows, error: inspectionError }] =
     floorIds.length
       ? await Promise.all([
-          supabase.from('floor_sub_stages').select('id, floor_id, stage, status').in('floor_id', floorIds),
+          supabase.from('progress_cells').select('id, floor_id, stage, status').in('floor_id', floorIds),
           supabase
             .from('qc_inspections')
-            .select('floor_sub_stage_id, status, inspected_at, created_at')
+            .select('progress_cell_id, status, inspected_at, created_at')
             .eq('project_id', projectId),
         ])
       : [
           { data: [] as { id: string; floor_id: string; stage: string; status: string }[], error: null },
-          { data: [] as { floor_sub_stage_id: string; status: string; inspected_at: string | null; created_at: string }[], error: null },
+          { data: [] as { progress_cell_id: string | null; status: string; inspected_at: string | null; created_at: string }[], error: null },
         ]
 
   if (subStageError || inspectionError) return <OverviewLoadFailed t={t} />
@@ -113,9 +113,14 @@ export default async function ExecutionOverviewPage({
   const inspectionsBySubStage = new Map<string, Array<{ result: 'pass' | 'fail'; date: string }>>()
   for (const row of inspectionRows ?? []) {
     if (row.status !== 'pass' && row.status !== 'fail') continue
-    const list = inspectionsBySubStage.get(row.floor_sub_stage_id) ?? []
+    // Brief 106b — progress_cell_id is null on a MATERIAL inspection, which
+    // is project-level and has no cell (§12.9, unchanged by D096). Skipping
+    // it here is the same exclusion this loop always made, now expressed by
+    // the column that actually carries the fact.
+    if (!row.progress_cell_id) continue
+    const list = inspectionsBySubStage.get(row.progress_cell_id) ?? []
     list.push({ result: row.status, date: row.inspected_at ?? row.created_at })
-    inspectionsBySubStage.set(row.floor_sub_stage_id, list)
+    inspectionsBySubStage.set(row.progress_cell_id, list)
   }
 
   const subStages: SubStageInput[] = (subStageRows ?? []).map((s) => ({

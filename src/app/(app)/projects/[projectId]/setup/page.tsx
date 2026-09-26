@@ -130,12 +130,46 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
   // action already performs; read here only to DISPLAY the fact, not to
   // decide anything (the action re-checks for real before it acts).
   const floorIds = (floorRows ?? []).map((f) => f.id)
-  const { data: subStageRows } = floorIds.length
-    ? await supabase.from('floor_sub_stages').select('floor_id, status').in('floor_id', floorIds)
+  // Brief 106b — progress_cells replaces floor_sub_stages. A floor's work is
+  // now spread across the systems covering it, so "used by" asks whether ANY
+  // system has moved anything on that floor.
+  const { data: cellRows } = floorIds.length
+    ? await supabase
+        .from('progress_cells')
+        .select('floor_id, status, project_system_id')
+        .in('floor_id', floorIds)
     : { data: [] }
   const progressByFloor = new Map<string, boolean>()
-  for (const s of subStageRows ?? []) {
-    if (s.status !== 'not_started') progressByFloor.set(s.floor_id, true)
+  for (const c of cellRows ?? []) {
+    if (c.status !== 'not_started') progressByFloor.set(c.floor_id, true)
+  }
+
+  // §6.5 — coverage per system, and how much recorded work each covered
+  // floor holds, for the amber warning before a floor is removed.
+  const systemIds = (systemRows ?? []).map((s) => s.id)
+  const { data: coverageRows } = systemIds.length
+    ? await supabase
+        .from('project_system_floors')
+        .select('project_system_id, floor_id, source, added_at')
+        .in('project_system_id', systemIds)
+        .is('removed_at', null)
+    : { data: [] }
+
+  const coveredBySystem = new Map<string, string[]>()
+  for (const c of coverageRows ?? []) {
+    const list = coveredBySystem.get(c.project_system_id) ?? []
+    list.push(c.floor_id)
+    coveredBySystem.set(c.project_system_id, list)
+  }
+
+  // Keyed system+floor, because "B1 has recorded work for Car park
+  // management" is a claim about one system on one floor, not about the
+  // floor in general.
+  const recordedBySystemFloor = new Map<string, number>()
+  for (const c of cellRows ?? []) {
+    if (c.status === 'not_started') continue
+    const key = `${c.project_system_id}:${c.floor_id}`
+    recordedBySystemFloor.set(key, (recordedBySystemFloor.get(key) ?? 0) + 1)
   }
 
   const floors: FloorTableRowData[] = (floorRows ?? []).map((f) => ({
@@ -148,11 +182,51 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
     hasProgress: progressByFloor.get(f.id) ?? false,
   }))
 
-  const systems: ProjectSystemRow[] = (systemRows ?? []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    cadCode: s.cad_code,
-    source: s.source as 'imported' | 'manual',
+  const systems: ProjectSystemRow[] = (systemRows ?? []).map((s) => {
+    const covered = coveredBySystem.get(s.id) ?? []
+    // "Set by" reports the source of the coverage that EXISTS. Where a
+    // system was proposed by an import and then corrected by hand, the
+    // hand-set rows win, because that is the decision that stands.
+    const sources = (coverageRows ?? [])
+      .filter((c) => c.project_system_id === s.id)
+      .map((c) => c.source)
+    // Migration 045 backfilled coverage for projects that predate D096, on
+    // the only rule available to it — every system covers every floor of its
+    // project. That is a guess, and it is ranked LAST here on purpose: any
+    // hand-set or imported row means a real decision has been made about
+    // this system, so the row stops asking to be checked. Only a system
+    // still entirely on the migration's guess keeps the amber.
+    const coverageSource = sources.length === 0
+      ? null
+      : sources.some((x) => x === 'manual')
+        ? ('manual' as const)
+        : sources.some((x) => x === 'import')
+          ? ('import' as const)
+          : ('migrated' as const)
+
+    const recordedByFloor = new Map<string, number>()
+    for (const floorId of covered) {
+      const n = recordedBySystemFloor.get(`${s.id}:${floorId}`) ?? 0
+      if (n > 0) recordedByFloor.set(floorId, n)
+    }
+
+    return {
+      id: s.id,
+      name: s.name,
+      cadCode: s.cad_code,
+      source: s.source as 'imported' | 'manual',
+      coveredFloorIds: covered,
+      coverageSource,
+      recordedByFloor,
+    }
+  })
+
+  // §6.5's editor lists every floor of the project in building order —
+  // the same order §6.2's own table uses, so the two cannot disagree.
+  const coverageFloors = floors.map((f) => ({
+    id: f.id,
+    label: f.label,
+    towerLabel: f.towerLabel,
   }))
   const cadSystems = (cadSystemRows ?? []).map((c) => ({ code: c.code, labelEn: c.label_en }))
 
@@ -359,6 +433,7 @@ export default async function ProjectSetupPage({ params }: PageProps<'/projects/
                 </div>
               )}
               <SystemsSection
+                floors={coverageFloors}
                 projectId={project.id}
                 systems={systems}
                 cadSystems={cadSystems}

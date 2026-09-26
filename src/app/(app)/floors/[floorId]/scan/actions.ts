@@ -87,7 +87,7 @@ export async function saveSubStageStatus(
   const nowIso = new Date().toISOString()
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from('floor_sub_stages')
+    .from('progress_cells')
     .update(
       status === 'done'
         ? { status, updated_by: gate.userId, photo_url: photoUrl, updated_at: nowIso }
@@ -101,7 +101,7 @@ export async function saveSubStageStatus(
   // and refuses silently — zero rows, no error.
   const verdict = await verifyWriteAffectedRow(
     { data, error },
-    existsByColumn(supabase, 'floor_sub_stages', 'id', subStageId),
+    existsByColumn(supabase, 'progress_cells', 'id', subStageId),
   )
   if (!verdict.ok) {
     const t = await getServerTranslator()
@@ -160,7 +160,7 @@ export async function recordInspection(
   const { error } = await supabase.from('qc_inspections').insert({
     project_id: projectId,
     inspection_type: inspectionType,
-    floor_sub_stage_id: subStageId,
+    progress_cell_id: subStageId,
     status: result,
     inspector_id: gate.userId,
     inspected_at: new Date().toISOString(),
@@ -178,7 +178,7 @@ export async function recordInspection(
   let notify = null
   if (result === 'fail') {
     const { data: subStage } = await supabase
-      .from('floor_sub_stages')
+      .from('progress_cells')
       .select('updated_by')
       .eq('id', subStageId)
       .maybeSingle()

@@ -298,15 +298,28 @@ export async function updateFloor(
 /**
  * DELIBERATE DESIGN, flagged per the brief's own "real trade-off" clause
  * rather than decided silently (see Result 047 for the full reasoning):
- * a floor's 7 sub-stage/drawing child rows are auto-seeded, unconditionally,
- * the instant a floor is created (workflow.seed_floor_children(), migration
- * 008) — every FK into project_floors in this schema is ON DELETE RESTRICT
- * (no CASCADE anywhere in this repo), so a plain DELETE on project_floors
- * would ALWAYS fail once those 7 rows exist, making "remove a floor row"
- * unimplementable as asked. Rather than force-cascading through real
- * recorded progress (which this app's own conventions elsewhere refuse to
- * do silently — see contract-boq/actions.ts's own delete-refusal), this
- * action checks first: if every one of the floor's 7 seeded rows is still
+ * a floor's sub-stage/drawing child rows are auto-seeded the instant a
+ * floor is created, so "remove a floor row" was never a plain DELETE.
+ *
+ * READ THIS BEFORE RELYING ON THE CHECK BELOW. Until migration 045 the
+ * database itself refused: every FK into project_floors was ON DELETE
+ * RESTRICT, so deleting a floor with any child row ALWAYS failed, and the
+ * check below was a way of giving a better error than the database's.
+ * THAT IS NO LONGER TRUE. Migration 045 made
+ * project_system_floors.floor_id ON DELETE CASCADE, and progress_cells
+ * hangs off coverage by a cascading composite FK, so a DELETE on
+ * project_floors now succeeds and takes every system's recorded work on
+ * that floor with it, silently. The check below is therefore the ONLY
+ * thing standing between a mis-click and real progress data — it is load
+ * bearing now, where before it was a courtesy. Brief 106's result flags
+ * restoring the database-level refusal as an open decision; until that
+ * lands, do not weaken, short-circuit or bypass this check, and do not
+ * add another delete path to project_floors that skips it.
+ *
+ * Rather than force-cascading through real recorded progress (which this
+ * app's own conventions elsewhere refuse to do silently — see
+ * contract-boq/actions.ts's own delete-refusal), this action checks
+ * first: if every one of the floor's seeded rows is still
  * in its pristine 'not_started' state, and no QC inspection has ever
  * referenced it, the seeded rows are cleaned up (they are system
  * bookkeeping, not user-entered content) and the floor is deleted. If ANY
@@ -331,8 +344,11 @@ export async function deleteFloor(
   const gate = await requireProjectPic(supabase, projectId)
   if ('error' in gate) return { error: gate.error }
 
+  // Brief 106b — the floor's cells now span every system covering it, so
+  // the pristine check asks the same question of more rows: has ANY system
+  // recorded anything on this floor.
   const { data: subStages } = await supabase
-    .from('floor_sub_stages')
+    .from('progress_cells')
     .select('id, status')
     .eq('floor_id', floorId)
 
@@ -342,24 +358,51 @@ export async function deleteFloor(
     .eq('floor_id', floorId)
     .eq('scope', 'floor')
 
+  // Brief 106, staged 045: workflow.floor_sub_stages is no longer dropped —
+  // it is a frozen archive of the pre-D096 model, and production really does
+  // hold recorded work in it. Its floor_id FK is ON DELETE RESTRICT, so a
+  // floor with archived rows cannot be deleted while they exist; and archived
+  // work is still work, so it counts towards "pristine" exactly as a cell
+  // does. Migration 050 re-points these and drops the table, and this block
+  // goes with it.
+  const { data: archived } = await supabase
+    .from('floor_sub_stages')
+    .select('id, status')
+    .eq('floor_id', floorId)
+
   const { count: materialInspectionCount } = await supabase
     .from('qc_inspection_floors')
     .select('qc_inspection_id', { count: 'exact', head: true })
     .eq('floor_id', floorId)
 
+  // Brief 106b, corrected: this read floor_sub_stage_id, which migration 045
+  // DROPPED. PostgREST answered with an error and a null count, and the
+  // `?? 0` below then read that failure as "no inspections" — so this whole
+  // clause had quietly stopped testing anything. `tsc` did not catch it:
+  // .eq() checks the column name against the row type, .in() does NOT.
   const subStageIds = (subStages ?? []).map((s) => s.id)
-  const { count: subStageInspectionCount } = subStageIds.length
+  const { count: subStageInspectionCount, error: subStageInspectionError } = subStageIds.length
     ? await supabase
         .from('qc_inspections')
         .select('id', { count: 'exact', head: true })
-        .in('floor_sub_stage_id', subStageIds)
-    : { count: 0 }
+        .in('progress_cell_id', subStageIds)
+    : { count: 0, error: null }
+
+  // Brief 094's head-count trap: a head-only count returns null when the
+  // query FAILED, which is not the same as zero. Both counts below are
+  // fail-closed — an unanswered question means "not pristine", never
+  // "nothing found". Getting this wrong is what made the bug above
+  // invisible for as long as it was.
+  if (subStageInspectionError || subStageInspectionCount === null || materialInspectionCount === null) {
+    return { error: 'Could not check this floor for recorded work — try again.' }
+  }
 
   const isPristine =
     (subStages ?? []).every((s) => s.status === 'not_started') &&
     (drawingItems ?? []).every((d) => d.status === 'not_started') &&
-    (materialInspectionCount ?? 0) === 0 &&
-    (subStageInspectionCount ?? 0) === 0
+    (archived ?? []).every((a) => a.status === 'not_started') &&
+    materialInspectionCount === 0 &&
+    subStageInspectionCount === 0
 
   if (!isPristine) {
     return { error: 'This floor has recorded progress or QC inspections — it can’t be removed.' }
@@ -371,8 +414,28 @@ export async function deleteFloor(
   // refused anything, so they are left as plain error checks. The final
   // delete below, by the floor's own id, is exactly the single-row case
   // this brief targets and gets the full verified-write treatment.
-  const { error: subStageError } = await supabase.from('floor_sub_stages').delete().eq('floor_id', floorId)
+  // Deleting the floor's coverage is what removes its cells: migration
+  // 045 cascades progress_cells from project_system_floors, so deleting
+  // coverage first leaves nothing orphaned. The cells are deleted here
+  // too for the case of a floor that was never covered by any system.
+  const { error: coverageError } = await supabase
+    .from('project_system_floors')
+    .delete()
+    .eq('floor_id', floorId)
+  if (coverageError) {
+    return { error: 'Could not remove this floor — try again.' }
+  }
+
+  const { error: subStageError } = await supabase.from('progress_cells').delete().eq('floor_id', floorId)
   if (subStageError) {
+    return { error: 'Could not remove this floor — try again.' }
+  }
+
+  // The archived rows go too, but only because everything above proved they
+  // are untouched. Their FK is ON DELETE RESTRICT, so without this the floor
+  // delete below simply fails.
+  const { error: archivedError } = await supabase.from('floor_sub_stages').delete().eq('floor_id', floorId)
+  if (archivedError) {
     return { error: 'Could not remove this floor — try again.' }
   }
 

@@ -16,18 +16,35 @@ import type { MatrixCellState } from '@/app/(app)/projects/[projectId]/floor-mat
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
 /**
- * Matrix order (§11.2's legend order, minus 'not_applicable' which the
- * bar omits unless above zero). §22.2: "the seven matrix fills in matrix
- * order, 1px rule between segments, zero-count segments omitted".
+ * DONE-NESS ORDER, not §11.2's legend order — the order mockup 10b actually
+ * draws, with not-started last as the unfilled tail.
+ *
+ * §10's text says "segmented in matrix order", and that sentence is the
+ * stale half. The evidence is in the same sentence: it promises "the SIX
+ * counts printed below", 10b draws exactly six segments, and the matrix has
+ * SEVEN states. A bar ordered by done-ness with white as the tail cannot
+ * have seven, because the seventh — not applicable — is a cell that does
+ * not exist.
+ *
+ * The reasoning stands on its own too. Bars fill from the left, so a bar
+ * that is white on the left reads as unfilled whatever sits at the right
+ * edge. At 26 not started · 3 awaiting QC · 1 QC passed, legend order put
+ * 87% white on the left and the whole bar read as failed-to-load.
+ *
+ * 'not_applicable' stays in the list but should never be counted here: both
+ * bars are drawn over cells that EXIST, and after D096 a not-applicable
+ * cell is precisely one that does not (§11.2). Zero-count segments are
+ * omitted, so it costs nothing to keep it defensively in the "no work"
+ * half of the order.
  */
 export const BAR_ORDER: MatrixCellState[] = [
-  'not_started',
-  'in_progress',
-  'awaiting_qc',
   'qc_passed',
   'qc_failed',
+  'awaiting_qc',
   'stalled',
+  'in_progress',
   'not_applicable',
+  'not_started',
 ]
 
 export const BAR_COUNT_LABEL_KEYS: Partial<Record<MatrixCellState, DictionaryKey>> = {
@@ -228,6 +245,8 @@ export function defaultOpenFloorIds(floorIds: string[], floorFromUrl: string | n
 
 export interface CompleteBasis {
   subStageCells: number
+  /** §22.2 (D096) — named in the subline once above one. */
+  systemCount: number
   drawings: number
   buckets: number
 }
@@ -251,14 +270,32 @@ export interface CompleteBasis {
  * This returns the parts; the wording lives in the dictionary so it can
  * be translated and replaced.
  */
-export function completeBasis(floors: FloorSummary[], projectDrawings: number, floorDrawings: number): CompleteBasis {
+export function completeBasis(
+  floors: FloorSummary[],
+  projectDrawings: number,
+  floorDrawings: number,
+  /** Brief 106b / §22.2 (D096) — how many systems the cells span. The
+   *  figure's MEANING is unchanged (work recorded, in progress counts
+   *  half, QC not counted); only its denominator moves, from one bucket
+   *  per floor to one per COVERED (system, floor) pair. The subline has
+   *  to say so, or the number appears to jump for no reason. */
+  systemCount = 1,
+  /** The number of covered (system, floor) pairs, counted by the caller
+   *  from the coverage rows themselves. Passed in rather than derived
+   *  here: this module sees cells, not coverage, and a cell cannot tell
+   *  you about a covered pair that has yet to record anything. */
+  coveredPairCount?: number,
+): CompleteBasis {
   const subStageCells = floors.reduce((n, f) => n + f.cells.length, 0)
   return {
     subStageCells,
+    systemCount,
     drawings: projectDrawings + floorDrawings,
-    // one per floor, plus the project-level drawing bucket when it has
-    // any rows at all — an empty bucket contributes nothing.
-    buckets: floors.length + (projectDrawings > 0 ? 1 : 0),
+    // One bucket per covered (system, floor) pair, plus the project-level
+    // drawing bucket when it has any rows at all — an empty bucket
+    // contributes nothing. Floors outside a system's coverage are not
+    // counted against it, which is the point of coverage being real data.
+    buckets: (coveredPairCount ?? floors.length) + (projectDrawings > 0 ? 1 : 0),
   }
 }
 

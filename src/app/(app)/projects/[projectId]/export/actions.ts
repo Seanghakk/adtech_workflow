@@ -18,6 +18,7 @@ import { buildExportCsv, exportFileName } from '@/lib/autocad/export'
 import { canRunExport } from '@/lib/autocad/permissions'
 import { loadExportData } from './export-data'
 import type { ExportRunState } from './export-shared'
+import type { Json } from '@/lib/supabase/database.types'
 
 export async function runExport(
   _prev: ExportRunState,
@@ -49,7 +50,10 @@ export async function runExport(
     .insert({
       project_id: projectId,
       exported_by: user.id,
-      snapshot: data.snapshot,
+      // The generator types a jsonb column as `Json`, a recursive union a
+      // concrete object type does not satisfy structurally even though it
+      // serialises identically. Cast at the boundary only.
+      snapshot: data.snapshot as unknown as NonNullable<Json>,
     })
     .select('id')
 

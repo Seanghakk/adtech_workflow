@@ -20,6 +20,7 @@ import type { DrawingActor } from '@/lib/shopDrawing/permissions'
 import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { computeSubStageQcFields } from './subStageQcFields'
 import { resolveLatestInspection } from '@/lib/subStageDisplayState'
+import { summariseFloorRow, systemsNotOnFloor } from '@/lib/progressPerSystem/floorRow'
 
 /**
  * Fable Brief 002 §2.1 — "the unassigned-project state, required not
@@ -132,10 +133,15 @@ export default async function UpdateProgressPage({
           'id, floor_id, scope, drawing_type, status, created_at, created_by, pre_submission_stage, drafting_started_at, legacy_done_no_lifecycle_history',
         )
         .eq('project_id', project.id),
+      // Brief 106b — progress_cells replaces floor_sub_stages. A cell now
+      // carries its system, so one floor holds five rows PER covering
+      // system rather than five in total.
       floorIds.length > 0
         ? supabase
-            .from('floor_sub_stages')
-            .select('id, floor_id, stage, sub_stage, sequence, status, photo_url, updated_at, updated_by')
+            .from('progress_cells')
+            .select(
+              'id, project_system_id, floor_id, stage, sub_stage, sequence, status, reason, photo_url, updated_at, updated_by',
+            )
             .in('floor_id', floorIds)
             .order('sequence')
         : Promise.resolve({ data: [] }),
@@ -149,7 +155,7 @@ export default async function UpdateProgressPage({
       // convention invented here.
       supabase
         .from('qc_inspections')
-        .select('id, floor_sub_stage_id, status, inspected_at, created_at')
+        .select('id, progress_cell_id, status, inspected_at, created_at')
         .eq('project_id', project.id)
         .order('created_at', { ascending: false }),
       supabase.from('project_handover_items').select('deliverable, status').eq('project_id', project.id),
@@ -165,12 +171,14 @@ export default async function UpdateProgressPage({
   // functions the floor matrix calls (page.tsx, Brief 078) for the SAME
   // sub-stage, not a second derivation written here. See that file's own
   // header for the full reasoning.
+  // Brief 106b — keyed on the CELL, which now carries its system. Material
+  // inspections still have none and are still excluded, unchanged.
   const inspectionsBySubStage = new Map<string, { status: string; date: string }[]>()
   for (const row of inspectionRows ?? []) {
-    if (!row.floor_sub_stage_id) continue // material inspections have none
-    const list = inspectionsBySubStage.get(row.floor_sub_stage_id) ?? []
+    if (!row.progress_cell_id) continue // material inspections have none
+    const list = inspectionsBySubStage.get(row.progress_cell_id) ?? []
     list.push({ status: row.status, date: row.inspected_at ?? row.created_at })
-    inspectionsBySubStage.set(row.floor_sub_stage_id, list)
+    inspectionsBySubStage.set(row.progress_cell_id, list)
   }
 
   // Brief 100 Part B — the drawer's data (v7.2 §9). Loaded here with the
@@ -286,6 +294,35 @@ export default async function UpdateProgressPage({
 
   const towerLabelById = new Map((towerRows ?? []).map((tw) => [tw.id, tw.label]))
 
+  // Brief 106b / §22.6a — which floors each system covers. The systems
+  // themselves are already loaded above for the add-drawing form's system
+  // field; reading them twice would let the two disagree.
+  const { data: coverageRows } = (systemRows ?? []).length
+    ? await supabase
+        .from('project_system_floors')
+        .select('project_system_id, floor_id')
+        .in('project_system_id', (systemRows ?? []).map((r) => r.id))
+        .is('removed_at', null)
+    : { data: [] }
+
+  const systemNameById = new Map((systemRows ?? []).map((r) => [r.id, r.name]))
+  const coverageLabelsBySystem = new Map<string, string[]>()
+  for (const c of coverageRows ?? []) {
+    const label = (floorRows ?? []).find((f) => f.id === c.floor_id)?.label
+    if (!label) continue
+    coverageLabelsBySystem.set(c.project_system_id, [
+      ...(coverageLabelsBySystem.get(c.project_system_id) ?? []),
+      label,
+    ])
+  }
+
+  // §22.6a — "One system: no system blocks, no 'By system', no system select;
+  // the system is named once in the Identity block's stream line." One system
+  // is the common case today, and the page must read exactly as 15a–15e for
+  // it, so this is a real branch rather than a degenerate grouping.
+  const isSingleSystem = (systemRows ?? []).length <= 1
+  const soleSystemName = (systemRows ?? [])[0]?.name ?? null
+
   const floors: FloorRow[] = (floorRows ?? []).map((floor) => {
     const subStages: SubStageRow[] = (subStageRows ?? [])
       .filter((s) => s.floor_id === floor.id)
@@ -296,6 +333,8 @@ export default async function UpdateProgressPage({
         )
         return {
           id: s.id,
+          systemId: s.project_system_id,
+          systemName: systemNameById.get(s.project_system_id) ?? null,
           stage: s.stage as 'installation' | 'tnc',
           subStage: s.sub_stage,
           status: s.status,
@@ -429,12 +468,54 @@ export default async function UpdateProgressPage({
       if (raw?.status === 'done') doneCount += 1
     }
 
+    // §22.6a — one block per system covering this floor, in the same order
+    // the matrix and Project setup use. Grouped by SYSTEM and not by stage,
+    // because a crew works one system and reads its five rows together.
+    const systemBlocks = (systemRows ?? [])
+      .map((sys) => ({
+        systemId: sys.id,
+        systemName: sys.name,
+        subStages: base.subStages.filter((ss) => ss.systemId === sys.id),
+      }))
+      .filter((b) => b.subStages.length > 0)
+      .map((b) => ({
+        ...b,
+        doneCount: b.subStages.filter((ss) => subStageById.get(ss.id)?.status === 'done').length,
+      }))
+
+    // §22.4 (D096) — the closed row names the holder of the OLDEST OPEN CELL
+    // ACROSS systems, and lists every other open system by age only. Derived
+    // in a tested lib rather than here, because §4.4 warns specifically
+    // against averaging it or showing a team in a person's place.
+    const rowSummary = summariseFloorRow(
+      base.subStages.map((ss) => ({
+        systemId: ss.systemId ?? '',
+        systemName: ss.systemName ?? '',
+        stage: ss.stage,
+        subStage: ss.subStage,
+        state: cellBySubStageId[ss.id]?.state ?? 'not_started',
+        clockDate: cellBySubStageId[ss.id]?.clockDate ?? null,
+        holderName: cellBySubStageId[ss.id]?.holderName ?? null,
+      })),
+      (iso) => (iso ? (ageOfIso[iso] ?? daysSinceICT(iso)) : 0),
+    )
+
+    // §22.6a — "Not on L8: Car park management — covers B3, B2 and B1."
+    const notOnFloor = systemsNotOnFloor(
+      (systemRows ?? []).map((sys) => ({ id: sys.id, name: sys.name })),
+      new Set(systemBlocks.map((b) => b.systemId)),
+      coverageLabelsBySystem,
+    )
+
     return {
       ...base,
       towerLabel: base.id && orderedFloors.length ? (towerLabelById.get((floorRows ?? []).find((f) => f.id === of.id)?.tower_id ?? '') ?? null) : null,
       cellBySubStageId,
       doneCount,
       applicableCount,
+      systemBlocks,
+      rowSummary,
+      notOnFloor,
     }
   })
 
@@ -566,6 +647,9 @@ export default async function UpdateProgressPage({
               ageOfIso={ageOfIso}
               handoverItems={handoverItems}
               approvedPackages={approvedPackages}
+              singleSystem={isSingleSystem}
+              soleSystemName={isSingleSystem ? soleSystemName : null}
+              systemCount={(systemRows ?? []).length}
             />
             <div className="wf-empty-state-card update-empty">
               <p className="wf-empty-state-card__headline">
@@ -600,6 +684,9 @@ export default async function UpdateProgressPage({
             ageOfIso={ageOfIso}
             handoverItems={handoverItems}
             approvedPackages={approvedPackages}
+            singleSystem={isSingleSystem}
+            soleSystemName={isSingleSystem ? soleSystemName : null}
+            systemCount={(systemRows ?? []).length}
           />
         )}
       </div>

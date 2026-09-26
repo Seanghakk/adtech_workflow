@@ -13,7 +13,7 @@ import { CrossProjectList, type CrossListRow } from '@/components/CrossProjectLi
 import { SCOPE_COOKIE } from '@/lib/scopeCookie'
 import { defaultScopeForRole, type Scope } from '@/lib/reporting/board'
 import { filterProjectsByScope, sortByAgeDescending } from '@/lib/reporting/crossProjectLists'
-import { fetchFloorTrackData } from '@/lib/reporting/floorTrackData'
+import { fetchFloorTrackData, systemOfOldestItem } from '@/lib/reporting/floorTrackData'
 import { bucketFloorsByStage } from '@/lib/reporting/floorStageBuckets'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
@@ -153,12 +153,16 @@ export default async function TestingCommissioningPage({
         }
       }
       const oldestFloorLabel = oldestFloorId ? (data.floors.find((f) => f.id === oldestFloorId)?.label ?? oldestFloorId) : null
+      // §10.1 (D096) — name WHICH system the age belongs to, but only on a
+      // project that has more than one. The row itself stays one per
+      // project; this is the system appearing where it answers a question.
+      const oldestSystemName = systemOfOldestItem(data, oldestFloorId, oldestBucketKey)
       const ageContext =
         oldestFloorId === null
           ? t('crossListAgeNothingWaiting')
           : oldestBucketKey === 'not_started'
-            ? `${oldestFloorLabel} · ${t('statusNotStarted')}`
-            : `${oldestFloorLabel} · ${t(SUB_STAGE_KEYS[oldestBucketKey!] ?? 'subStageFirstFix')}`
+            ? `${oldestFloorLabel}${oldestSystemName ? ` · ${oldestSystemName}` : ''} · ${t('statusNotStarted')}`
+            : `${oldestFloorLabel}${oldestSystemName ? ` · ${oldestSystemName}` : ''} · ${t(SUB_STAGE_KEYS[oldestBucketKey!] ?? 'subStageFirstFix')}`
 
       return {
         projectId: project.id,

@@ -41,6 +41,10 @@ export interface BoqPreview {
   cadSystems: CadSystemOption[]
   /** The project's existing floors, for "Map to existing". */
   existingFloors: { id: string; label: string }[]
+  /** Brief 106b / §7 — what each system covers TODAY, so the preview can
+   *  show System · Now · This file · On commit before anything is written.
+   *  Keyed by system name, because that is what the file names. */
+  currentCoverage: Record<string, string[]>
 }
 
 export interface BoqImportState {

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { addProjectSystem, updateSystemCadCode } from './actions'
+import { CoverageSummary, CoverageEditor, type CoverageFloorRow } from './CoverageEditor'
 import { setupInitialState } from './setup-shared'
 
 export interface ProjectSystemRow {
@@ -10,6 +11,11 @@ export interface ProjectSystemRow {
   name: string
   cadCode: string | null
   source: 'imported' | 'manual'
+  /** Brief 106b / §6.5 — the floors this system covers, and how much work
+   *  has moved on each, for the removal warning. */
+  coveredFloorIds: string[]
+  coverageSource: 'import' | 'manual' | 'migrated' | null
+  recordedByFloor: Map<string, number>
 }
 
 export interface CadSystemChoice {
@@ -29,11 +35,14 @@ export function SystemsSection({
   systems,
   cadSystems,
   canEdit,
+  floors,
 }: {
   projectId: string
   systems: ProjectSystemRow[]
   cadSystems: CadSystemChoice[]
   canEdit: boolean
+  /** Every floor of the project, in §6.2 building order. */
+  floors: CoverageFloorRow[]
 }) {
   const { t } = useLanguage()
   const [adding, setAdding] = useState(false)
@@ -51,9 +60,12 @@ export function SystemsSection({
     <>
       {systems.length > 0 && (
       <div className="wf-data-table">
-        <div className="wf-data-table__row wf-data-table__row--head" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
+        <div className="wf-data-table__row wf-data-table__row--head" style={{ gridTemplateColumns: '1fr 1.1fr 1.4fr .7fr .8fr' }}>
           <span className="wf-data-table__head-cell">{t('setupSystemsNameLabel')}</span>
           <span className="wf-data-table__head-cell">{t('setupSystemsCadCodeLabel')}</span>
+          <span className="wf-data-table__head-cell">{t('setupCoverageColumn')}</span>
+          <span className="wf-data-table__head-cell">{t('setupCoverageSetBy')}</span>
+          <span className="wf-data-table__head-cell" />
         </div>
         {systems.map((system) => (
           <SystemRow
@@ -62,6 +74,7 @@ export function SystemsSection({
             system={system}
             cadSystems={cadSystems}
             canEdit={canEdit}
+            floors={floors}
           />
         ))}
       </div>
@@ -119,17 +132,20 @@ function SystemRow({
   system,
   cadSystems,
   canEdit,
+  floors,
 }: {
   projectId: string
   system: ProjectSystemRow
   cadSystems: CadSystemChoice[]
   canEdit: boolean
+  floors: CoverageFloorRow[]
 }) {
   const { t } = useLanguage()
   const [state, formAction, pending] = useActionState(updateSystemCadCode, setupInitialState)
+  const [editingFloors, setEditingFloors] = useState(false)
 
   return (
-    <div className="wf-data-table__row wf-data-table__row--body" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
+    <div className="wf-data-table__row wf-data-table__row--body" style={{ gridTemplateColumns: '1fr 1.1fr 1.4fr .7fr .8fr' }}>
       <span>
         {system.name}{' '}
         {system.source === 'imported' && (
@@ -162,6 +178,71 @@ function SystemRow({
             <span className="wf-admin-row__confirm-error">{t('setupSystemsNoCadCode')}</span>
           )}
         </span>
+      )}
+
+      {/* §6.5 — Floors covered */}
+      <span>
+        <CoverageSummary floors={floors} coveredIds={system.coveredFloorIds} />
+        {system.coveredFloorIds.length === 0 && (
+          <span className="setup-coverage__none-body">
+            {t('setupCoverageNoFloorsBodyPrefix')} {system.name}{' '}
+            {t('setupCoverageNoFloorsBodySuffix')}
+          </span>
+        )}
+      </span>
+
+      {/* §6.5 — Set by. Blank until coverage exists: "by hand" would be a
+          claim about something nobody has done yet. */}
+      {/* Migration 045's backfill is amber and says "check": it is a guess
+          the migration had to make so the matrix was not blank, not a
+          decision anyone took. Saying "By hand" here would be the same false
+          claim the blank case above refuses to make. It warns and does not
+          block — §6.2, as with the removal warning. */}
+      <span
+        className={
+          system.coverageSource === 'migrated'
+            ? 'setup-coverage__set-by setup-coverage__set-by--check'
+            : 'setup-coverage__set-by'
+        }
+      >
+        {system.coveredFloorIds.length === 0
+          ? '—'
+          : system.coverageSource === 'import'
+            ? t('setupCoverageSourceImport')
+            : system.coverageSource === 'migrated'
+              ? t('setupCoverageSourceMigrated')
+              : t('setupCoverageSourceManual')}
+      </span>
+
+      {/* §6.4 — where a person cannot edit, a sentence stands in place of the
+          control, never a disabled button. Here the control is simply absent
+          and the row stays readable. */}
+      <span>
+        {canEdit && (
+          <button
+            type="button"
+            className="wf-admin-row__link"
+            onClick={() => setEditingFloors((v) => !v)}
+          >
+            {system.coveredFloorIds.length === 0
+              ? t('setupCoverageSetFloors')
+              : t('setupCoverageEdit')}
+          </button>
+        )}
+      </span>
+
+      {editingFloors && canEdit && (
+        <div className="setup-coverage__editor-wrap">
+          <CoverageEditor
+            projectId={projectId}
+            systemId={system.id}
+            systemName={system.name}
+            floors={floors}
+            coveredIds={system.coveredFloorIds}
+            recordedByFloor={system.recordedByFloor}
+            onDone={() => setEditingFloors(false)}
+          />
+        </div>
       )}
     </div>
   )

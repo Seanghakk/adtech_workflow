@@ -8716,3 +8716,161 @@ a.floor-matrix__cell {
    here, and they are DIFFERENT statements — the copy keeps them apart, not
    the styling, so neither is dressed up as the other. */
 .procurement-line-card__approval-none { font-size: 12px; color: var(--wf-text-2); }
+
+/* Brief 106b / §7 — the import's floor-coverage preview. */
+.boq-import__coverage { margin: var(--space-4) 0; }
+.boq-import__coverage-heading { font: 800 15px/1.2 var(--font-heading); margin: 0 0 4px; }
+.boq-import__coverage-intro { font-size: 12px; color: var(--wf-text-2); margin: 0 0 var(--space-2); }
+/* The kept floors are the point of the table, so they read as a distinct
+   clause rather than blending into the list beside them. */
+.boq-import__coverage-kept { color: var(--wf-text-2); font-size: 12px; }
+
+/* Brief 106b / §22.6a — a floor grouped by system. */
+.update-system { margin-top: var(--space-3); border-top: 1px solid var(--ink); }
+.update-system__head {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  background: #f7f6f6; padding: var(--space-2) var(--space-3);
+}
+.update-system__name { font: 800 15px/1.2 var(--font-heading); }
+.update-system__holder { flex: 1; font-size: 13px; }
+.update-system__holder--idle { color: var(--wf-text-2); }
+.update-system__holder-name { color: var(--navy); font-weight: 600; }
+.update-system__age { font: 800 15px/1 var(--font-heading); }
+.update-system__age--stalled { color: var(--wf-red-ink, #8e1620); }
+.update-system__on { font-size: 12px; color: var(--wf-text-2); }
+.update-system__done { font-size: 12.5px; color: var(--wf-text-2); }
+
+/* §22.4 — "Also open: CCTV 6d · PA/VA 2d". Age only, never a holder. */
+.update-floor__also-open { display: block; font-size: 12px; color: var(--wf-text-2); margin-top: 2px; }
+
+/* §22.6a — one line, never rows. A column of dashed cells would claim the
+   work exists and is undone; it is simply not this system's floor. */
+.update-not-on-floor { font-size: 12.5px; color: var(--wf-text-2); margin-top: var(--space-3); }
+
+/* Brief 106b / §11.5 — systems side by side in the matrix. */
+.floor-matrix__system-head { align-items: end; }
+/* Each system's header spans its five columns and carries its coverage, so
+   a reader knows what an empty-looking group means before scanning it. */
+.floor-matrix__system-group {
+  grid-column: span 5;
+  display: flex; flex-direction: column; gap: 1px;
+  border-left: 2px solid rgba(32, 30, 29, 0.4);
+  padding-left: 6px;
+}
+.floor-matrix__system-name { font: 800 14px/1.2 var(--font-heading); }
+.floor-matrix__system-coverage { font-size: 12px; color: var(--wf-text-2); }
+/* §11.5 — abbreviated per group; the key sits once under the legend. */
+.floor-matrix__col-abbr { font-size: 12px; }
+.floor-matrix__abbr-key { font-size: 12px; color: var(--wf-text-2); display: block; width: 100%; margin-top: 4px; }
+
+/* §11.5 — beyond six systems the grid scrolls sideways inside its own
+   frame with the floor column pinned. The legend above it still wraps and
+   never scrolls, which is the Brief 062 clipping rule. */
+.floor-matrix__grid { overflow-x: auto; }
+.floor-matrix__row-head { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.floor-matrix__no-coverage { font-size: 12.5px; color: var(--wf-text-2); margin-top: var(--space-2); }
+
+/* Brief 106b / §12.2a — the system step on the phone (mockup 18c). */
+/* The band sits BELOW the floor header, never above it: §4.3, the first
+   question after a scan is "did I scan the right label". */
+.phone-system-band {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  background: var(--surface); border: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-3); margin-bottom: var(--space-3);
+}
+.phone-system-band__kicker {
+  font: 800 12px/1 var(--font-heading); text-transform: uppercase;
+  letter-spacing: .09em; color: var(--wf-text-2);
+}
+.phone-system-band__name { font: 800 22px/1.15 var(--font-heading); margin-top: 2px; }
+.phone-system-band__count { font-size: 12.5px; color: var(--wf-text-2); }
+/* 56px so it is a real target for a gloved hand on a site. */
+.phone-system-band__change {
+  min-height: 56px; padding: 0 var(--space-3);
+  border: 2px solid var(--ink); background: var(--surface);
+  font: 600 14px/1 var(--font-body); color: var(--ink);
+}
+
+.phone-system-picker { margin-bottom: var(--space-3); }
+.phone-system-picker__kicker { font: 800 15px/1.2 var(--font-heading); }
+.phone-system-picker__intro { font-size: 13px; color: var(--wf-text-2); margin: 2px 0 var(--space-2); }
+.phone-system-picker__list { list-style: none; margin: 0; padding: 0; }
+.phone-system-picker__row {
+  width: 100%; min-height: 64px; display: grid;
+  grid-template-columns: 1fr 16px; align-items: center; gap: 2px;
+  background: var(--surface); border: 1px solid rgba(32, 30, 29, 0.2);
+  border-left: 5px solid transparent; padding: var(--space-2) var(--space-3);
+  margin-bottom: 4px; text-align: left;
+}
+/* §12.2a — for a QC member, systems with work waiting come first under a
+   5px amber rule. Amber is possession, not blame. */
+.phone-system-picker__row--awaiting { border-left-color: var(--wf-amber, #b26100); }
+.phone-system-picker__name { font: 600 16px/1.2 var(--font-body); grid-column: 1; }
+.phone-system-picker__state { font-size: 12.5px; color: var(--wf-text-2); grid-column: 1; }
+.phone-system-picker__chevron { grid-column: 2; grid-row: 1 / span 2; color: var(--wf-text-2); }
+
+/* §12.2a — read-only, never tappable: a dead control is worse than a fact. */
+.phone-system-picker__not-on { background: var(--ground, #f3f2f2); padding: var(--space-3); margin-top: var(--space-3); }
+.phone-system-picker__not-on-kicker { font: 600 12.5px/1.2 var(--font-body); color: var(--wf-text-2); }
+.phone-system-picker__not-on-row { font-size: 12.5px; color: var(--wf-text-2); margin-top: 2px; }
+.phone-system-picker__pic-line { font-size: 12.5px; color: var(--wf-text-2); margin: var(--space-2) 0 0; }
+
+/* §12.2a — a remembered system that is not on this floor. 2px ink border:
+   NOT amber and NOT red, because nothing here is late. */
+.phone-system-picker__wrong-floor {
+  border: 2px solid var(--ink); padding: var(--space-3);
+  margin-bottom: var(--space-3); font-size: 13px;
+}
+/* §12.8 — the QC picker's awaiting line, under the state line. */
+.phone-system-picker__awaiting { grid-column: 1; font-size: 12.5px; color: #8a4b00; }
+
+/* Brief 106b / §11.5 — the 390px system selector.
+   Above phone width the side-by-side grid stands, and the select is not
+   rendered at all: §11.5 rejects a selector there because it "hides three
+   quarters of the project and turns one pattern into four page views".
+   On a phone there is no room for the pattern, so the trade reverses. */
+.floor-matrix__system-select { display: none; }
+.floor-matrix__system-select select {
+  width: 100%; min-height: 56px; padding: 0 var(--space-2);
+  border: 1px solid rgba(32, 30, 29, 0.2); background: var(--surface);
+  font: 400 15px/1.3 var(--font-body); color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+@media (max-width: 560px) {
+  .floor-matrix__system-select { display: block; }
+  /* One system at a time. The hidden groups stay in the DOM so the choice
+     needs no re-fetch and the grid keeps its place. */
+  .floor-matrix__phone-hidden { display: none; }
+  .floor-matrix__cell { min-height: 16px; }
+}
+
+/* Brief 106b — the bar's unfilled tail (mockup 10b).
+   Not started carries no border of its own: at 26 of 30 the matrix cell's
+   hairline is near-invisible against the track's own rgba(32,30,29,.25)
+   border, and the whole bar read as an empty track. It is the remainder,
+   drawn as such. The track keeps §22.2's 1px separators between the
+   segments that DID move, and its 16px height — §10's text and §22.2
+   agree on 16px and only 10b's drawing differs. */
+.cross-list__bar-segment--tail {
+  background: #fff;
+  border: 0;
+}
+/* §22.2 — "1px rule between segments". On the filled segments only; the
+   tail needs no rule because nothing follows it. */
+.cross-list__bar-segment + .cross-list__bar-segment {
+  border-left: 1px solid rgba(32, 30, 29, 0.25);
+}
+
+/* Brief 106 — coverage that migration 045 assumed rather than anyone
+   choosing. §6.2: it warns, it does not block, and it is a word rather than
+   an icon so it survives being read aloud or printed. The ink token, not the
+   flat amber, because this sits in a dense table row where a solid swatch
+   would read as a status rather than a caveat. */
+.setup-coverage__set-by--check {
+  color: var(--wf-amber-ink);
+  background: var(--wf-amber-tint);
+  border: 1px solid var(--wf-amber-edge);
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
