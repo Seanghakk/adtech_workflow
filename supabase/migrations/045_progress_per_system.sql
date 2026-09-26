@@ -373,10 +373,19 @@ comment on table workflow.floor_sub_stages is
 -- 7. The completion figure — 17a item 23
 -- -----------------------------------------------------------------------------
 
+-- SECURITY DEFINER and the pinned search_path are CARRIED OVER, not new.
+-- The pre-045 function had both and the first version of this migration
+-- silently dropped them — the same shape as the write policy 048 had to
+-- restore. It matters here because this function is exposed as a PostgREST
+-- RPC: without definer rights a caller computes the figure through their own
+-- RLS view of progress_cells and gets a smaller number than the project's
+-- real one, with nothing on screen to say the two disagree.
 create or replace function workflow.compute_project_rollup_percent(p_project_id uuid)
 returns integer
 language plpgsql
 stable
+security definer
+set search_path = workflow, pg_temp
 as $function$
 declare
   v_avg numeric;
