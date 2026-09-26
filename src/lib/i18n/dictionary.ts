@@ -2059,6 +2059,7 @@ const en = {
   phoneSystemOnFloorSuffix: 'systems on',
   phoneSystemOnlyOnProject: 'The only system on this project',
   phoneSystemNotStarted: 'Not started',
+  phoneSystemAwaitingQc: 'awaiting QC',
   phoneSystemDoneMiddle: 'of',
   phoneSystemDoneSuffix: 'done',
   phoneSystemOnPrefix: 'on',

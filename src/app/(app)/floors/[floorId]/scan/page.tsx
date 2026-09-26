@@ -232,6 +232,7 @@ export default async function FloorScanPage({
   // the §11.1 derivation: marked done, with no inspection yet. Counted from
   // the same rows the picker shows, so the order and the states agree.
   const awaitingQcBySystem = new Map<string, number>()
+  const awaitingSubStagesBySystem = new Map<string, string[]>()
   for (const c of subStageRows ?? []) {
     if (c.status !== 'done') continue
     if ((inspectionsBySubStage.get(c.id) ?? []).length > 0) continue
@@ -239,6 +240,12 @@ export default async function FloorScanPage({
       c.project_system_id,
       (awaitingQcBySystem.get(c.project_system_id) ?? 0) + 1,
     )
+    // §12.8 — named, not just counted: "2 awaiting QC" without saying
+    // which two is a number an inspector then has to go looking for.
+    awaitingSubStagesBySystem.set(c.project_system_id, [
+      ...(awaitingSubStagesBySystem.get(c.project_system_id) ?? []),
+      t(SUB_STAGE_KEYS[c.sub_stage] ?? 'subStageFirstFix'),
+    ])
   }
   function systemStateLine(systemId: string): string {
     const cells = (subStageRows ?? []).filter((c) => c.project_system_id === systemId)
@@ -347,6 +354,7 @@ export default async function FloorScanPage({
             coversLabels: sys.coversLabels,
             stateLine: systemStateLine(sys.id),
             awaitingQc: awaitingQcBySystem.get(sys.id) ?? 0,
+            awaitingSubStages: awaitingSubStagesBySystem.get(sys.id) ?? [],
           }))}
           chosenId={activeSystemId}
           picName={picLabel}

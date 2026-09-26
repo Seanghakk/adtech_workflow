@@ -34,7 +34,12 @@ export type NotifyOutcome =
   | { kind: 'not_wired'; name: string }
 
 export interface NotifyInput {
-  /** floor_sub_stages.updated_by, resolved to a name — null if unset. */
+  /** Brief 106b — progress_cells.updated_by, resolved to a name, null if
+   *  unset. §12.7's notice goes to whoever set THAT SYSTEM'S cell done:
+   *  after D096 two crews can have marked the same floor's same sub-stage
+   *  done for different systems, and telling the wrong one their work
+   *  failed is worse than telling nobody. The cell id already carries the
+   *  system, so the caller resolves the right person by construction. */
   markedDoneByName: string | null
   /** Whether a Telegram send was attempted AND returned true. */
   telegramDelivered: boolean

@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { orderForPicker } from '@/lib/progressPerSystem/phoneSystem'
 
 export interface PhoneSystemRow {
   id: string
@@ -27,6 +28,8 @@ export interface PhoneSystemRow {
    *  second fix", or "Not started". */
   stateLine: string
   awaitingQc: number
+  /** §12.8 — the sub-stages waiting, named. */
+  awaitingSubStages: string[]
 }
 
 /** Remembered for the session only — §12.2a. Not a stored preference: a
@@ -53,7 +56,14 @@ export function SystemStep({
   const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams()
-  const covering = systems.filter((s) => s.coversThisFloor)
+  // §12.8 — "the QC person's system picker puts systems with work waiting
+  // first". For everyone else the order is Project setup's, which every
+  // other screen uses.
+  const covering = orderForPicker(
+    systems.filter((s) => s.coversThisFloor),
+    new Map(systems.map((s) => [s.id, s.awaitingQc])),
+    isQcMember,
+  )
   const notOnFloor = systems.filter((s) => !s.coversThisFloor && s.coversLabels.length > 0)
 
   const [open, setOpen] = useState(chosenId === null)
@@ -158,6 +168,15 @@ export function SystemStep({
             >
               <span className="phone-system-picker__name">{s.name}</span>
               <span className="phone-system-picker__state">{s.stateLine}</span>
+              {/* §12.8 — for a QC member, the count and the sub-stages it
+                  belongs to, because "2 awaiting QC" without naming them
+                  is a number they then have to go looking for. */}
+              {isQcMember && s.awaitingQc > 0 && (
+                <span className="phone-system-picker__awaiting">
+                  {s.awaitingQc} {t('phoneSystemAwaitingQc')}
+                  {s.awaitingSubStages.length > 0 && ` · ${s.awaitingSubStages.join(', ')}`}
+                </span>
+              )}
               <span className="phone-system-picker__chevron" aria-hidden="true">
                 ›
               </span>
