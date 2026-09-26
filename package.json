@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:rollback": "node supabase/tests/_support/run-rollback.mjs"
+    "test:rollback": "node supabase/tests/_support/run-rollback.mjs",
+    "test:smoke": "node scripts/smoke-routes.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
