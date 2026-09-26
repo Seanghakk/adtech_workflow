@@ -13,6 +13,8 @@
 -- existed.
 --
 -- Run BEFORE applying 049 and the guard checks print FAIL. That is the point.
+-- PROVED: against a stack built to migration 044, this file prints its table
+-- with 22 rows, 22 FAIL. It does not abort.
 --
 -- Expected AFTER 049: 22 rows, all PASS.
 --

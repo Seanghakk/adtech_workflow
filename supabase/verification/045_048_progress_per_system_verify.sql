@@ -15,6 +15,10 @@
 -- Every function check below greps the function BODY for a marker unique to
 -- its migration. Run this file BEFORE applying and most checks print FAIL —
 -- that is the point, and it is how you know the file is testing anything.
+-- PROVED: against a stack built to migration 044, this file prints its table
+-- with 42 rows, 32 FAIL. It does not abort. A verification file that ERRORS
+-- on the pre-migration run is useless on the one run that matters most, and
+-- this one did exactly that twice before it was fixed — see check 39.
 --
 -- Expected AFTER 045, 046, 047 and 048: 42 rows. Check 39 is a PRECONDITION
 -- for migration 050 and may legitimately FAIL — read its comment.
