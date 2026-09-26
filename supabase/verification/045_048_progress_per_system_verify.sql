@@ -16,7 +16,7 @@
 -- its migration. Run this file BEFORE applying and most checks print FAIL —
 -- that is the point, and it is how you know the file is testing anything.
 --
--- Expected AFTER 045, 046, 047 and 048: 41 rows. Check 39 is a PRECONDITION
+-- Expected AFTER 045, 046, 047 and 048: 42 rows. Check 39 is a PRECONDITION
 -- for migration 050 and may legitimately FAIL — read its comment.
 --
 -- 045 IS STAGED since it failed on production: it no longer drops
@@ -106,6 +106,17 @@ with checks as (
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'workflow' and p.proname = 'compute_project_rollup_percent'
                and pg_get_functiondef(p.oid) like '%045 marker: one bucket per covered system and floor, plus project drawings%')
+  -- The pre-045 function was SECURITY DEFINER with a pinned search_path and
+  -- the first version of this migration silently dropped both — the same
+  -- shape as the write policy 048 had to restore. It matters because this
+  -- function is exposed as a PostgREST RPC: without definer rights a caller
+  -- computes the figure through their own RLS view of progress_cells and gets
+  -- a smaller number than the project's real one.
+  union all select 13.1, '045 · the rollup kept SECURITY DEFINER and a pinned search_path',
+    exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'workflow' and p.proname = 'compute_project_rollup_percent'
+               and p.prosecdef
+               and array_to_string(p.proconfig, ',') like '%search_path%')
   union all select 14, '045 · the rollup ignores QC, as before',
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'workflow' and p.proname = 'compute_project_rollup_percent'

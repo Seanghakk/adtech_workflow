@@ -449,6 +449,7 @@ alter table workflow.progress_cells        enable row level security;
 
 -- Readable by anyone who can see the project, using the SAME expression
 -- contract_boq_lines and material approval already use.
+drop policy if exists project_system_floors_select on workflow.project_system_floors;
 create policy project_system_floors_select on workflow.project_system_floors
   for select using (
     workflow.is_member()
@@ -463,6 +464,7 @@ create policy project_system_floors_select on workflow.project_system_floors
 -- §6.5 — "Permissions: PIC-gated, as §6.4." Coverage is project structure, and
 -- structure is the PIC's. Deliberately NOT the progress teams: recording
 -- progress and deciding what a system covers are different powers.
+drop policy if exists project_system_floors_write on workflow.project_system_floors;
 create policy project_system_floors_write on workflow.project_system_floors
   for all using (
     workflow.is_superadmin()
@@ -482,6 +484,7 @@ create policy project_system_floors_write on workflow.project_system_floors
     )
   );
 
+drop policy if exists progress_cells_select on workflow.progress_cells;
 create policy progress_cells_select on workflow.progress_cells
   for select using (
     workflow.is_member()
@@ -498,6 +501,7 @@ create policy progress_cells_select on workflow.progress_cells
 -- and commissioning, or the PIC. Carried over from floor_sub_stages' own
 -- policy rather than re-decided here — D096 changed the SHAPE of a cell, not
 -- who may write one.
+drop policy if exists progress_cells_write on workflow.progress_cells;
 create policy progress_cells_write on workflow.progress_cells
   for all using (
     workflow.is_superadmin()
