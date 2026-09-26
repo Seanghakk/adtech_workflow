@@ -40,6 +40,7 @@ export function UpdateSummary({
   projectName,
   picName,
   stream,
+  soleSystemName,
   percent,
   counts,
   basis,
@@ -54,6 +55,10 @@ export function UpdateSummary({
   projectName: string
   picName: string | null
   stream: string
+  /** §22.6a — on a ONE-SYSTEM project the system is named once, here, and
+   *  there are no per-system blocks anywhere on the page. Null when the
+   *  project has several systems (each block names its own) or none. */
+  soleSystemName: string | null
   percent: number | null
   counts: CellCounts
   basis: { subStageCells: number; drawings: number }
@@ -87,7 +92,12 @@ export function UpdateSummary({
           ) : (
             <span className="update-summary__so">{soLabel}</span>
           )}
-          <span className="update-summary__stream">{stream.toUpperCase()}</span>
+          <span className="update-summary__stream">
+            {stream.toUpperCase()}
+            {/* §22.6a — "the system is named once in the Identity block's
+                stream line (ELV · CCTV)". */}
+            {soleSystemName && ` · ${soleSystemName}`}
+          </span>
         </div>
         <div className="update-summary__project">{projectName}</div>
         <div className="update-summary__pic">

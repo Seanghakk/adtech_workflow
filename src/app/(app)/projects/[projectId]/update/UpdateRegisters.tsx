@@ -85,6 +85,7 @@ export function UpdateRegisters({
   isQcMember,
   approvedPackages,
   singleSystem,
+  soleSystemName,
   isProjectTeamMember,
   isTncTeamMember,
   drawingActor,
@@ -110,6 +111,7 @@ export function UpdateRegisters({
   /** §22.6a — one system means no blocks, no selector; the page reads as
    *  15a–15e and names the system once in the Identity block. */
   singleSystem: boolean
+  soleSystemName: string | null
   isProjectTeamMember: boolean
   isTncTeamMember: boolean
   drawingActor: DrawingActor
@@ -241,6 +243,7 @@ export function UpdateRegisters({
           isOpen: openIds.includes(s.floorId),
           option: floorOption(s, ageOf),
         }))}
+        soleSystemName={soleSystemName}
       />
 
       <div className="update-work">
