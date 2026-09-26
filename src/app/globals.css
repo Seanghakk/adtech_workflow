@@ -8769,3 +8769,55 @@ a.floor-matrix__cell {
 .floor-matrix__grid { overflow-x: auto; }
 .floor-matrix__row-head { position: sticky; left: 0; background: var(--surface); z-index: 1; }
 .floor-matrix__no-coverage { font-size: 12.5px; color: var(--wf-text-2); margin-top: var(--space-2); }
+
+/* Brief 106b / §12.2a — the system step on the phone (mockup 18c). */
+/* The band sits BELOW the floor header, never above it: §4.3, the first
+   question after a scan is "did I scan the right label". */
+.phone-system-band {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  background: var(--surface); border: 1px solid rgba(32, 30, 29, 0.2);
+  padding: var(--space-3); margin-bottom: var(--space-3);
+}
+.phone-system-band__kicker {
+  font: 800 12px/1 var(--font-heading); text-transform: uppercase;
+  letter-spacing: .09em; color: var(--wf-text-2);
+}
+.phone-system-band__name { font: 800 22px/1.15 var(--font-heading); margin-top: 2px; }
+.phone-system-band__count { font-size: 12.5px; color: var(--wf-text-2); }
+/* 56px so it is a real target for a gloved hand on a site. */
+.phone-system-band__change {
+  min-height: 56px; padding: 0 var(--space-3);
+  border: 2px solid var(--ink); background: var(--surface);
+  font: 600 14px/1 var(--font-body); color: var(--ink);
+}
+
+.phone-system-picker { margin-bottom: var(--space-3); }
+.phone-system-picker__kicker { font: 800 15px/1.2 var(--font-heading); }
+.phone-system-picker__intro { font-size: 13px; color: var(--wf-text-2); margin: 2px 0 var(--space-2); }
+.phone-system-picker__list { list-style: none; margin: 0; padding: 0; }
+.phone-system-picker__row {
+  width: 100%; min-height: 64px; display: grid;
+  grid-template-columns: 1fr 16px; align-items: center; gap: 2px;
+  background: var(--surface); border: 1px solid rgba(32, 30, 29, 0.2);
+  border-left: 5px solid transparent; padding: var(--space-2) var(--space-3);
+  margin-bottom: 4px; text-align: left;
+}
+/* §12.2a — for a QC member, systems with work waiting come first under a
+   5px amber rule. Amber is possession, not blame. */
+.phone-system-picker__row--awaiting { border-left-color: var(--wf-amber, #b26100); }
+.phone-system-picker__name { font: 600 16px/1.2 var(--font-body); grid-column: 1; }
+.phone-system-picker__state { font-size: 12.5px; color: var(--wf-text-2); grid-column: 1; }
+.phone-system-picker__chevron { grid-column: 2; grid-row: 1 / span 2; color: var(--wf-text-2); }
+
+/* §12.2a — read-only, never tappable: a dead control is worse than a fact. */
+.phone-system-picker__not-on { background: var(--ground, #f3f2f2); padding: var(--space-3); margin-top: var(--space-3); }
+.phone-system-picker__not-on-kicker { font: 600 12.5px/1.2 var(--font-body); color: var(--wf-text-2); }
+.phone-system-picker__not-on-row { font-size: 12.5px; color: var(--wf-text-2); margin-top: 2px; }
+.phone-system-picker__pic-line { font-size: 12.5px; color: var(--wf-text-2); margin: var(--space-2) 0 0; }
+
+/* §12.2a — a remembered system that is not on this floor. 2px ink border:
+   NOT amber and NOT red, because nothing here is late. */
+.phone-system-picker__wrong-floor {
+  border: 2px solid var(--ink); padding: var(--space-3);
+  margin-bottom: var(--space-3); font-size: 13px;
+}

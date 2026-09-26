@@ -2039,6 +2039,37 @@ const en = {
   overviewLoadFailedHeadline: 'The overview did not load',
 
 
+  // ==== Brief 106b / v7.4 §12.2a — the system step on the phone ====
+  phoneSystemPickerKicker: 'Which system are you updating?',
+  phoneSystemPickerHasPrefix: 'has',
+  // §12.2a's own sentence — the promise that answers §4.2 before anyone
+  // has to wonder: changing system never means walking back to the label.
+  phoneSystemPickerHasSuffix: 'systems. You can change system at any time without scanning again.',
+  phoneSystemBandKicker: 'System',
+  phoneSystemChange: 'Change system',
+  phoneSystemOfPrefix: 'of',
+  phoneSystemOnFloorSuffix: 'systems on',
+  phoneSystemOnlyOnProject: 'The only system on this project',
+  phoneSystemNotStarted: 'Not started',
+  phoneSystemDoneMiddle: 'of',
+  phoneSystemDoneSuffix: 'done',
+  phoneSystemOnPrefix: 'on',
+  // §12.2a — read-only, never tappable.
+  phoneSystemNotOnPrefix: 'Not on',
+  phoneSystemNotOnCovers: 'covers',
+  phoneSystemPicLinePrefix: 'The PIC,',
+  phoneSystemPicLineSuffix: ', can add this floor to a system in Project setup.',
+  // §12.2a — a remembered system that does not cover this floor. Explained
+  // rather than silently reset: a silent reset reads as the app forgetting,
+  // and they would choose the same wrong system again.
+  phoneSystemWrongFloorMiddle: 'is not on',
+  phoneSystemWrongFloorCovers: 'It covers',
+  phoneSystemWrongFloorChoose: 'Choose the system you are updating here.',
+  phoneSystemNoneHeadlinePrefix: 'No system covers',
+  phoneSystemNoneHeadlineSuffix: 'yet',
+  phoneSystemNoneBodyPrefix: 'Progress is recorded per system. The PIC,',
+  phoneSystemNoneBodySuffix: ', sets which floors each system covers in Project setup.',
+
   // ==== Brief 106b / v7.4 §11.5 — systems side by side in the matrix ====
   floorMatrixFloorsSuffix: 'floors',
   // §11.5 — "the sub-stage labels abbreviated in each group to
@@ -2065,7 +2096,6 @@ const en = {
   // holders are deliberately not named here; they are in each system header.
   updateAlsoOpenPrefix: 'Also open:',
   updateFloorNothingOpen: 'nothing open',
-  updateFloorOnPrefix: 'on',
 
   // ==== Brief 106b / v7.4 §7 — coverage proposed by the import ====
   boqImportCoverageHeading: 'Floor coverage',

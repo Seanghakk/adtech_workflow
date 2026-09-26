@@ -67,8 +67,22 @@ describe('summariseFloorRow — §22.4 with systems (D096)', () => {
 
   it('counts "n of m done" across every system on the floor — §22.4s "3 of 15"', () => {
     const s = summariseFloorRow(cells, ageOf)
-    expect(s.doneCount).toBe(1)
+    // Two were marked done: one awaiting QC and one QC passed. "Done" is
+    // about the work, not about the inspection.
+    expect(s.doneCount).toBe(2)
     expect(s.totalCount).toBe(4)
+  })
+
+  it('keeps a QC-FAILED cell in the done count', () => {
+    // It was marked done; a failed inspection is a finding about it. If the
+    // count dropped on a fail, the row would read as work being un-done.
+    const failed = [cell('cctv', 'CCTV', 'first_fix', 'qc_failed', '4', 'Sok Chan')]
+    expect(summariseFloorRow(failed, ageOf).doneCount).toBe(1)
+  })
+
+  it('does not count work that has only started', () => {
+    const started = [cell('cctv', 'CCTV', 'first_fix', 'in_progress', '4', 'Sok Chan')]
+    expect(summariseFloorRow(started, ageOf).doneCount).toBe(0)
   })
 
   it('reports all-QC-passed only when every cell has passed', () => {

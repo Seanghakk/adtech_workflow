@@ -42,7 +42,7 @@ export default async function PhotoGatePage({
   const { member } = await getCurrentMember()
 
   const { data: subStage } = await supabase
-    .from('floor_sub_stages')
+    .from('progress_cells')
     .select('id, floor_id, stage, sub_stage, status')
     .eq('id', subStageId)
     .maybeSingle()

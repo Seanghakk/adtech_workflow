@@ -93,7 +93,13 @@ export function summariseFloorRow(
     }
   }
 
-  const doneCount = cells.filter((c) => c.state === 'qc_passed' || c.state === 'done').length
+  // §22.4's "n of m done" counts the work MARKED DONE, which in display
+  // terms is any of the three states that imply it: awaiting QC (done, not
+  // yet inspected), QC passed, and QC failed — a failed cell was still
+  // marked done, and dropping it would make the count fall when an
+  // inspection fails, which reads as work being un-done.
+  const DONE_STATES: MatrixCellState[] = ['awaiting_qc', 'qc_passed', 'qc_failed']
+  const doneCount = cells.filter((c) => DONE_STATES.includes(c.state)).length
   const allQcPassed =
     cells.length > 0 && cells.every((c) => c.state === 'qc_passed' || c.state === 'not_applicable')
 
