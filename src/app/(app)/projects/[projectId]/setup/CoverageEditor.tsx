@@ -19,6 +19,7 @@ import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { coverageShape, removalWarnings, type CoverageFloor } from '@/lib/progressPerSystem/coverage'
 import { saveSystemCoverage } from './coverage-actions'
 import { coverageInitialState } from './coverage-state'
+import { initialCoverageSelection } from '@/lib/progressPerSystem/initialCoverageSelection'
 
 export interface CoverageFloorRow extends CoverageFloor {
   towerLabel: string | null
@@ -78,6 +79,7 @@ export function CoverageEditor({
   floors,
   coveredIds,
   recordedByFloor,
+  preselectAllFloors = false,
   onDone,
 }: {
   projectId: string
@@ -87,10 +89,28 @@ export function CoverageEditor({
   coveredIds: string[]
   /** How many sub-stages have MOVED on each floor, for this system. */
   recordedByFloor: Map<string, number>
+  /**
+   * §6.5 — "A system added by hand opens the editor with every floor
+   * selected." TRUE ONLY FOR A SYSTEM JUST CREATED, never merely for one
+   * that covers nothing: "No floors." is a legitimate state with its own
+   * copy in §6.5, and a system deliberately scoped to nothing must not have
+   * every floor re-selected for it each time the editor is opened.
+   *
+   * Nothing is written until Save. This pre-selects; it does not decide.
+   * Coverage is real data, and a migration or a component inventing it is
+   * exactly what migration 045's own header refuses.
+   */
+  preselectAllFloors?: boolean
   onDone: () => void
 }) {
   const { t } = useLanguage()
-  const [selected, setSelected] = useState<string[]>(coveredIds)
+  const [selected, setSelected] = useState<string[]>(() =>
+    initialCoverageSelection(
+      floors.map((f) => f.id),
+      coveredIds,
+      preselectAllFloors,
+    ),
+  )
   const [lastIndex, setLastIndex] = useState<number | null>(null)
   const [state, action, pending] = useActionState(saveSystemCoverage, coverageInitialState)
 
