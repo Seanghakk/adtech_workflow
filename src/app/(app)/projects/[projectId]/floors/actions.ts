@@ -298,15 +298,28 @@ export async function updateFloor(
 /**
  * DELIBERATE DESIGN, flagged per the brief's own "real trade-off" clause
  * rather than decided silently (see Result 047 for the full reasoning):
- * a floor's 7 sub-stage/drawing child rows are auto-seeded, unconditionally,
- * the instant a floor is created (workflow.seed_floor_children(), migration
- * 008) — every FK into project_floors in this schema is ON DELETE RESTRICT
- * (no CASCADE anywhere in this repo), so a plain DELETE on project_floors
- * would ALWAYS fail once those 7 rows exist, making "remove a floor row"
- * unimplementable as asked. Rather than force-cascading through real
- * recorded progress (which this app's own conventions elsewhere refuse to
- * do silently — see contract-boq/actions.ts's own delete-refusal), this
- * action checks first: if every one of the floor's 7 seeded rows is still
+ * a floor's sub-stage/drawing child rows are auto-seeded the instant a
+ * floor is created, so "remove a floor row" was never a plain DELETE.
+ *
+ * READ THIS BEFORE RELYING ON THE CHECK BELOW. Until migration 045 the
+ * database itself refused: every FK into project_floors was ON DELETE
+ * RESTRICT, so deleting a floor with any child row ALWAYS failed, and the
+ * check below was a way of giving a better error than the database's.
+ * THAT IS NO LONGER TRUE. Migration 045 made
+ * project_system_floors.floor_id ON DELETE CASCADE, and progress_cells
+ * hangs off coverage by a cascading composite FK, so a DELETE on
+ * project_floors now succeeds and takes every system's recorded work on
+ * that floor with it, silently. The check below is therefore the ONLY
+ * thing standing between a mis-click and real progress data — it is load
+ * bearing now, where before it was a courtesy. Brief 106's result flags
+ * restoring the database-level refusal as an open decision; until that
+ * lands, do not weaken, short-circuit or bypass this check, and do not
+ * add another delete path to project_floors that skips it.
+ *
+ * Rather than force-cascading through real recorded progress (which this
+ * app's own conventions elsewhere refuse to do silently — see
+ * contract-boq/actions.ts's own delete-refusal), this action checks
+ * first: if every one of the floor's seeded rows is still
  * in its pristine 'not_started' state, and no QC inspection has ever
  * referenced it, the seeded rows are cleaned up (they are system
  * bookkeeping, not user-entered content) and the floor is deleted. If ANY
