@@ -2038,6 +2038,44 @@ const en = {
 
   overviewLoadFailedHeadline: 'The overview did not load',
 
+
+  // ==== Brief 106b / v7.4 §6.5 — floor coverage per system ====
+  // §6.5's exact copy. Where it gives a sentence it is transcribed whole
+  // rather than assembled, because assembling is where drift starts.
+  setupCoverageColumn: 'Floors covered',
+  setupCoverageSetBy: 'Set by',
+  setupCoverageEdit: 'Edit floors',
+  setupCoverageAllPrefix: 'All',
+  setupCoverageAllSuffix: 'floors',
+  setupCoverageOf: 'of',
+  setupCoverageRangeTo: 'to',
+  setupCoverageAllFloors: 'All floors',
+  setupCoverageNone: 'None',
+  setupCoverageSavePrefix: 'Save coverage —',
+  setupCoverageSaveSuffix: 'floors',
+  setupCoverageCancel: 'Cancel',
+  setupCoverageSourceImport: 'Import',
+  setupCoverageSourceManual: 'By hand',
+  // §6.5 — "No floors." in amber, then the sentence.
+  setupCoverageNoFloors: 'No floors.',
+  setupCoverageNoFloorsBodyPrefix: 'Progress cannot be recorded for',
+  setupCoverageNoFloorsBodySuffix: 'until it covers at least one.',
+  setupCoverageSetFloors: 'Set floors',
+  // §6.5's amber warning before a floor with recorded work is removed. It
+  // states the consequence and does NOT block — §6.2 item 2's rule.
+  setupCoverageRemovalWarnMiddle: 'has recorded work for',
+  setupCoverageRemovalWarnCountSuffix: 'sub-stages.',
+  setupCoverageRemovalWarnBody:
+    'Removing it keeps those records but takes them out of progress; adding it back restores them.',
+  // §6.5's setup strip.
+  setupCoverageStripPrefix: 'Partly ·',
+  setupCoverageStripSuffixOne: 'system covers no floors',
+  setupCoverageStripSuffixMany: 'systems cover no floors',
+  // §6.4's refusal shape — a sentence naming who can, never a disabled control.
+  setupCoverageRefused:
+    'Only the PIC can change which floors a system covers. You can read everything here.',
+  setupCoverageCouldNotSave: 'Could not save the coverage. Nothing was changed — try again.',
+
   // ==== Brief 105 / v7.4 §23 — material approval ====
   // §23's exact copy. Where §23 gives a sentence, it is transcribed whole
   // rather than assembled from fragments, because assembling is where drift
