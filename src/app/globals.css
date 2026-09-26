@@ -8746,3 +8746,26 @@ a.floor-matrix__cell {
 /* §22.6a — one line, never rows. A column of dashed cells would claim the
    work exists and is undone; it is simply not this system's floor. */
 .update-not-on-floor { font-size: 12.5px; color: var(--wf-text-2); margin-top: var(--space-3); }
+
+/* Brief 106b / §11.5 — systems side by side in the matrix. */
+.floor-matrix__system-head { align-items: end; }
+/* Each system's header spans its five columns and carries its coverage, so
+   a reader knows what an empty-looking group means before scanning it. */
+.floor-matrix__system-group {
+  grid-column: span 5;
+  display: flex; flex-direction: column; gap: 1px;
+  border-left: 2px solid rgba(32, 30, 29, 0.4);
+  padding-left: 6px;
+}
+.floor-matrix__system-name { font: 800 14px/1.2 var(--font-heading); }
+.floor-matrix__system-coverage { font-size: 12px; color: var(--wf-text-2); }
+/* §11.5 — abbreviated per group; the key sits once under the legend. */
+.floor-matrix__col-abbr { font-size: 12px; }
+.floor-matrix__abbr-key { font-size: 12px; color: var(--wf-text-2); display: block; width: 100%; margin-top: 4px; }
+
+/* §11.5 — beyond six systems the grid scrolls sideways inside its own
+   frame with the floor column pinned. The legend above it still wraps and
+   never scrolls, which is the Brief 062 clipping rule. */
+.floor-matrix__grid { overflow-x: auto; }
+.floor-matrix__row-head { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.floor-matrix__no-coverage { font-size: 12.5px; color: var(--wf-text-2); margin-top: var(--space-2); }

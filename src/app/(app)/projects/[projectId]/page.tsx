@@ -12,7 +12,7 @@ import { computeDependencyChain } from '@/lib/reporting/dependency-chain'
 import { getAgeLabelBand } from '@/lib/age'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_BOARD } from '@/lib/breadcrumbs'
-import { buildMatrixRows } from './floor-matrix'
+import { buildSystemMatrixRows, orderFloors, systemCoverageCaption } from './floor-matrix'
 import { resolveLatestInspection, type LatestInspection } from '@/lib/subStageDisplayState'
 import { FloorMatrix } from './FloorMatrix'
 import { getSetupSectionsStatus } from './setup/setup-status'
@@ -99,16 +99,18 @@ export default async function SoRecordPage({
 
     const floorIds = (floorRows ?? []).map((f) => f.id)
     const [{ data: subStageRows }, { data: inspectionRows }] = await Promise.all([
+      // Brief 106b — cells carry their system now, so the matrix can put
+      // each system's five columns side by side (§11.5).
       floorIds.length > 0
         ? supabase
-            .from('floor_sub_stages')
-            .select('id, floor_id, stage, sub_stage, status, updated_at')
+            .from('progress_cells')
+            .select('id, project_system_id, floor_id, stage, sub_stage, status, updated_at')
             .in('floor_id', floorIds)
         : Promise.resolve({ data: [] }),
       floorIds.length > 0
         ? supabase
             .from('qc_inspections')
-            .select('floor_sub_stage_id, status, inspected_at, created_at')
+            .select('progress_cell_id, status, inspected_at, created_at')
             .eq('project_id', project.id)
             .in('status', ['pass', 'fail'])
         : Promise.resolve({ data: [] }),
@@ -122,20 +124,68 @@ export default async function SoRecordPage({
     // src/lib/subStageDisplayState.ts's own header.
     const inspectionsBySubStage = new Map<string, { result: 'pass' | 'fail'; date: string }[]>()
     for (const r of inspectionRows ?? []) {
-      if (r.floor_sub_stage_id === null || (r.status !== 'pass' && r.status !== 'fail')) continue
-      const list = inspectionsBySubStage.get(r.floor_sub_stage_id) ?? []
+      if (r.progress_cell_id === null || (r.status !== 'pass' && r.status !== 'fail')) continue
+      const list = inspectionsBySubStage.get(r.progress_cell_id) ?? []
       list.push({ result: r.status, date: r.inspected_at ?? r.created_at })
-      inspectionsBySubStage.set(r.floor_sub_stage_id, list)
+      inspectionsBySubStage.set(r.progress_cell_id, list)
     }
     const latestInspectionBySubStageId = new Map<string, LatestInspection | null>(
       [...inspectionsBySubStage.entries()].map(([id, rows]) => [id, resolveLatestInspection(rows)]),
     )
 
-    const matrixRows = buildMatrixRows({
+    // Brief 106b / §11.5 — systems side by side, in Project setup order, the
+    // same order §22.6a groups its blocks by.
+    const { data: matrixSystemRows } = await supabase
+      .from('project_systems')
+      .select('id, name')
+      .eq('project_id', project.id)
+      .order('name')
+
+    const { data: matrixCoverage } = (matrixSystemRows ?? []).length
+      ? await supabase
+          .from('project_system_floors')
+          .select('project_system_id, floor_id')
+          .in('project_system_id', (matrixSystemRows ?? []).map((r) => r.id))
+          .is('removed_at', null)
+      : { data: [] }
+
+    const matrixSystems = (matrixSystemRows ?? []).map((sys) => ({
+      id: sys.id,
+      name: sys.name,
+      coveredFloorIds: new Set(
+        (matrixCoverage ?? []).filter((c) => c.project_system_id === sys.id).map((c) => c.floor_id),
+      ),
+    }))
+
+    const orderedForCaption = orderFloors(
+      (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
+      (floorRows ?? []).map((f) => ({ id: f.id, label: f.label, sortOrder: f.sort_order, towerId: f.tower_id })),
+    )
+    const systemCaptions: Record<string, { count: number; range: string | null }> = {}
+    for (const sys of matrixSystems) {
+      systemCaptions[sys.id] = systemCoverageCaption(
+        orderedForCaption.map((f) => f.id),
+        orderedForCaption.map((f) => f.label),
+        sys.coveredFloorIds,
+      )
+    }
+
+    // §11.5 — a system covering NO floors is kept out of the grid entirely
+    // and named in a sentence beneath it. A column of dashed cells would be
+    // wrong twice over: "not applicable" means a floor outside coverage, and
+    // a system covering nothing has no floors to be outside of.
+    const systemsWithCoverage = matrixSystems.filter((sys) => sys.coveredFloorIds.size > 0)
+    const systemsWithoutCoverage = matrixSystems
+      .filter((sys) => sys.coveredFloorIds.size === 0)
+      .map((sys) => ({ id: sys.id, name: sys.name }))
+
+    const matrixRows = buildSystemMatrixRows({
       towers: (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
       floors: (floorRows ?? []).map((f) => ({ id: f.id, label: f.label, sortOrder: f.sort_order, towerId: f.tower_id })),
-      subStages: (subStageRows ?? []).map((s) => ({
+      systems: systemsWithCoverage,
+      cells: (subStageRows ?? []).map((s) => ({
         id: s.id,
+        systemId: s.project_system_id,
         floorId: s.floor_id,
         stage: s.stage,
         subStage: s.sub_stage,
@@ -185,7 +235,7 @@ export default async function SoRecordPage({
           <Link href={`/projects/${project.id}`}>{t('floorMatrixBackToSoRecord')}</Link>
         </div>
 
-        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} />
+        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} systemCaptions={systemCaptions} systemsWithoutCoverage={systemsWithoutCoverage} />
         </div>
       </>
     )

@@ -181,3 +181,124 @@ export function buildMatrixRows(args: {
     return { floorId: floor.id, label: floor.label, cells }
   })
 }
+
+// ---------------------------------------------------------------------------
+// Brief 106b — the system × floor × sub-stage matrix (v7.4 §11.5, D096)
+// ---------------------------------------------------------------------------
+
+export interface MatrixSystem {
+  id: string
+  name: string
+  /** Floor ids this system covers. A floor outside it has no cells — which
+   *  is what §11.2's "not applicable" now MEANS. */
+  coveredFloorIds: Set<string>
+}
+
+export interface MatrixSystemGroup {
+  systemId: string
+  systemName: string
+  /** Five cells, in MATRIX_COLUMNS order. All 'not_applicable' where this
+   *  system does not cover the row's floor. */
+  cells: MatrixCell[]
+}
+
+export interface SystemMatrixRow {
+  floorId: string
+  label: string
+  groups: MatrixSystemGroup[]
+}
+
+/**
+ * §11.5 — one grid, floors stay rows, each system a group of five columns.
+ *
+ * Why not the alternatives, from the design itself: stacking a grid per
+ * system puts one floor in four places a screen apart; a system selector
+ * above one grid hides three quarters of the project and turns one pattern
+ * into four page views. Side by side keeps each floor on one line.
+ *
+ * THE POINT OF D096 IS VISIBLE HERE. Before it, every system was measured
+ * against every floor, so "not applicable" could not be produced at all
+ * (Brief 101 found the app could not render §11.2's seventh legend state).
+ * A floor outside a system's coverage now genuinely has no cell, and that
+ * absence is what the dashed fill draws.
+ */
+export function buildSystemMatrixRows(args: {
+  towers: TowerInput[]
+  floors: FloorInput[]
+  systems: MatrixSystem[]
+  /** Every cell that exists, already carrying its system. */
+  cells: (SubStageInput & { systemId: string })[]
+  latestInspectionBySubStageId: Map<string, LatestInspection | null>
+  daysSince: (isoDate: string) => number
+  isStale: (days: number) => boolean
+}): SystemMatrixRow[] {
+  const { towers, floors, systems, cells, latestInspectionBySubStageId, daysSince, isStale } = args
+  const orderedFloors = orderFloors(towers, floors)
+
+  return orderedFloors.map((floor) => ({
+    floorId: floor.id,
+    label: floor.label,
+    groups: systems.map((system) => {
+      // Not covered: five not_applicable cells. Deliberately NOT an empty
+      // group — the row must stay one line across every system, or floors
+      // stop aligning and the grid loses the only thing it is for.
+      if (!system.coveredFloorIds.has(floor.id)) {
+        return {
+          systemId: system.id,
+          systemName: system.name,
+          cells: MATRIX_COLUMNS.map(() => ({ state: 'not_applicable' as MatrixCellState, subStageId: null })),
+        }
+      }
+
+      return {
+        systemId: system.id,
+        systemName: system.name,
+        cells: MATRIX_COLUMNS.map((col) => {
+          const row = cells.find(
+            (c) =>
+              c.systemId === system.id &&
+              c.floorId === floor.id &&
+              c.stage === col.stage &&
+              c.subStage === col.subStage,
+          )
+          const state = computeCellState({
+            row,
+            latestInspection: row ? (latestInspectionBySubStageId.get(row.id) ?? null) : null,
+            daysSince,
+            isStale,
+          })
+          return { state, subStageId: row?.id ?? null }
+        }),
+      }
+    }),
+  }))
+}
+
+/**
+ * §11.5's per-system header caption: "30 floors", "B3–B1 · 3 floors".
+ *
+ * A DIFFERENT SHAPE FROM §6.5's "Floors covered" on purpose. Setup is
+ * answering "is this system where I think it is" and can afford to name
+ * five floors; a column header has room for one short phrase and is read
+ * while scanning a grid.
+ */
+export function systemCoverageCaption(
+  orderedFloorIds: string[],
+  orderedFloorLabels: string[],
+  coveredFloorIds: Set<string>,
+): { count: number; range: string | null } {
+  const coveredIdx = orderedFloorIds
+    .map((id, i) => (coveredFloorIds.has(id) ? i : -1))
+    .filter((i) => i >= 0)
+
+  if (coveredIdx.length === 0) return { count: 0, range: null }
+  if (coveredIdx.length === orderedFloorIds.length) return { count: coveredIdx.length, range: null }
+
+  const contiguous = coveredIdx.every((v, i) => i === 0 || v === coveredIdx[i - 1] + 1)
+  return {
+    count: coveredIdx.length,
+    range: contiguous
+      ? `${orderedFloorLabels[coveredIdx[0]]}–${orderedFloorLabels[coveredIdx[coveredIdx.length - 1]]}`
+      : null,
+  }
+}

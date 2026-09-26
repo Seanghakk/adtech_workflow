@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
-import { MATRIX_COLUMNS, type MatrixCellState, type MatrixRow } from './floor-matrix'
+import { MATRIX_COLUMNS, type MatrixCellState } from './floor-matrix'
+import type { SystemMatrixRow } from './floor-matrix'
 
 
 const LEGEND_KEYS: Record<MatrixCellState, DictionaryKey> = {
@@ -71,18 +72,38 @@ const LEGEND_ORDER: MatrixCellState[] = ['not_started', 'in_progress', 'awaiting
  * columnheader / rowheader / cell). Dropping <th scope> for layout
  * without replacing it would have traded one defect for a worse one.
  */
+const MATRIX_COL_ABBR: Record<string, DictionaryKey> = {
+  first_fix: 'floorMatrixAbbrFirstFix',
+  second_fix: 'floorMatrixAbbrSecondFix',
+  third_fix: 'floorMatrixAbbrThirdFix',
+  pre_commissioning: 'floorMatrixAbbrPreCommissioning',
+  commissioning: 'floorMatrixAbbrCommissioning',
+}
+
 export function FloorMatrix({
   projectId,
   rows,
   t,
+  systemCaptions,
+  systemsWithoutCoverage,
 }: {
   projectId: string
-  rows: MatrixRow[]
+  rows: SystemMatrixRow[]
   t: (key: DictionaryKey) => string
+  /** §11.5 — the per-system header caption, precomputed by the page so the
+   *  grid does not re-derive coverage per render. */
+  systemCaptions: Record<string, { count: number; range: string | null }>
+  /** §11.5 — systems covering nothing. Named in a sentence beneath the
+   *  grid rather than drawn as a column of dashed cells. */
+  systemsWithoutCoverage: { id: string; name: string }[]
 }) {
   if (rows.length === 0) {
     return <p className="empty-state">{t('floorMatrixEmptyNoFloors')}</p>
   }
+
+  // Every row carries the same groups in the same order, so the header can
+  // read them off the first.
+  const systems = rows[0].groups
 
   return (
     <div className="floor-matrix">
@@ -100,25 +121,58 @@ export function FloorMatrix({
             {t(LEGEND_KEYS[state])}
           </span>
         ))}
+        {/* §11.5 — the abbreviations spelled out, built from the SAME
+            labels every other screen uses. Hardcoding the sentence would
+            let it drift the first time a sub-stage is renamed. */}
+        <span className="floor-matrix__abbr-key">
+          {MATRIX_COLUMNS.map(
+            (col) =>
+              `${t(MATRIX_COL_ABBR[col.subStage] ?? 'floorMatrixAbbrFirstFix')} ${t(
+                MATRIX_COL_KEYS[col.subStage] ?? 'floorMatrixColFirstFix',
+              )}`,
+          ).join(' · ')}
+        </span>
       </div>
 
       {/* The shared §4.2 data table. Every row repeats the same
           grid-template-columns, which is what makes the five sub-stage
           columns equal instead of sized by their own header text. */}
       <div className="wf-data-table floor-matrix__grid" role="table" aria-label={t('floorMatrixLegendTitle')}>
-        <div className="wf-data-table__row wf-data-table__row--head" role="row">
+        {/* §11.5 — each system is a group of five columns under its own
+            header, with its coverage stated beside it. Groups sit in
+            Project setup order, the same order §22.6a uses. */}
+        <div className="wf-data-table__row wf-data-table__row--head floor-matrix__system-head" role="row">
           <div className="wf-data-table__head-cell" role="columnheader">
             {t('floorMatrixFloorColumnHeader')}
           </div>
-          {MATRIX_COLUMNS.map((col) => (
-            <div
-              key={`${col.stage}-${col.subStage}`}
-              className="wf-data-table__head-cell"
-              role="columnheader"
-            >
-              {t(MATRIX_COL_KEYS[col.subStage] ?? 'floorMatrixColFirstFix')}
+          {systems.map((sys) => (
+            <div key={sys.systemId} className="floor-matrix__system-group" role="columnheader">
+              <span className="floor-matrix__system-name">{sys.systemName}</span>
+              <span className="floor-matrix__system-coverage">
+                {systemCaptions[sys.systemId]?.range
+                  ? `${systemCaptions[sys.systemId].range} · ${systemCaptions[sys.systemId].count} ${t('floorMatrixFloorsSuffix')}`
+                  : `${systemCaptions[sys.systemId]?.count ?? 0} ${t('floorMatrixFloorsSuffix')}`}
+              </span>
             </div>
           ))}
+        </div>
+
+        <div className="wf-data-table__row wf-data-table__row--head" role="row">
+          <div className="wf-data-table__head-cell" role="columnheader" />
+          {systems.map((sys) =>
+            MATRIX_COLUMNS.map((col) => (
+              <div
+                key={`${sys.systemId}-${col.stage}-${col.subStage}`}
+                className="wf-data-table__head-cell floor-matrix__col-abbr"
+                role="columnheader"
+              >
+                {/* §11.5 — abbreviated in each group, spelled out once
+                    under the legend. Five full labels per system would not
+                    fit six systems at 1024px. */}
+                {t(MATRIX_COL_ABBR[col.subStage] ?? 'floorMatrixAbbrFirstFix')}
+              </div>
+            )),
+          )}
         </div>
 
         {rows.map((row) => (
@@ -126,24 +180,48 @@ export function FloorMatrix({
             <div className="floor-matrix__row-head" role="rowheader">
               {row.label}
             </div>
-            {row.cells.map((cell, i) => {
-              const key = `${row.floorId}-${i}`
-              if (cell.state === 'not_applicable' || !cell.subStageId) {
-                return <div key={key} role="cell" aria-hidden="true" />
-              }
-              return (
-                <div key={key} role="cell">
-                  <Link
-                    href={`/projects/${projectId}/update?floor=${row.floorId}`}
-                    className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
-                    aria-label={`${row.label} · ${t(LEGEND_KEYS[cell.state])}`}
-                  />
-                </div>
-              )
-            })}
+            {row.groups.map((group) =>
+              group.cells.map((cell, i) => {
+                const key = `${row.floorId}-${group.systemId}-${i}`
+                // §11.2 — "not applicable" is now REAL: a floor outside this
+                // system's coverage. It is drawn, not skipped, so the row
+                // stays one line across every system and floors keep
+                // aligning; an empty div would collapse the grid.
+                if (cell.state === 'not_applicable' || !cell.subStageId) {
+                  return (
+                    <div key={key} role="cell">
+                      <span
+                        className="floor-matrix__cell floor-matrix__cell--not_applicable"
+                        aria-label={`${row.label} · ${group.systemName} · ${t('floorMatrixLegendNotApplicable')}`}
+                      />
+                    </div>
+                  )
+                }
+                return (
+                  <div key={key} role="cell">
+                    <Link
+                      href={`/projects/${projectId}/update?floor=${row.floorId}`}
+                      className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
+                      aria-label={`${row.label} · ${group.systemName} · ${t(LEGEND_KEYS[cell.state])}`}
+                    />
+                  </div>
+                )
+              }),
+            )}
           </div>
         ))}
       </div>
+
+      {/* §11.5 — one sentence per system with no coverage, with the way to
+          fix it. Never a column of dashed cells. */}
+      {systemsWithoutCoverage.map((sys) => (
+        <p key={sys.id} className="floor-matrix__no-coverage">
+          <strong>{sys.name}</strong> {t('floorMatrixSystemNoCoveragePrefix')}{' '}
+          <Link href={`/projects/${projectId}/setup`}>
+            {t('floorMatrixSystemNoCoverageAction')}
+          </Link>
+        </p>
+      ))}
     </div>
   )
 }
