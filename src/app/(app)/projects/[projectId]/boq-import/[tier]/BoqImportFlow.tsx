@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { previewBoqImport, commitBoqImport } from './actions'
 import { boqImportInitialState, type FloorProposalDecision, type BoqPreview } from './import-shared'
+import { coverageFromParsedLines, coveragePreview } from '@/lib/progressPerSystem/importCoverage'
 
 /**
  * Brief 098 §3.1 — ONE component for all three tiers. Everything that
@@ -280,6 +281,13 @@ function PreviewCard({
     preview.proposedSystems.map((s) => ({ name: s.name, cadCode: s.cadCode, include: canCreateSetup })),
   )
 
+  // §7 — the coverage table's rows. Derived from the SAME parsed lines the
+  // commit will send, so what is shown and what is written cannot diverge.
+  const coveragePreviewRows = coveragePreview(
+    coverageFromParsedLines(preview.lines),
+    new Map(Object.entries(preview.currentCoverage)),
+  )
+
   const changedCount = preview.changedLines.length
   const newCount = preview.newLines.length
   const refusedCount = preview.rowErrors.length
@@ -427,6 +435,55 @@ function PreviewCard({
                       {t('boqImportProposalCannotCreatePrefix')} “{d.label}”,{' '}
                       {t('boqImportProposalCannotCreateFloorSuffix')} {picLabel}
                       {t('boqImportProposalCannotCreateEnd')}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* §7 / §6.5 — what the file proposes for floor coverage, and what
+          survives it. The "kept" column is the one that matters: a
+          re-import is routinely a partial file, and this is where a person
+          sees that it will not narrow a system's scope. */}
+      {coveragePreviewRows.length > 0 && (
+        <section className="boq-import__coverage">
+          <h3 className="boq-import__coverage-heading">{t('boqImportCoverageHeading')}</h3>
+          <p className="boq-import__coverage-intro">{t('boqImportCoverageIntro')}</p>
+          <div className="wf-data-table">
+            <div
+              className="wf-data-table__row wf-data-table__row--head"
+              style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1.4fr' }}
+            >
+              <span className="wf-data-table__head-cell">{t('boqImportCoverageColSystem')}</span>
+              <span className="wf-data-table__head-cell">{t('boqImportCoverageColNow')}</span>
+              <span className="wf-data-table__head-cell">{t('boqImportCoverageColFile')}</span>
+              <span className="wf-data-table__head-cell">{t('boqImportCoverageColCommit')}</span>
+            </div>
+            {coveragePreviewRows.map((row) => (
+              <div
+                key={row.systemName}
+                className="wf-data-table__row wf-data-table__row--body"
+                style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1.4fr' }}
+              >
+                <span>
+                  {row.systemName}{' '}
+                  {row.isNewSystem && (
+                    <span className="wf-status-tag">{t('boqImportCoverageNewSystem')}</span>
+                  )}
+                </span>
+                <span>{row.now.length > 0 ? row.now.join(', ') : t('boqImportCoverageNone')}</span>
+                <span>
+                  {row.inFile.length > 0 ? row.inFile.join(', ') : t('boqImportCoverageNone')}
+                </span>
+                <span>
+                  {row.onCommit.length > 0 ? row.onCommit.join(', ') : t('boqImportCoverageNone')}
+                  {row.keptNotInFile.length > 0 && (
+                    <span className="boq-import__coverage-kept">
+                      {' · '}
+                      {row.keptNotInFile.join(', ')} {t('boqImportCoverageKept')}
                     </span>
                   )}
                 </span>

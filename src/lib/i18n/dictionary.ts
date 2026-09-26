@@ -2039,6 +2039,18 @@ const en = {
   overviewLoadFailedHeadline: 'The overview did not load',
 
 
+  // ==== Brief 106b / v7.4 §7 — coverage proposed by the import ====
+  boqImportCoverageHeading: 'Floor coverage',
+  boqImportCoverageIntro:
+    'The file names floors for each system. Importing only ADDS coverage — a floor this file does not name stays where it is.',
+  boqImportCoverageColSystem: 'System',
+  boqImportCoverageColNow: 'Now',
+  boqImportCoverageColFile: 'This file',
+  boqImportCoverageColCommit: 'On commit',
+  boqImportCoverageNone: '—',
+  boqImportCoverageNewSystem: 'new',
+  boqImportCoverageKept: 'not in this file, kept',
+
   // ==== Brief 106b / v7.4 §6.5 — floor coverage per system ====
   // §6.5's exact copy. Where it gives a sentence it is transcribed whole
   // rather than assembled, because assembling is where drift starts.

@@ -30,6 +30,8 @@ import {
   type ExistingBoqLine,
 } from '@/lib/boq/diff'
 import type { BoqImportState, FloorProposalDecision } from './import-shared'
+import { coverageFromParsedLines, type ProposedFloor } from '@/lib/progressPerSystem/importCoverage'
+import type { Json } from '@/lib/supabase/database.types'
 
 const fail = (error: string): BoqImportState => ({ notTemplate: null, error, preview: null, result: null })
 
@@ -170,7 +172,7 @@ export async function previewBoqImport(
 
   const [{ data: existingRows, error: existingError }, { data: systemRows }, { data: cadRows }] = await Promise.all([
     supabase.from(config.table).select(selectCols).eq('project_id', projectId),
-    supabase.from('project_systems').select('name').eq('project_id', projectId),
+    supabase.from('project_systems').select('id, name').eq('project_id', projectId),
     supabase.from('cad_systems').select('code, label_en').eq('is_active', true).order('sort_order'),
   ])
 
@@ -198,6 +200,28 @@ export async function previewBoqImport(
     : []
 
   const existingSystemNames = new Set((systemRows ?? []).map((s) => s.name))
+
+  // Brief 106b / §7 — what each system covers TODAY, so the preview can show
+  // "Now" beside "This file" and make the additive rule visible before
+  // anything is written. Read here rather than in the client, because the
+  // client never holds a Supabase session.
+  const systemIdToName = new Map((systemRows ?? []).map((s) => [s.id, s.name]))
+  const { data: coverageNow } = (systemRows ?? []).length
+    ? await supabase
+        .from('project_system_floors')
+        .select('project_system_id, floor_id')
+        .in('project_system_id', [...systemIdToName.keys()])
+        .is('removed_at', null)
+    : { data: [] }
+
+  const floorLabelById = new Map(floors.map((f) => [f.id, f.label]))
+  const currentCoverage: Record<string, string[]> = {}
+  for (const c of coverageNow ?? []) {
+    const name = systemIdToName.get(c.project_system_id)
+    const label = floorLabelById.get(c.floor_id)
+    if (!name || !label) continue
+    currentCoverage[name] = [...(currentCoverage[name] ?? []), label]
+  }
   const cadSystems = (cadRows ?? []).map((c) => ({ code: c.code, labelEn: c.label_en }))
   const proposedSystems = config.hasSystemType
     ? buildProposedSystems(
@@ -223,6 +247,7 @@ export async function previewBoqImport(
       proposedSystems,
       cadSystems,
       existingFloors: floors.map((f) => ({ id: f.id, label: f.label })),
+      currentCoverage,
     },
   }
 }
@@ -306,14 +331,23 @@ export async function commitBoqImport(
   const { data, error } = await supabase.rpc('commit_boq_import', {
     p_project_id: projectId,
     p_tier: config.tier,
-    p_lines: linesForCommit,
+    // The generator types every jsonb parameter as `Json`, a recursive
+    // union that a concrete object array does not satisfy structurally even
+    // though it serialises identically. Cast at the boundary only; the
+    // function name and its return type stay checked.
+    p_lines: linesForCommit as unknown as Json,
     p_floors: floorsToCreate.map((f) => ({
       label: f.label,
       drawingCode: f.drawingCode,
       sortOrder: f.sortOrder,
       towerLabel: f.towerLabel,
     })),
-    p_systems: systemsToAdd,
+    // Brief 106b / 17a item 24 — coverage rides in the EXISTING systems
+    // payload, so migration 046 needed no signature change. Derived from the
+    // SAME lines being committed (after floor skips and re-mappings are
+    // applied), not from the raw file, so a floor the person chose to skip
+    // cannot arrive as coverage by the back door.
+    p_systems: withCoverage(systemsToAdd, linesForCommit, config.tier) as unknown as Json,
   })
 
   if (error) {
@@ -358,4 +392,36 @@ export async function commitBoqImport(
       at: new Date().toISOString(),
     },
   }
+}
+
+/**
+ * Brief 106b — attach each system's floors to the payload migration 046 reads.
+ *
+ * Shop drawing tier only: the other two tiers carry no floors-per-system, and
+ * 046 ignores the key for them anyway. Doing it here as well means the
+ * payload never claims something the tier cannot mean.
+ */
+function withCoverage(
+  systems: { name: string; cadCode: string | null }[],
+  lines: ParsedBoqLine[],
+  tier: string,
+): ({ name: string; cadCode: string | null } & { floors?: ProposedFloor[] })[] {
+  if (tier !== 'shop_drawing') return systems
+
+  const proposed = coverageFromParsedLines(lines)
+  // Every system NAMED BY THE FILE gets its floors, including ones that
+  // already exist on the project — 046 is additive, so re-stating coverage
+  // for an existing system is how a later file extends it.
+  const names = new Set(systems.map((s) => s.name))
+  const extra = proposed
+    .filter((p) => !names.has(p.systemName))
+    .map((p) => ({ name: p.systemName, cadCode: null, floors: p.floors }))
+
+  return [
+    ...systems.map((s) => ({
+      ...s,
+      floors: proposed.find((p) => p.systemName === s.name)?.floors ?? [],
+    })),
+    ...extra,
+  ]
 }
