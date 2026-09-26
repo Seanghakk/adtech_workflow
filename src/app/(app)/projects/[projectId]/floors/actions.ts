@@ -363,19 +363,33 @@ export async function deleteFloor(
     .select('qc_inspection_id', { count: 'exact', head: true })
     .eq('floor_id', floorId)
 
+  // Brief 106b, corrected: this read floor_sub_stage_id, which migration 045
+  // DROPPED. PostgREST answered with an error and a null count, and the
+  // `?? 0` below then read that failure as "no inspections" — so this whole
+  // clause had quietly stopped testing anything. `tsc` did not catch it:
+  // .eq() checks the column name against the row type, .in() does NOT.
   const subStageIds = (subStages ?? []).map((s) => s.id)
-  const { count: subStageInspectionCount } = subStageIds.length
+  const { count: subStageInspectionCount, error: subStageInspectionError } = subStageIds.length
     ? await supabase
         .from('qc_inspections')
         .select('id', { count: 'exact', head: true })
-        .in('floor_sub_stage_id', subStageIds)
-    : { count: 0 }
+        .in('progress_cell_id', subStageIds)
+    : { count: 0, error: null }
+
+  // Brief 094's head-count trap: a head-only count returns null when the
+  // query FAILED, which is not the same as zero. Both counts below are
+  // fail-closed — an unanswered question means "not pristine", never
+  // "nothing found". Getting this wrong is what made the bug above
+  // invisible for as long as it was.
+  if (subStageInspectionError || subStageInspectionCount === null || materialInspectionCount === null) {
+    return { error: 'Could not check this floor for recorded work — try again.' }
+  }
 
   const isPristine =
     (subStages ?? []).every((s) => s.status === 'not_started') &&
     (drawingItems ?? []).every((d) => d.status === 'not_started') &&
-    (materialInspectionCount ?? 0) === 0 &&
-    (subStageInspectionCount ?? 0) === 0
+    materialInspectionCount === 0 &&
+    subStageInspectionCount === 0
 
   if (!isPristine) {
     return { error: 'This floor has recorded progress or QC inspections — it can’t be removed.' }
