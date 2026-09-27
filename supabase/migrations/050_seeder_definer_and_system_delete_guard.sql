@@ -57,6 +57,12 @@
 -- one given for this work and not one invented from silence: a system may be
 -- deleted only when it has no recorded work and no imported BOQ lines.
 --
+-- A THIRD CONDITION was raised separately and confirmed: no material approval
+-- package may reference it either. That FK is ON DELETE SET NULL, so a delete
+-- would not fail and would not remove a row — it would simply blank which
+-- system an approval was for, which is the quiet loss this whole run has been
+-- about.
+--
 -- It is enforced in the DATABASE, in migration 049's shape, because
 -- project_systems -> project_system_floors is ON DELETE CASCADE and coverage
 -- -> progress_cells is another, so deleting a system takes its coverage and
@@ -205,11 +211,12 @@ begin
    where l.project_id = old.project_id
      and l.system_type = old.name;
 
-  -- NOT ONE OF THE TWO RULES GIVEN, AND FLAGGED AS SUCH IN THE RESULT.
+  -- A THIRD CONDITION, beyond the two rules originally given, raised and
+  -- then CONFIRMED on 27 Sep 2026 rather than assumed.
   -- material_approval_packages.system_id is ON DELETE SET NULL, so deleting
-  -- a system would silently blank which system a material approval was for.
-  -- That is the quiet kind of loss this brief has spent itself on, so it
-  -- refuses here too. Say the word and this clause comes out.
+  -- a system would silently blank which system a material approval was for —
+  -- no error, no row lost, just a fact quietly gone. That is precisely the
+  -- kind of loss this brief has spent itself on, so it refuses here too.
   select count(*) into v_packages
     from workflow.material_approval_packages p
    where p.system_id = old.id;

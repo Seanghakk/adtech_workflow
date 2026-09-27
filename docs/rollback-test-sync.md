@@ -372,6 +372,46 @@ diagnostic that establishes the precondition already tells you the answer.
 Saying "the pre-migration run shows N FAIL" without naming the database is
 the same category error as asserting a data fact from rollback-test.
 
+### Re-applying an earlier migration silently undoes a later one
+
+Added 27 Sep 2026, after this cost a production outage its own diagnosis.
+
+Making every migration re-runnable (above) fixed one problem and created the
+conditions for another. **A migration that is individually idempotent is not
+safe to re-apply out of order.** Idempotent means "running it twice leaves the
+same result as running it once" — it says nothing about what happens to the
+migrations that came after it.
+
+Migration 045 creates `progress_cells_write`, a broad FOR ALL policy.
+Migration 048 drops that policy and replaces it with a stage-keyed pair. Both
+files are idempotent. Re-applying 045 after 048 is therefore perfectly
+"successful" — and silently re-opens the permission 048 closed, because
+permissive policies are OR'd and the broad one grants everything the narrow
+pair refuses.
+
+That is exactly what happened on rollback-test during a repair, and the
+consequence was worse than the drift itself: **it made the first reproduction
+of a production bug PASS.** Coverage could not be saved on production because
+a trigger's inserts were refused by 048's policy; on rollback-test the same
+insert succeeded, because 045's broad policy was sitting there granting it.
+The bug looked unreproducible for as long as that policy went unnoticed.
+
+The rule:
+
+- **After re-applying any migration, re-apply every migration after it**, or
+  confirm none of them touches the same objects. Re-running 045 alone is not
+  a safe operation; re-running 045 through the highest applied number is.
+- **Suspect the test database first** when a production bug will not
+  reproduce. Compare the objects involved — `pg_policy`, `pg_proc`,
+  `pg_trigger` — between the two, rather than concluding the report was wrong.
+- **Prefer a verification check that asserts an EXACT SET** over one that
+  names the objects it expects. The checks that were supposed to catch this
+  named `progress_cells_insert` and `_update` and asked whether either carried
+  a bypass; they could not see a third policy they had never been told about,
+  so they reported NOTHING LOOSENED while everything was. They now assert the
+  complete list of policies on the table, so anything unanticipated fails
+  them.
+
 ### Also: migrations must be re-runnable
 
 045 failed halfway and had to be re-run. Several migrations in this repo
