@@ -16,12 +16,21 @@
 -- its migration. Run this file BEFORE applying and most checks print FAIL —
 -- that is the point, and it is how you know the file is testing anything.
 -- PROVED: against a stack built to migration 044, this file prints its table
--- with 42 rows, 32 FAIL. It does not abort. A verification file that ERRORS
+-- with 45 rows, 36 FAIL. It does not abort. A verification file that ERRORS
 -- on the pre-migration run is useless on the one run that matters most, and
 -- this one did exactly that twice before it was fixed — see check 39.
 --
--- Expected AFTER 045, 046, 047 and 048: 42 rows. Check 39 is a PRECONDITION
--- for migration 051 and may legitimately FAIL — read its comment.
+-- Expected AFTER 045 through 050: 45 rows. Two rows will not read PASS on
+-- production and both are correct:
+--   * check 39 is a PRECONDITION for migration 051 and stays FAIL until that
+--     project's systems exist — read its comment;
+--   * checks 36 and 37 print "[0 systems in scope]" and their PASS is worth
+--     nothing there, because the backfill inserted no rows on production.
+--
+-- ON AN EMPTY SCHEMA-ONLY STACK the pre-migration count is 36 FAIL; ON
+-- PRODUCTION it was 33 of 42 before these three checks were added, because
+-- the data checks answer on real rows there. A FAIL count measured on one
+-- database does not predict another.
 --
 -- 045 IS STAGED since it failed on production: it no longer drops
 -- floor_sub_stages or floor_sub_stage_id, it accepts either model on an
