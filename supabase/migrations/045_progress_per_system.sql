@@ -31,7 +31,7 @@
 --     over (section 5);
 --   * existing projects get coverage, so nobody opens the app to a blank
 --     matrix (section 9);
---   * migration 050 re-points the archived rows once coverage exists, and
+--   * migration 051 re-points the archived rows once coverage exists, and
 --     only then drops anything.
 --
 -- Every trigger here is dropped-if-exists before being created, so this file
@@ -303,7 +303,7 @@ alter table workflow.qc_inspections
 --
 -- So the old link is KEPT, not dropped. floor_sub_stage_id stays, the old
 -- rows stay, and the constraint accepts EITHER model while the app moves
--- across. Migration 050 re-points the rows once coverage exists and then
+-- across. Migration 051 re-points the rows once coverage exists and then
 -- tightens this to progress_cell_id alone. Nothing is destroyed to make a
 -- constraint pass.
 alter table workflow.qc_inspections
@@ -324,7 +324,7 @@ comment on constraint qc_inspections_shape_check on workflow.qc_inspections is
    point at something — the new cell OR the old sub-stage — and a material
    inspection at neither. Deliberately accepts both models: this migration
    cannot re-point existing rows, because coverage (and therefore any cell to
-   point at) may not exist yet. Migration 050 tightens this to
+   point at) may not exist yet. Migration 051 tightens this to
    progress_cell_id alone once the re-pointing has actually happened.';
 
 comment on column workflow.qc_inspections.progress_cell_id is
@@ -349,7 +349,7 @@ comment on column workflow.qc_inspections.progress_cell_id is
 -- rollback-test and is NOT true of production. A migration does not get to
 -- delete work because a design note said there would not be any.
 --
--- The table is now a frozen archive: nothing writes to it, migration 050
+-- The table is now a frozen archive: nothing writes to it, migration 051
 -- reads it to re-point the inspections and the recorded statuses once
 -- coverage exists, and only then does it go.
 --
@@ -366,7 +366,7 @@ comment on table workflow.floor_sub_stages is
    workflow.progress_cells. NOTHING WRITES TO THIS TABLE ANY MORE — the
    seeding trigger was removed by 045. It is kept, with its rows, because
    production holds real recorded work here and one QC inspection still
-   points at it. Migration 050 re-points those and then drops this table.
+   points at it. Migration 051 re-points those and then drops this table.
    Do not add new readers.';
 
 -- -----------------------------------------------------------------------------

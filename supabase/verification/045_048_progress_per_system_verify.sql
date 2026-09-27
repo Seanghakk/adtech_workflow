@@ -21,7 +21,7 @@
 -- this one did exactly that twice before it was fixed — see check 39.
 --
 -- Expected AFTER 045, 046, 047 and 048: 42 rows. Check 39 is a PRECONDITION
--- for migration 050 and may legitimately FAIL — read its comment.
+-- for migration 051 and may legitimately FAIL — read its comment.
 --
 -- 045 IS STAGED since it failed on production: it no longer drops
 -- floor_sub_stages or floor_sub_stage_id, it accepts either model on an
@@ -53,7 +53,7 @@ checks as (
     (to_regclass('workflow.project_system_floors') is not null)
   -- STAGED. The first version of 045 dropped this table, and on production
   -- that meant deleting 30 rows, 4 of them carrying recorded work. It is now
-  -- kept as a frozen archive until migration 050 re-points what points at it.
+  -- kept as a frozen archive until migration 051 re-points what points at it.
   union all select 3, '045 · floor_sub_stages is PRESERVED (frozen archive)',
     (to_regclass('workflow.floor_sub_stages') is not null)
   union all select 3.1, '045 · nothing writes the archive any more (seed trigger gone)',
@@ -136,6 +136,45 @@ checks as (
              where n.nspname = 'workflow' and p.proname = 'compute_project_rollup_percent'
                and p.prosecdef
                and array_to_string(p.proconfig, ',') like '%search_path%')
+  -- THREE OF A KIND IS A PATTERN, NOT BAD LUCK. Migration 045 silently
+  -- dropped a security property three separate times:
+  --
+  --   * the progress_cells write policy          — restored by 048
+  --   * compute_project_rollup_percent's definer — restored in 045 itself
+  --   * seed_progress_cells' definer             — restored by 050, after it
+  --     made saving coverage impossible for every user on production
+  --
+  -- Each was found by a person hitting it, never by a check. This asserts the
+  -- property across EVERY function 045 creates, so a fourth cannot happen
+  -- quietly. The list is the migration's own, not a guess about the database:
+  -- if 045 gains a function, add it here in the same commit.
+  --
+  -- A missing function counts as a failure too — the subquery finds nothing,
+  -- so it is counted among the ones lacking the property, which is the right
+  -- answer for "this function should exist and be definer".
+  union all select 13.2, '045 · EVERY function it creates is SECURITY DEFINER with a pinned search_path',
+    ((select count(*)
+        from unnest(array[
+          'seed_progress_cells',
+          'project_system_floors_after_insert',
+          'project_system_floors_after_update',
+          'project_floors_extend_full_coverage',
+          'compute_project_rollup_percent'
+        ]) as fn(name)
+       where not exists (
+         select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'workflow'
+            and p.proname = fn.name
+            and p.prosecdef
+            and array_to_string(p.proconfig, ',') like '%search_path%')) = 0)
+
+  -- 050 · the seeder's definer rights, by marker rather than by flag alone,
+  -- so the reason travels with the assertion.
+  union all select 13.3, '050 · the seeder carries its definer marker',
+    exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'workflow' and p.proname = 'seed_progress_cells'
+               and pg_get_functiondef(p.oid) like '%050 marker: seeded with definer rights%')
+
   union all select 14, '045 · the rollup ignores QC, as before',
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'workflow' and p.proname = 'compute_project_rollup_percent'
@@ -223,25 +262,50 @@ checks as (
                and polname = 'progress_cells_update'
                and pg_get_expr(polqual, polrelid) like '%project_management%')
 
-  -- NOTHING LOOSENED. The old table had no superadmin and no PIC bypass on a
-  -- write; 045 added both and 048 took them back out.
-  union all select 28, '048 · NOTHING loosened — no superadmin bypass on a write',
+  -- NOTHING LOOSENED, AND THE CHECK NO LONGER NAMES ONLY WHAT IT EXPECTS.
+  --
+  -- The previous 28 and 29 inspected progress_cells_insert and
+  -- progress_cells_update by name and asserted neither carried a superadmin
+  -- or PIC bypass. Both passed on a database that ALSO had 045's broad
+  -- progress_cells_write (FOR ALL, superadmin + either team + PIC) sitting
+  -- beside them — because that policy was not in the list they looked at.
+  -- Multiple permissive policies are OR'd, so the broad one silently granted
+  -- everything the narrow pair refused, and the checks said NOTHING LOOSENED.
+  --
+  -- That is how it hid: rollback-test had drifted, 045 recreates the policy
+  -- 048 drops, and re-applying 045 after 048 quietly re-opened the
+  -- permission. A check that enumerates only the policies it anticipates
+  -- cannot see one it did not.
+  --
+  -- So 28 asserts the EXACT SET. Any policy appearing on progress_cells that
+  -- is not one of these three fails it, whatever it is called and whatever
+  -- it permits.
+  union all select 28, '048 · progress_cells carries EXACTLY the three expected policies',
+    ((select coalesce(string_agg(polname, ',' order by polname), '(none)')
+        from pg_policy where polrelid = to_regclass('workflow.progress_cells'))
+     = 'progress_cells_insert,progress_cells_select,progress_cells_update')
+
+  -- And the same question asked of coverage, for the same reason.
+  union all select 28.1, '045 · project_system_floors carries EXACTLY its two expected policies',
+    ((select coalesce(string_agg(polname, ',' order by polname), '(none)')
+        from pg_policy where polrelid = to_regclass('workflow.project_system_floors'))
+     = 'project_system_floors_select,project_system_floors_write')
+
+  -- Kept as its own row: the exact-set check above would still pass if
+  -- somebody edited one of the three IN PLACE to add a bypass.
+  union all select 29, '048 · NOTHING loosened — no superadmin or PIC bypass on any cell write',
     not exists (select 1 from pg_policy
                  where polrelid = to_regclass('workflow.progress_cells')
-                   and polname in ('progress_cells_insert', 'progress_cells_update')
+                   and polcmd in ('a', 'w', '*')
                    and (coalesce(pg_get_expr(polqual, polrelid), '') ||
-                        coalesce(pg_get_expr(polwithcheck, polrelid), '')) ilike '%superadmin%')
-  union all select 29, '048 · NOTHING loosened — no PIC bypass on a write',
-    not exists (select 1 from pg_policy
-                 where polrelid = to_regclass('workflow.progress_cells')
-                   and polname in ('progress_cells_insert', 'progress_cells_update')
-                   and (coalesce(pg_get_expr(polqual, polrelid), '') ||
-                        coalesce(pg_get_expr(polwithcheck, polrelid), '')) ilike '%pic_id%')
+                        coalesce(pg_get_expr(polwithcheck, polrelid), ''))
+                       ~* '(superadmin|pic_id)')
   -- Cells go by removing coverage, which is PIC-gated. A blanket FOR ALL
   -- would have granted a delete nobody previously had.
   union all select 30, '048 · still NO delete policy on cells',
     not exists (select 1 from pg_policy
-                 where polrelid = to_regclass('workflow.progress_cells') and polcmd = 'd')
+                 where polrelid = to_regclass('workflow.progress_cells')
+                   and polcmd in ('d', '*'))
 
   -- ---- RLS, and who may read ----------------------------------------------
   union all select 31, 'RLS is on for both new tables',
@@ -400,7 +464,7 @@ checks as (
     end
 
   -- ---- the DATA PRECONDITION, which is what 045 was missing ---------------
-  -- Migration 050 has to re-point every inspection still on the old model
+  -- Migration 051 has to re-point every inspection still on the old model
   -- onto a progress cell. It can only do that if the inspection's project
   -- HAS a system to attach a cell to. This is that precondition, written as
   -- a check instead of as a sentence in a comment — which is the whole
@@ -409,7 +473,7 @@ checks as (
   -- EXPECT THIS TO FAIL ON PRODUCTION TODAY. There is one installation
   -- inspection on a project with zero systems. That is not a reason to
   -- delete it; it is the work item: create that project's system in setup,
-  -- and this turns PASS. 050 must not run while it is FAIL.
+  -- and this turns PASS. 051 must not run while it is FAIL.
   --
   -- THE GUARD HERE IS ON THE COLUMN, NOT THE TABLE, and that distinction is
   -- the whole point. An earlier version guarded on floor_sub_stages, which
@@ -426,7 +490,7 @@ checks as (
   -- move to. After 045 the predicate narrows it to the ones not yet
   -- re-pointed. The string is built at execution time, so nothing in it is
   -- parsed until the column question has already been answered.
-  union all select 39, '050 precondition · every old-model inspection has a system to move to',
+  union all select 39, '051 precondition · every old-model inspection has a system to move to',
     case
       when to_regclass('workflow.floor_sub_stages') is null then true
       when not exists (select 1 from information_schema.columns
