@@ -203,7 +203,7 @@ create trigger shop_drawing_items_refuse_delete_with_work
 -- Staged 045 keeps workflow.floor_sub_stages rather than dropping it, because
 -- production holds real recorded work there. Archived work is still work, so
 -- it gets the same protection: nothing may delete a pre-D096 row that carries
--- a status, or that a QC inspection still points at. Migration 050 re-points
+-- a status, or that a QC inspection still points at. Migration 051 re-points
 -- those rows and drops the table under the escape hatch; until then this is
 -- what stops them going quietly.
 
@@ -231,7 +231,7 @@ begin
             message = 'This pre-D096 record carries work and cannot be deleted.',
             detail  = format('floor_sub_stages %s: status %s, inspections %s',
                              old.id, old.status, v_inspections),
-            hint    = 'Migration 050 re-points these onto progress cells. '
+            hint    = 'Migration 051 re-points these onto progress cells. '
                       'Until then they are kept, not removed.';
   end if;
 

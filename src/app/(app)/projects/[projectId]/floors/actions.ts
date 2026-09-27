@@ -363,7 +363,7 @@ export async function deleteFloor(
   // hold recorded work in it. Its floor_id FK is ON DELETE RESTRICT, so a
   // floor with archived rows cannot be deleted while they exist; and archived
   // work is still work, so it counts towards "pristine" exactly as a cell
-  // does. Migration 050 re-points these and drops the table, and this block
+  // does. Migration 051 re-points these and drops the table, and this block
   // goes with it.
   const { data: archived } = await supabase
     .from('floor_sub_stages')

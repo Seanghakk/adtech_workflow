@@ -8874,3 +8874,131 @@ a.floor-matrix__cell {
   border-radius: 2px;
   white-space: nowrap;
 }
+
+/* =============================================================================
+   §6.5 — the floor coverage editor
+   =============================================================================
+   SIXTEEN OF THIS COMPONENT'S SEVENTEEN CLASSES HAD NO CSS AT ALL. It shipped
+   unstyled, so every part of it — the "All floors · None" line, the tower
+   groups, the toggles, the Save button — fell into normal flow and collided
+   with the table row's five grid columns. That is what made "Save coverage"
+   look like it did nothing: the action WAS returning an error and rendering
+   it, into a pile nobody could read.
+
+   §6.5 gives this the §6.1 administration vocabulary: no blue, no age
+   colours. Selected is an ink field with ground text; unselected is white
+   with a 1px rule; toggles are 44px.
+   ============================================================================= */
+
+/* "Edit floors opens an inline editor UNDER THE ROW" — the row is a five
+   column grid, so the editor has to span all of them or it lands in a cell. */
+.setup-coverage__editor-wrap {
+  grid-column: 1 / -1;
+  margin-top: var(--space-3);
+  border-top: 1px solid rgba(32, 30, 29, 0.25);
+  padding-top: var(--space-3);
+}
+
+.setup-coverage__editor {
+  display: block;
+}
+
+.setup-coverage__editor-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.setup-coverage__editor-title {
+  font: 600 13.5px/1.4 var(--font-body);
+  color: var(--ink);
+}
+
+/* "All floors · None" sit top right. */
+.setup-coverage__bulk {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--wf-text-2);
+  white-space: nowrap;
+}
+.setup-coverage__bulk button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.setup-coverage__tower {
+  margin-bottom: var(--space-3);
+}
+.setup-coverage__tower-label {
+  font: 500 12px/1.4 var(--font-body);
+  color: var(--wf-text-2);
+  margin-bottom: 6px;
+}
+
+.setup-coverage__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 44px toggles. Unselected: white with a 1px rule. Selected: an ink field
+   with ground text. Nothing here carries status or age meaning. */
+.setup-coverage__toggle {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  background: #fff;
+  border: 1px solid rgba(32, 30, 29, 0.25);
+  border-radius: 2px;
+  font: 500 13px/1 var(--font-body);
+  color: var(--ink);
+  cursor: pointer;
+}
+.setup-coverage__toggle--on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ground);
+}
+
+/* Warnings and refusals stay in the administration vocabulary — amber, never
+   red: red is delay only in this app (see wf-admin-row__confirm-error). */
+.setup-coverage__warn {
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--wf-amber-ink);
+  background: var(--wf-amber-tint);
+  border: 1px solid var(--wf-amber-edge);
+  border-radius: 2px;
+  padding: 8px 10px;
+  margin: var(--space-2) 0 0;
+}
+.setup-coverage__error {
+  font: 500 13px/1.5 var(--font-body);
+  color: var(--warning-tint-deep);
+  margin: var(--space-2) 0 0;
+}
+
+.setup-coverage__editor-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* The "covers no floors" copy that sits in the row itself. */
+.setup-coverage__none,
+.setup-coverage__none-body {
+  display: block;
+  font: 400 12.5px/1.5 var(--font-body);
+  color: var(--wf-amber-ink);
+  margin-top: 4px;
+}
+
+.setup-coverage__set-by {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--wf-text-2);
+}
