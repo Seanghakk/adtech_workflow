@@ -23,7 +23,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTranslator } from '@/lib/i18n/server'
 import { verifyWriteAffectedRow, existsByColumn, writeFailureMessage } from '@/lib/supabase/verified-write'
-import type { SetupFormState } from './setup-shared'
+import type { AddSystemState, SetupFormState } from './setup-shared'
 
 export async function updateProjectIdentity(
   _prevState: SetupFormState,
@@ -119,40 +119,47 @@ export async function updateNumberingMode(
  * goes through Brief 094's verified-write helper".
  */
 export async function addProjectSystem(
-  _prevState: SetupFormState,
+  _prevState: AddSystemState,
   formData: FormData,
-): Promise<SetupFormState> {
+): Promise<AddSystemState> {
   const projectId = String(formData.get('projectId') ?? '')
   const name = String(formData.get('name') ?? '').trim()
   const cadCode = String(formData.get('cadCode') ?? '').trim()
 
   if (!projectId || !name) {
-    return { error: 'Invalid request.', savedAt: null }
+    return { error: 'Invalid request.', savedAt: null, createdSystemId: null }
   }
 
   const supabase = await createClient()
   const t = await getServerTranslator()
 
-  const { error } = await supabase.from('project_systems').insert({
-    project_id: projectId,
-    name,
-    cad_code: cadCode || null,
-    source: 'manual',
-  })
+  // §6.5 wants the new system's coverage editor opened with every floor
+  // selected, so the id has to come back — .select().single() rather than a
+  // bare insert.
+  const { data: created, error } = await supabase
+    .from('project_systems')
+    .insert({
+      project_id: projectId,
+      name,
+      cad_code: cadCode || null,
+      source: 'manual',
+    })
+    .select('id')
+    .single()
 
   if (error) {
     // 23505 — the (project_id, name) unique index from migration 037.
     if (error.code === '23505') {
-      return { error: t('setupSystemsDuplicate'), savedAt: null }
+      return { error: t('setupSystemsDuplicate'), savedAt: null, createdSystemId: null }
     }
     if (error.code === '42501') {
-      return { error: t('setupRefusedNotPic'), savedAt: null }
+      return { error: t('setupRefusedNotPic'), savedAt: null, createdSystemId: null }
     }
-    return { error: 'Could not save. Nothing was changed — try again.', savedAt: null }
+    return { error: 'Could not save. Nothing was changed — try again.', savedAt: null, createdSystemId: null }
   }
 
   revalidatePath(`/projects/${projectId}/setup`)
-  return { error: null, savedAt: crypto.randomUUID() }
+  return { error: null, savedAt: crypto.randomUUID(), createdSystemId: created?.id ?? null }
 }
 
 export async function updateSystemCadCode(

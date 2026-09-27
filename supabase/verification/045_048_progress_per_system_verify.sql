@@ -29,7 +29,22 @@
 -- matrix. Checks 3, 3.1, 16, 16.1 and 35-38 are the ones that say so.
 -- =============================================================================
 
-with checks as (
+with backfill_scope as (
+  -- How many systems the 045 backfill actually touched. Printed in checks 36
+  -- and 37's own labels, because a check nobody can tell is vacuous is worse
+  -- than no check: it reads PASS and gets quoted. Check 39 did exactly that
+  -- on an empty stack and produced a confident, wrong prediction.
+  select case
+    when to_regclass('workflow.project_system_floors') is null then 0::bigint
+    else (
+      xpath('/row/c/text()', query_to_xml(
+        'select count(distinct project_system_id) as c
+           from workflow.project_system_floors where source = ''migrated''',
+        false, true, ''))
+    )[1]::text::bigint
+  end as n_systems
+),
+checks as (
 
   -- ---- 045: the reshape ---------------------------------------------------
   select 1::numeric as n, '045 · progress_cells exists' as check_name,
@@ -282,11 +297,50 @@ with checks as (
                and conname = 'project_system_floors_source_check'
                and pg_get_constraintdef(oid) like '%migrated%')
 
-  -- THE ONE THAT MATTERS. After 045, no project that has both floors and
-  -- systems may be left without coverage — that is the blank matrix and the
-  -- drawings-only completion figure. Same query_to_xml guard as check 34, so
-  -- a pre-migration run prints FAIL instead of aborting the file.
-  union all select 36, '045 · NO project with floors and systems is left uncovered',
+  -- ---- the backfill, AND WHY THESE TWO ARE SCOPED --------------------------
+  --
+  -- READ THIS BEFORE TRUSTING 36 OR 37.
+  --
+  -- These were written to verify 045 section 9's backfill and phrased as if
+  -- "every system covers every floor" were an invariant of the app. IT IS
+  -- NOT, and §6.5 says so plainly: partial coverage is the ordinary case
+  -- ("27 of 30 · GF to L26", "3 of 30 · B3, B2, B1"), and a system covering
+  -- NOTHING is a defined state with its own copy ("No floors." in amber).
+  --
+  -- They passed at first only because no project had any systems, so they
+  -- were asking nothing. The moment a system was added by hand on 26 Sep
+  -- 2026 they both went FAIL against an app behaving exactly as designed.
+  -- The defect was in the checks.
+  --
+  -- So both are now scoped to coverage the MIGRATION created — source
+  -- 'migrated' — which is the only thing 045 is answerable for. A system a
+  -- person adds later, and scopes however they like, is none of this file's
+  -- business.
+  --
+  -- AND NOW THE PART THAT MATTERS MORE. ON PRODUCTION BOTH OF THESE ARE
+  -- VACUOUS AND WILL READ PASS FOREVER. The backfill inserted ZERO rows
+  -- there, because no project had a system when 045 ran (diagnostic C2 = 0).
+  -- A PASS on 36 or 37 against production means "there was nothing to
+  -- back-fill", NOT "the backfill worked".
+  --
+  -- That distinction is not pedantry. Check 39 read PASS on a schema-only
+  -- stack for exactly this reason — no rows, nothing to violate — and it
+  -- produced a confident, wrong prediction about what production would show.
+  -- A vacuous check that reads PASS is indistinguishable from a real one
+  -- unless the file says which it is. This one says.
+  --
+  -- MEASURED 26 Sep 2026: zero migrated rows on production AND on
+  -- rollback-test, because neither had a single system when 045 ran. So today
+  -- these two assert NOTHING ANYWHERE. I first wrote that rollback-test still
+  -- gave them teeth; it does not, and checking beat assuming again.
+  --
+  -- That is why the scope count is printed in the label. "[0 systems in
+  -- scope]" beside a PASS says what the PASS is worth without anyone having
+  -- to open this file. They regain teeth only where 045 meets a database
+  -- that already had systems.
+  union all select 36,
+    '045 backfill · no project it touched was left uncovered  ['
+      || (select n_systems from backfill_scope)::text || ' systems in scope]',
     case
       when to_regclass('workflow.project_system_floors') is null then false
       else (
@@ -294,7 +348,8 @@ with checks as (
           'select count(*) as c
              from (select distinct ps.project_id
                      from workflow.project_systems ps
-                     join workflow.project_floors f on f.project_id = ps.project_id) p
+                     join workflow.project_system_floors m
+                       on m.project_system_id = ps.id and m.source = ''migrated'') p
             where not exists (
                     select 1 from workflow.project_system_floors psf
                       join workflow.project_systems ps2 on ps2.id = psf.project_system_id
@@ -304,9 +359,15 @@ with checks as (
       )[1]::text::bigint = 0
     end
 
-  -- Every (system, floor) pair inside a project should have coverage after
-  -- the backfill. A gap here means the backfill did not reach something.
-  union all select 37, '045 · every system covers every floor of its project',
+  -- Every floor that existed WHEN THE BACKFILL RAN should have got a row for
+  -- every system it touched. Floors created afterwards are excluded on
+  -- purpose: §6.5 hands those to the new-floor rule ("joins every system that
+  -- already covers every floor, and no other"), which is migration 045's
+  -- trigger and not its backfill, and a system narrowed by hand since would
+  -- otherwise show up here as a false failure.
+  union all select 37,
+    '045 backfill · it covered every floor it should have  ['
+      || (select n_systems from backfill_scope)::text || ' systems in scope]',
     case
       when to_regclass('workflow.project_system_floors') is null then false
       else (
@@ -314,7 +375,13 @@ with checks as (
           'select count(*) as c
              from workflow.project_systems ps
              join workflow.project_floors f on f.project_id = ps.project_id
-            where not exists (
+            where exists (select 1 from workflow.project_system_floors m
+                           where m.project_system_id = ps.id and m.source = ''migrated'')
+              and f.created_at <= (select max(m2.added_at)
+                                     from workflow.project_system_floors m2
+                                    where m2.project_system_id = ps.id
+                                      and m2.source = ''migrated'')
+              and not exists (
                     select 1 from workflow.project_system_floors psf
                      where psf.project_system_id = ps.id
                        and psf.floor_id = f.id)',

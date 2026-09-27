@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { addProjectSystem, updateSystemCadCode } from './actions'
 import { CoverageSummary, CoverageEditor, type CoverageFloorRow } from './CoverageEditor'
-import { setupInitialState } from './setup-shared'
+import { addSystemInitialState, setupInitialState } from './setup-shared'
 
 export interface ProjectSystemRow {
   id: string
@@ -46,12 +46,21 @@ export function SystemsSection({
 }) {
   const { t } = useLanguage()
   const [adding, setAdding] = useState(false)
-  const [addState, addAction, addPending] = useActionState(addProjectSystem, setupInitialState)
+  const [addState, addAction, addPending] = useActionState(addProjectSystem, addSystemInitialState)
   const [handledSavedAt, setHandledSavedAt] = useState<string | null>(null)
+
+  // §6.5: "A system added by hand opens the editor with every floor selected."
+  // Held HERE rather than in the row, and cleared the moment the editor is
+  // closed, so it is a one-time offer tied to THIS add. A system deliberately
+  // left covering nothing must not be re-offered the editor on every visit —
+  // "No floors." is a legitimate state with its own copy in §6.5, not an
+  // unfinished one.
+  const [autoOpenSystemId, setAutoOpenSystemId] = useState<string | null>(null)
 
   if (addState.savedAt && addState.savedAt !== handledSavedAt) {
     setHandledSavedAt(addState.savedAt)
     setAdding(false)
+    setAutoOpenSystemId(addState.createdSystemId)
   }
 
   const importedCount = systems.filter((s) => s.source === 'imported').length
@@ -75,6 +84,8 @@ export function SystemsSection({
             cadSystems={cadSystems}
             canEdit={canEdit}
             floors={floors}
+            justCreated={system.id === autoOpenSystemId}
+            onCoverageClosed={() => setAutoOpenSystemId(null)}
           />
         ))}
       </div>
@@ -133,16 +144,30 @@ function SystemRow({
   cadSystems,
   canEdit,
   floors,
+  justCreated,
+  onCoverageClosed,
 }: {
   projectId: string
   system: ProjectSystemRow
   cadSystems: CadSystemChoice[]
   canEdit: boolean
   floors: CoverageFloorRow[]
+  /** §6.5 — this system was just added by hand, so its editor opens with
+   *  every floor selected. One-time: the parent clears it on close. */
+  justCreated: boolean
+  onCoverageClosed: () => void
 }) {
   const { t } = useLanguage()
   const [state, formAction, pending] = useActionState(updateSystemCadCode, setupInitialState)
   const [editingFloors, setEditingFloors] = useState(false)
+
+  // Open because the person asked, OR because §6.5 says a hand-added system
+  // lands in its editor. Closing clears both, so nothing re-offers itself.
+  const coverageOpen = editingFloors || justCreated
+  const closeCoverage = () => {
+    setEditingFloors(false)
+    onCoverageClosed()
+  }
 
   return (
     <div className="wf-data-table__row wf-data-table__row--body" style={{ gridTemplateColumns: '1fr 1.1fr 1.4fr .7fr .8fr' }}>
@@ -222,7 +247,7 @@ function SystemRow({
           <button
             type="button"
             className="wf-admin-row__link"
-            onClick={() => setEditingFloors((v) => !v)}
+            onClick={() => (coverageOpen ? closeCoverage() : setEditingFloors(true))}
           >
             {system.coveredFloorIds.length === 0
               ? t('setupCoverageSetFloors')
@@ -231,7 +256,7 @@ function SystemRow({
         )}
       </span>
 
-      {editingFloors && canEdit && (
+      {coverageOpen && canEdit && (
         <div className="setup-coverage__editor-wrap">
           <CoverageEditor
             projectId={projectId}
@@ -240,7 +265,8 @@ function SystemRow({
             floors={floors}
             coveredIds={system.coveredFloorIds}
             recordedByFloor={system.recordedByFloor}
-            onDone={() => setEditingFloors(false)}
+            preselectAllFloors={justCreated}
+            onDone={closeCoverage}
           />
         </div>
       )}
