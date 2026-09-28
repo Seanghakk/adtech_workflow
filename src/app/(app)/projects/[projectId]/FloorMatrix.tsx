@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { MATRIX_COLUMNS, type MatrixCellState } from './floor-matrix'
 import type { SystemMatrixRow } from './floor-matrix'
@@ -163,7 +164,26 @@ export function FloorMatrix({
       {/* The shared §4.2 data table. Every row repeats the same
           grid-template-columns, which is what makes the five sub-stage
           columns equal instead of sized by their own header text. */}
-      <div className="wf-data-table floor-matrix__grid" role="table" aria-label={t('floorMatrixLegendTitle')}>
+      {/* §11.5 — "one grid; floors stay rows; each system is a group of five
+          columns". The track count therefore depends on how many systems the
+          project has: 1 + 5N. The CSS had it hardcoded at 1 + 5 from before
+          D096, so with two systems every item past the sixth wrapped into an
+          implicit row: each floor took two lines, the sub-stage headers came
+          out in a staircase, and the group headers landed over the floor
+          column.
+
+          Passed as a CUSTOM PROPERTY rather than gridTemplateColumns, and set
+          on the container so it inherits to every row. An inline
+          grid-template-columns would beat the 560px media query, where §11.5
+          shows ONE system and the rest are display:none — that rule has to
+          win, and it can only do so while the inline style is not setting the
+          same property. */}
+      <div
+        className="wf-data-table floor-matrix__grid"
+        role="table"
+        aria-label={t('floorMatrixLegendTitle')}
+        style={{ '--matrix-cols': `repeat(${systems.length * 5}, minmax(0, 1fr))` } as CSSProperties}
+      >
         {/* §11.5 — each system is a group of five columns under its own
             header, with its coverage stated beside it. Groups sit in
             Project setup order, the same order §22.6a uses. */}

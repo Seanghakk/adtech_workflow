@@ -5902,7 +5902,12 @@ button {
      rows and the swatch columns stopped lining up vertically. "Every row
      repeats the same grid-template-columns" only holds if the columns
      are fixed. */
-  grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+  /* Brief 106b / §11.5 — the track count is 1 + 5N, where N is the number
+     of systems, so it cannot live here as a constant. FloorMatrix sets
+     --matrix-cols on the grid container and it inherits to every row. The
+     fallback keeps a single-system project correct if the property is ever
+     missing, which is also exactly what this line used to hardcode. */
+  grid-template-columns: 96px var(--matrix-cols, repeat(5, minmax(0, 1fr)));
 }
 
 /* The floor label, 14px per mockup 9a. It WRAPS: nothing is truncated and
@@ -5928,6 +5933,17 @@ button {
 }
 a.floor-matrix__cell {
   cursor: pointer;
+}
+/* §11.2's seventh state, IN THE GRID. The only rule that existed was
+   .floor-matrix__legend-swatch.floor-matrix__cell--not_applicable, which
+   needs BOTH classes and so only ever styled the legend key. In the grid the
+   cell fell back to the base .floor-matrix__cell — block, full width, 26px,
+   no border — and rendered as nothing at all. Every floor outside a system's
+   coverage came out as an empty row, which read as a failure to load rather
+   than as "this system is not on this floor". */
+.floor-matrix__cell--not_applicable {
+  background: transparent;
+  border: 1px dashed var(--border);
 }
 .floor-matrix__cell--not_started {
   background: #fff;
@@ -8838,6 +8854,14 @@ a.floor-matrix__cell {
 }
 @media (max-width: 560px) {
   .floor-matrix__system-select { display: block; }
+  /* §11.5 — one system at a time here, and the others are display:none
+     below, so the row is back to 1 + 5 tracks. Setting the property itself
+     rather than grid-template-columns would be undone by the container's
+     inline value; setting the declaration wins because the inline style
+     deliberately sets only the custom property. */
+  .floor-matrix__grid .wf-data-table__row {
+    grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+  }
   /* One system at a time. The hidden groups stay in the DOM so the choice
      needs no re-fetch and the grid keeps its place. */
   .floor-matrix__phone-hidden { display: none; }
