@@ -2081,6 +2081,11 @@ const en = {
 
   // ==== Brief 106b / v7.4 §11.5 — systems side by side in the matrix ====
   floorMatrixFloorsSuffix: 'floors',
+  // Design's tower-label rule (28 Sep 2026), rule 4 — the heading over
+  // floors belonging to no tower, when towered floors share the view. The
+  // ONE new string the rule introduces; Design reserved the right to
+  // reword it, which changes this line and nothing else.
+  floorMatrixTowerGroupOther: 'Other floors',
   floorMatrixSystemSelectLabel: 'Which system to show',
   // §11.5 — "the sub-stage labels abbreviated in each group to
   // 1st · 2nd · 3rd · Pre · Comm, with one 12px line under the legend

@@ -27,6 +27,12 @@
  */
 
 import { computeSubStageDisplayState, type LatestInspection } from '@/lib/subStageDisplayState'
+import {
+  flattenFloorGroups,
+  formatCoverageRange,
+  groupFloorsByTower,
+  type FloorTowerGroup,
+} from '@/lib/floorLabels/towerGroups'
 
 export type MatrixCellState = 'not_applicable' | 'not_started' | 'in_progress' | 'awaiting_qc' | 'qc_passed' | 'qc_failed' | 'stalled'
 
@@ -77,35 +83,39 @@ export interface MatrixCell {
 
 export interface MatrixRow {
   floorId: string
-  /** "<Tower> - <Floor>" or the bare floor label for a no-tower floor —
-   *  same combined-label convention as shop-drawing-boq/floor-columns.ts's
-   *  buildFloorColumns (not imported directly: that file lives under a
-   *  sibling route folder, and this app's own convention, confirmed by
-   *  grepping every existing cross-route import under projects/
-   *  [projectId]/, is that page-local helpers stay page-local — so this
-   *  mirrors that ordering/label logic rather than reaching across
-   *  folders for an 8-line function). */
+  /** The BARE floor label. The tower is named once in the section heading
+   *  above the row, never inside the label — Design's tower-label rule,
+   *  28 Sep 2026, implemented in @/lib/floorLabels/towerGroups. */
   label: string
+  /** "<Tower> - <Floor>". Rule 5 — accessible names, tooltips and exports
+   *  only, where there is no heading overhead to supply the tower. */
+  fullLabel: string
   cells: MatrixCell[]
 }
 
-/** Same "no-tower floors first, then each tower in sort_order, its own
- *  floors in sort_order" rule as buildFloorColumns — brief §2's "existing
- *  floor display order" (Brief 047). */
-export function orderFloors(towers: TowerInput[], floors: FloorInput[]): (FloorInput & { label: string })[] {
-  const sortedTowers = [...towers].sort((a, b) => a.sortOrder - b.sortOrder)
-  const noTowerFloors = floors.filter((f) => f.towerId === null).sort((a, b) => a.sortOrder - b.sortOrder)
-
-  const ordered: (FloorInput & { label: string })[] = noTowerFloors.map((f) => ({ ...f, label: f.label }))
-
-  for (const tower of sortedTowers) {
-    const towerFloors = floors.filter((f) => f.towerId === tower.id).sort((a, b) => a.sortOrder - b.sortOrder)
-    for (const floor of towerFloors) {
-      ordered.push({ ...floor, label: `${tower.label} - ${floor.label}` })
-    }
-  }
-
-  return ordered
+/**
+ * The ordered floor sequence: tower-less floors first, then each tower in
+ * sort_order with its floors in sort_order — brief §2's "existing floor
+ * display order" (Brief 047), unchanged.
+ *
+ * It now delegates to the shared grouping rule and flattens the result,
+ * so ordering and grouping cannot disagree. Callers wanting only the
+ * ORDER (update/page.tsx's jump grid) are unaffected: flattening
+ * reproduces the exact sequence this function always returned.
+ *
+ * `label` is now BARE and `fullLabel` carries the composed form. Every
+ * caller that rendered `label` on screen wants the bare one under the new
+ * rule; the two that want the composed one say so by name.
+ *
+ * The heading argument is irrelevant when flattening — no heading is
+ * rendered — so it is passed as an empty string rather than dragging the
+ * dictionary into a pure ordering helper.
+ */
+export function orderFloors(
+  towers: TowerInput[],
+  floors: FloorInput[],
+): (FloorInput & { label: string; fullLabel: string })[] {
+  return flattenFloorGroups(groupFloorsByTower(towers, floors, ''))
 }
 
 /**
@@ -178,7 +188,7 @@ export function buildMatrixRows(args: {
       })
       return { state, subStageId: row?.id ?? null }
     })
-    return { floorId: floor.id, label: floor.label, cells }
+    return { floorId: floor.id, label: floor.label, fullLabel: floor.fullLabel, cells }
   })
 }
 
@@ -204,8 +214,25 @@ export interface MatrixSystemGroup {
 
 export interface SystemMatrixRow {
   floorId: string
+  /** Bare — the tower is named in the section heading above. */
   label: string
+  /** "<Tower> - <Floor>", for accessible names only (rule 5). A cell's
+   *  accessible name has no heading above it to supply the tower, so it
+   *  keeps the qualified form; the visible row head does not. */
+  fullLabel: string
   groups: MatrixSystemGroup[]
+}
+
+/**
+ * §11.5's rows, grouped by tower — Design's rule 1. A section with a
+ * heading renders a full-width group row above its floors; a section with
+ * heading null (rule 3 — every floor tower-less) renders its rows with no
+ * heading at all, which is the shape this matrix had before towers.
+ */
+export interface SystemMatrixSection {
+  towerId: string | null
+  heading: string | null
+  rows: SystemMatrixRow[]
 }
 
 /**
@@ -231,13 +258,19 @@ export function buildSystemMatrixRows(args: {
   latestInspectionBySubStageId: Map<string, LatestInspection | null>
   daysSince: (isoDate: string) => number
   isStale: (days: number) => boolean
-}): SystemMatrixRow[] {
-  const { towers, floors, systems, cells, latestInspectionBySubStageId, daysSince, isStale } = args
-  const orderedFloors = orderFloors(towers, floors)
+  /** Rule 4's heading for the tower-less group when towered floors share
+   *  the view. From the dictionary, never hardcoded here. */
+  otherFloorsHeading: string
+}): SystemMatrixSection[] {
+  const { towers, floors, systems, cells, latestInspectionBySubStageId, daysSince, isStale, otherFloorsHeading } = args
 
-  return orderedFloors.map((floor) => ({
+  return groupFloorsByTower(towers, floors, otherFloorsHeading).map((section) => ({
+    towerId: section.towerId,
+    heading: section.heading,
+    rows: section.floors.map((floor) => ({
     floorId: floor.id,
     label: floor.label,
+    fullLabel: floor.fullLabel,
     groups: systems.map((system) => {
       // Not covered: five not_applicable cells. Deliberately NOT an empty
       // group — the row must stay one line across every system, or floors
@@ -271,34 +304,37 @@ export function buildSystemMatrixRows(args: {
         }),
       }
     }),
+    })),
   }))
 }
 
 /**
- * §11.5's per-system header caption: "30 floors", "B3–B1 · 3 floors".
+ * §11.5's per-system header caption: "30 floors", "Tower: GF–L2 · 3 floors".
  *
  * A DIFFERENT SHAPE FROM §6.5's "Floors covered" on purpose. Setup is
  * answering "is this system where I think it is" and can afford to name
  * five floors; a column header has room for one short phrase and is read
  * while scanning a grid.
+ *
+ * THE RANGE ITSELF now comes from the shared rule (Design, 28 Sep 2026),
+ * which ranges within a tower and never across one. This is what fixes
+ * "Tower - GF–Tower - L2": that string was a range between two FULLY
+ * QUALIFIED labels, which reads as four floors. It is now "Tower: GF–L2".
+ *
+ * FULL COVERAGE STILL PRINTS NO RANGE, only the count — §11.5's own "30
+ * floors". Design did not revisit that and it stays: a system on every
+ * floor is better said as a total than as a span the reader has to
+ * compare against the floor list to recognise as "all of them".
  */
-export function systemCoverageCaption(
-  orderedFloorIds: string[],
-  orderedFloorLabels: string[],
+export function systemCoverageCaption<F extends FloorInput>(
+  groups: FloorTowerGroup<F>[],
   coveredFloorIds: Set<string>,
 ): { count: number; range: string | null } {
-  const coveredIdx = orderedFloorIds
-    .map((id, i) => (coveredFloorIds.has(id) ? i : -1))
-    .filter((i) => i >= 0)
+  const allFloors = groups.flatMap((g) => g.floors)
+  const count = allFloors.filter((f) => coveredFloorIds.has(f.id)).length
 
-  if (coveredIdx.length === 0) return { count: 0, range: null }
-  if (coveredIdx.length === orderedFloorIds.length) return { count: coveredIdx.length, range: null }
+  if (count === 0) return { count: 0, range: null }
+  if (count === allFloors.length) return { count, range: null }
 
-  const contiguous = coveredIdx.every((v, i) => i === 0 || v === coveredIdx[i - 1] + 1)
-  return {
-    count: coveredIdx.length,
-    range: contiguous
-      ? `${orderedFloorLabels[coveredIdx[0]]}–${orderedFloorLabels[coveredIdx[coveredIdx.length - 1]]}`
-      : null,
-  }
+  return { count, range: formatCoverageRange(groups, coveredFloorIds) }
 }
