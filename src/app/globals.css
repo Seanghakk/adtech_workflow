@@ -5902,21 +5902,42 @@ button {
      rows and the swatch columns stopped lining up vertically. "Every row
      repeats the same grid-template-columns" only holds if the columns
      are fixed. */
-  grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+  /* Brief 106b / §11.5 — the track count is 1 + 5N, where N is the number
+     of systems, so it cannot live here as a constant. FloorMatrix sets
+     --matrix-cols on the grid container and it inherits to every row. The
+     fallback keeps a single-system project correct if the property is ever
+     missing, which is also exactly what this line used to hardcode. */
+  grid-template-columns: 96px var(--matrix-cols, repeat(5, minmax(0, 1fr)));
 }
 
 /* The floor label, 14px per mockup 9a. It WRAPS: nothing is truncated and
    nothing is hidden.
-   FLAGGED FOR CLAUDE DESIGN, not solved here: 9a's floors are "L15" and
-   "B2", so 96px is ample there. This app's floors carry tower-qualified
-   labels — "Tower 2 - Mezzanine Level" needs 184px on one line — so inside
-   96px they wrap to two or three lines and those rows get taller. That is
-   observation 3 arriving by a different route. The alternatives are all
-   design decisions rather than build fixes: widen the fixed column (184px
-   covers every label in production today), or specify truncation with the
-   full label on hover. Nothing is invented here; see the result doc. */
+   THE 96px QUESTION IS ANSWERED AND CLOSED. It was flagged here for Claude
+   Design: 9a's floors are "L15" and "B2", but this app's were rendered
+   tower-qualified — "Tower 2 - Mezzanine Level" needs 184px on one line, so
+   inside 96px it wrapped to two or three lines and those rows grew taller.
+   Design's answer (28 Sep 2026) does not widen the column or truncate:
+   the tower is named ONCE in a heading row above its floors, so this
+   column now only ever holds a bare label and 96px is ample again —
+   exactly as in 9a. See src/lib/floorLabels/towerGroups.ts. */
 .floor-matrix__row-head {
   font: 600 14px/1.3 var(--font-body);
+  text-align: left;
+}
+/* Design's tower-label rule, rule 1 — the tower's own name, once, spanning
+   the whole grid above its floors. grid-column: 1 / -1 rather than a track
+   count: the row has 1 + 5N tracks and N is a runtime value, so naming an
+   end line is the only form that stays correct as systems are added. */
+.floor-matrix__tower-head {
+  border-bottom: 1px solid var(--border);
+}
+.floor-matrix__tower-head .floor-matrix__tower-name {
+  grid-column: 1 / -1;
+  font: 600 12px/1.4 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 0 4px;
   text-align: left;
 }
 /* Mockup 9a: every swatch is height:26px and fills its column. No
@@ -5928,6 +5949,17 @@ button {
 }
 a.floor-matrix__cell {
   cursor: pointer;
+}
+/* §11.2's seventh state, IN THE GRID. The only rule that existed was
+   .floor-matrix__legend-swatch.floor-matrix__cell--not_applicable, which
+   needs BOTH classes and so only ever styled the legend key. In the grid the
+   cell fell back to the base .floor-matrix__cell — block, full width, 26px,
+   no border — and rendered as nothing at all. Every floor outside a system's
+   coverage came out as an empty row, which read as a failure to load rather
+   than as "this system is not on this floor". */
+.floor-matrix__cell--not_applicable {
+  background: transparent;
+  border: 1px dashed var(--border);
 }
 .floor-matrix__cell--not_started {
   background: #fff;
@@ -8838,6 +8870,14 @@ a.floor-matrix__cell {
 }
 @media (max-width: 560px) {
   .floor-matrix__system-select { display: block; }
+  /* §11.5 — one system at a time here, and the others are display:none
+     below, so the row is back to 1 + 5 tracks. Setting the property itself
+     rather than grid-template-columns would be undone by the container's
+     inline value; setting the declaration wins because the inline style
+     deliberately sets only the custom property. */
+  .floor-matrix__grid .wf-data-table__row {
+    grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+  }
   /* One system at a time. The hidden groups stay in the DOM so the choice
      needs no re-fetch and the grid keeps its place. */
   .floor-matrix__phone-hidden { display: none; }

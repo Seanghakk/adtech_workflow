@@ -12,7 +12,8 @@ import { computeDependencyChain } from '@/lib/reporting/dependency-chain'
 import { getAgeLabelBand } from '@/lib/age'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CRUMB_BOARD } from '@/lib/breadcrumbs'
-import { buildSystemMatrixRows, orderFloors, systemCoverageCaption } from './floor-matrix'
+import { buildSystemMatrixRows, systemCoverageCaption } from './floor-matrix'
+import { groupFloorsByTower } from '@/lib/floorLabels/towerGroups'
 import { resolveLatestInspection, type LatestInspection } from '@/lib/subStageDisplayState'
 import { FloorMatrix } from './FloorMatrix'
 import { getSetupSectionsStatus } from './setup/setup-status'
@@ -157,17 +158,17 @@ export default async function SoRecordPage({
       ),
     }))
 
-    const orderedForCaption = orderFloors(
+    // Design's tower-label rule (28 Sep 2026) — the caption and the grid
+    // read the SAME grouping, so a range in the header cannot describe a
+    // span the rows below do not show.
+    const floorGroups = groupFloorsByTower(
       (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
       (floorRows ?? []).map((f) => ({ id: f.id, label: f.label, sortOrder: f.sort_order, towerId: f.tower_id })),
+      t('floorMatrixTowerGroupOther'),
     )
     const systemCaptions: Record<string, { count: number; range: string | null }> = {}
     for (const sys of matrixSystems) {
-      systemCaptions[sys.id] = systemCoverageCaption(
-        orderedForCaption.map((f) => f.id),
-        orderedForCaption.map((f) => f.label),
-        sys.coveredFloorIds,
-      )
+      systemCaptions[sys.id] = systemCoverageCaption(floorGroups, sys.coveredFloorIds)
     }
 
     // §11.5 — a system covering NO floors is kept out of the grid entirely
@@ -179,7 +180,7 @@ export default async function SoRecordPage({
       .filter((sys) => sys.coveredFloorIds.size === 0)
       .map((sys) => ({ id: sys.id, name: sys.name }))
 
-    const matrixRows = buildSystemMatrixRows({
+    const matrixSections = buildSystemMatrixRows({
       towers: (towerRows ?? []).map((tw) => ({ id: tw.id, label: tw.label, sortOrder: tw.sort_order })),
       floors: (floorRows ?? []).map((f) => ({ id: f.id, label: f.label, sortOrder: f.sort_order, towerId: f.tower_id })),
       systems: systemsWithCoverage,
@@ -193,6 +194,7 @@ export default async function SoRecordPage({
         updatedAt: s.updated_at,
       })),
       latestInspectionBySubStageId,
+      otherFloorsHeading: t('floorMatrixTowerGroupOther'),
       // Brief 056 §4: the SAME src/lib/age.ts thresholds every other
       // staleness read in this app uses — not a second definition. Now
       // generic over which date to clock (v6 §7.3 — a QC-failed cell
@@ -235,7 +237,7 @@ export default async function SoRecordPage({
           <Link href={`/projects/${project.id}`}>{t('floorMatrixBackToSoRecord')}</Link>
         </div>
 
-        <FloorMatrix projectId={project.id} rows={matrixRows} t={t} systemCaptions={systemCaptions} systemsWithoutCoverage={systemsWithoutCoverage}
+        <FloorMatrix projectId={project.id} sections={matrixSections} t={t} systemCaptions={systemCaptions} systemsWithoutCoverage={systemsWithoutCoverage}
           selectedSystemId={typeof sp.system === 'string' ? sp.system : null} />
         </div>
       </>

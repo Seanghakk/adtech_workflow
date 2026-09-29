@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import { Fragment, type CSSProperties } from 'react'
 import type { DictionaryKey } from '@/lib/i18n/dictionary'
 import { MATRIX_COLUMNS, type MatrixCellState } from './floor-matrix'
-import type { SystemMatrixRow } from './floor-matrix'
+import type { SystemMatrixSection } from './floor-matrix'
 import { MatrixSystemSelect } from './MatrixSystemSelect'
 
 
@@ -83,14 +84,16 @@ const MATRIX_COL_ABBR: Record<string, DictionaryKey> = {
 
 export function FloorMatrix({
   projectId,
-  rows,
+  sections,
   t,
   systemCaptions,
   systemsWithoutCoverage,
   selectedSystemId,
 }: {
   projectId: string
-  rows: SystemMatrixRow[]
+  /** Floors grouped by tower — Design's tower-label rule, 28 Sep 2026.
+   *  Each section draws its heading once above its own floor rows. */
+  sections: SystemMatrixSection[]
   t: (key: DictionaryKey) => string
   /** §11.5 — the per-system header caption, precomputed by the page so the
    *  grid does not re-derive coverage per render. */
@@ -102,6 +105,7 @@ export function FloorMatrix({
    *  group, so the phone always shows a system rather than nothing. */
   selectedSystemId: string | null
 }) {
+  const rows = sections.flatMap((s) => s.rows)
   if (rows.length === 0) {
     return <p className="empty-state">{t('floorMatrixEmptyNoFloors')}</p>
   }
@@ -163,7 +167,26 @@ export function FloorMatrix({
       {/* The shared §4.2 data table. Every row repeats the same
           grid-template-columns, which is what makes the five sub-stage
           columns equal instead of sized by their own header text. */}
-      <div className="wf-data-table floor-matrix__grid" role="table" aria-label={t('floorMatrixLegendTitle')}>
+      {/* §11.5 — "one grid; floors stay rows; each system is a group of five
+          columns". The track count therefore depends on how many systems the
+          project has: 1 + 5N. The CSS had it hardcoded at 1 + 5 from before
+          D096, so with two systems every item past the sixth wrapped into an
+          implicit row: each floor took two lines, the sub-stage headers came
+          out in a staircase, and the group headers landed over the floor
+          column.
+
+          Passed as a CUSTOM PROPERTY rather than gridTemplateColumns, and set
+          on the container so it inherits to every row. An inline
+          grid-template-columns would beat the 560px media query, where §11.5
+          shows ONE system and the rest are display:none — that rule has to
+          win, and it can only do so while the inline style is not setting the
+          same property. */}
+      <div
+        className="wf-data-table floor-matrix__grid"
+        role="table"
+        aria-label={t('floorMatrixLegendTitle')}
+        style={{ '--matrix-cols': `repeat(${systems.length * 5}, minmax(0, 1fr))` } as CSSProperties}
+      >
         {/* §11.5 — each system is a group of five columns under its own
             header, with its coverage stated beside it. Groups sit in
             Project setup order, the same order §22.6a uses. */}
@@ -205,9 +228,26 @@ export function FloorMatrix({
           )}
         </div>
 
-        {rows.map((row) => (
+        {sections.map((section) => (
+          <Fragment key={section.towerId ?? '__none__'}>
+            {/* Design's tower-label rule, rule 1 — the tower named ONCE,
+                here, so the 96px floor column below only ever holds bare
+                labels and never has to fit "Tower - GF". Rule 3: a
+                project whose floors belong to no tower has nothing to
+                name, so no heading row is drawn at all. */}
+            {section.heading !== null && (
+              <div className="wf-data-table__row floor-matrix__tower-head" role="row">
+                <div className="floor-matrix__tower-name" role="rowheader" aria-label={section.heading}>
+                  {section.heading}
+                </div>
+              </div>
+            )}
+            {section.rows.map((row) => (
           <div key={row.floorId} className="wf-data-table__row wf-data-table__row--body" role="row">
-            <div className="floor-matrix__row-head" role="rowheader">
+            {/* Bare label (rule 1). The qualified form stays on title for
+                the hover case and in every accessible name below — rule 5,
+                "tooltips, exports and prints, never the on-screen label". */}
+            <div className="floor-matrix__row-head" role="rowheader" title={row.fullLabel}>
               {row.label}
             </div>
             {row.groups.map((group) =>
@@ -222,7 +262,7 @@ export function FloorMatrix({
                     <div key={key} role="cell" className={phoneHidden(group.systemId).trim()}>
                       <span
                         className="floor-matrix__cell floor-matrix__cell--not_applicable"
-                        aria-label={`${row.label} · ${group.systemName} · ${t('floorMatrixLegendNotApplicable')}`}
+                        aria-label={`${row.fullLabel} · ${group.systemName} · ${t('floorMatrixLegendNotApplicable')}`}
                       />
                     </div>
                   )
@@ -232,13 +272,15 @@ export function FloorMatrix({
                     <Link
                       href={`/projects/${projectId}/update?floor=${row.floorId}`}
                       className={`floor-matrix__cell floor-matrix__cell--${cell.state}`}
-                      aria-label={`${row.label} · ${group.systemName} · ${t(LEGEND_KEYS[cell.state])}`}
+                      aria-label={`${row.fullLabel} · ${group.systemName} · ${t(LEGEND_KEYS[cell.state])}`}
                     />
                   </div>
                 )
               }),
             )}
           </div>
+            ))}
+          </Fragment>
         ))}
       </div>
 
