@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { LanguageToggle } from '@/components/LanguageToggle'
-import { signOut } from '@/app/(app)/actions'
 
 /** ADTECH_WF_Brief_107 — the frame every security page shares: the login card, a title, and a way out (sign out). */
 export function SecurityCard({ title, body, signOutLabel, children }: { title: string; body: string; signOutLabel: string; children?: ReactNode }) {
@@ -27,7 +26,8 @@ export function SecurityCard({ title, body, signOutLabel, children }: { title: s
           <p className="login-form__reset">{body}</p>
         </div>
         {children}
-        <form action={signOut} className="login-form__fields">
+        {/* Brief 108: a plain POST to a fixed address, never a Server Action (see sign-out/route.ts). */}
+        <form method="post" action="/security/sign-out" className="login-form__fields">
           <button className="btn" type="submit">
             {signOutLabel}
           </button>

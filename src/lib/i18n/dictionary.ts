@@ -154,7 +154,6 @@ const en = {
   securityTwoStepBody: 'Your account uses an authenticator app. Enter the 6-digit code it shows now.',
   securityTwoStepCode: '6-digit code',
   securityTwoStepSubmit: 'Continue',
-  securityTwoStepSubmitPending: 'Checking…',
   securityTwoStepError: 'That code didn’t work. Check the app and try again.',
   securityTwoStepRecovery: 'Lost your phone? Sign in to the CMMS and choose “Use a recovery code”. That removes the lost authenticator; set up a new one there, then come back here.',
   securitySetUpTitle: 'Set up two-step sign-in first',

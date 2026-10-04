@@ -85,6 +85,13 @@ describe('two-step owed (authenticator set up, signed in with the password only)
     const api = await updateSession(req('/api/progress-photos/upload', { method: 'POST' }))
     expect(api.status).toBe(403)
   })
+  it('Brief 108: the code submit and sign-out (plain POSTs to fixed /security addresses) always reach their handlers', async () => {
+    for (const path of ['/security/two-step/verify', '/security/sign-out']) {
+      const res = await updateSession(req(path, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' } }))
+      expect(res.status, path).toBe(200)
+      expect(res.headers.get('location'), path).toBeNull()
+    }
+  })
   it('the code page itself and sign-out stay reachable', async () => {
     expect((await updateSession(req('/security/two-step'))).status).toBe(200)
     expect((await updateSession(req('/security/two-step', { method: 'POST', headers: { 'next-action': 'x' } }))).status).toBe(200)
