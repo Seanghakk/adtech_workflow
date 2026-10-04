@@ -6,7 +6,10 @@
  * "no access" screen (not a crash, not a redirect loop, not an empty
  * dashboard) when it returns null with a signed-in user.
  */
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { securityGate, securityRedirectPath } from './security-gate'
+import { readSessionFacts } from './session-facts'
 
 export interface CurrentMember {
   userId: string
@@ -57,6 +60,15 @@ export async function getCurrentMember(): Promise<CurrentMemberResult> {
   if (!user) {
     return { user: null, member: null }
   }
+
+  // ADTECH_WF_Brief_107 Part A — second layer behind src/proxy.ts: every
+  // layout and every server action that asks "who is this" also refuses a
+  // session that still owes the CMMS's two-step code, needs two-step set
+  // up, or must change its password. redirect() here works from a Server
+  // Component, a Server Action and a Route Handler alike. A profile that
+  // can't be read throws (fails closed).
+  const gate = securityGate(await readSessionFacts(supabase, user.id))
+  if (gate.kind !== 'allow') redirect(securityRedirectPath(gate, null))
 
   // public.user_profiles read for identity ONLY (id, full_name, username)
   // — never .role, which is CMMS role vocabulary and means nothing here

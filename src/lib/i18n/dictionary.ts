@@ -145,6 +145,26 @@ const en = {
   // Brief 010 §2.6/§5.5 — plain-text reset path; see globals.css's own
   // note on .login-form__reset for why this isn't a working reset flow.
   loginResetPath: 'Forgot your password? Ask a project manager to reset it for you.',
+
+  // ADTECH_WF_Brief_107 — the CMMS's second sign-in step and forced password
+  // change, applied here. Enrolment, recovery codes and the password change
+  // itself stay in the CMMS (it owns the auth chain); these pages only ask
+  // for the code, or point to the CMMS page that does the rest.
+  securityTwoStepTitle: 'Enter your two-step code',
+  securityTwoStepBody: 'Your account uses an authenticator app. Enter the 6-digit code it shows now.',
+  securityTwoStepCode: '6-digit code',
+  securityTwoStepSubmit: 'Continue',
+  securityTwoStepSubmitPending: 'Checking…',
+  securityTwoStepError: 'That code didn’t work. Check the app and try again.',
+  securityTwoStepRecovery: 'Lost your phone? Sign in to the CMMS and choose “Use a recovery code”. That removes the lost authenticator; set up a new one there, then come back here.',
+  securitySetUpTitle: 'Set up two-step sign-in first',
+  securitySetUpBody: 'Your account must use two-step sign-in. Set it up in the CMMS (your account, Two-step sign-in), then come back here.',
+  securityChangePasswordTitle: 'Change your password first',
+  securityChangePasswordBody: 'You signed in with a temporary password. Change it in the CMMS, then come back here.',
+  securityOpenCmms: 'Open the CMMS',
+  securityCmmsLinkMissing: 'Open the CMMS in your browser to do this.',
+  securityContinue: 'I’ve done this — continue',
+  securitySignOut: 'Sign out',
  
   noAccessTitle: 'No access to the Workflow Tracker',
   // Brief 012 §4 — wording matched to the User Management queue's own

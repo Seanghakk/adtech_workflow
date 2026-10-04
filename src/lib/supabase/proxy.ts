@@ -18,6 +18,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabasePublishableKey, getSupabaseUrl } from './env'
+import { isSecurityOpenPath, securityGate, securityRedirectPath } from '@/lib/auth/security-gate'
+import { readSessionFacts, SessionFactsUnavailable } from '@/lib/auth/session-facts'
 
 const PUBLIC_PATHS = ['/login']
 
@@ -65,5 +67,42 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  // ADTECH_WF_Brief_107 Part A — the CMMS's second sign-in step and its
+  // forced password change, applied to EVERY page, server action and API
+  // route (the Workflow is almost all server actions; they POST to page
+  // paths, so they pass through here first and never run when blocked).
+  if (user && !isSecurityOpenPath(pathname)) {
+    let gate
+    try {
+      gate = securityGate(await readSessionFacts(supabase, user.id))
+    } catch (e) {
+      if (!(e instanceof SessionFactsUnavailable)) throw e
+      return blocked(request, 'account_check_unavailable', 503)
+    }
+    if (gate.kind !== 'allow') {
+      if (isNonPageRequest(request)) return blocked(request, gate.kind, 403)
+      return withCookies(
+        NextResponse.redirect(new URL(securityRedirectPath(gate, `${pathname}${request.nextUrl.search}`), request.url)),
+        response,
+      )
+    }
+  }
+
   return response
+}
+
+/** A server action (Next sends the `next-action` header) or an API route: refuse plainly, never redirect. */
+function isNonPageRequest(request: NextRequest): boolean {
+  return request.headers.has('next-action') || request.nextUrl.pathname.startsWith('/api/')
+}
+
+function blocked(request: NextRequest, reason: string, status: number) {
+  if (isNonPageRequest(request)) return NextResponse.json({ error: reason }, { status })
+  return new NextResponse('Your account could not be checked just now. Please try again in a moment.', { status, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+}
+
+/** Keep any refreshed session cookies when answering with a redirect. */
+function withCookies(target: NextResponse, source: NextResponse) {
+  source.cookies.getAll().forEach((c) => target.cookies.set(c))
+  return target
 }
