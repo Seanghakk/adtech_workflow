@@ -105,6 +105,11 @@ export async function POST(request: Request) {
     return Response.json({ error: `storage upload failed: ${upErr.message}` }, { status: 502 })
   }
 
+  // ADTECH_WF_Brief_107 Part B: this public-form URL is kept ONLY as the
+  // stored record (the same shape every existing row holds, so no data
+  // changes). Once the bucket is private it does not open; the app always
+  // shows photos through /api/progress-photos/file/… (lib/media/photo-link.ts),
+  // which derives the Storage path from it.
   const url = svc.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
   return Response.json({ url, path })
 }

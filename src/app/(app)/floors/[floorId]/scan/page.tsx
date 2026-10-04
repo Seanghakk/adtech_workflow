@@ -22,6 +22,7 @@ import { chooseSystem } from '@/lib/progressPerSystem/phoneSystem'
 import { SystemStep } from './SystemStep'
 import { SUB_STAGE_KEYS } from '@/lib/floorScan/rows'
 import { daysSinceICT } from '@/lib/format/datetime'
+import { photoViewUrl } from '@/lib/media/photo-link'
 
 export const metadata: Metadata = {
   title: 'Floor — ADTECH Workflow Tracker',
@@ -295,7 +296,7 @@ export default async function FloorScanPage({
     subStage: s.sub_stage,
     sequence: s.sequence,
     status: s.status as PhoneSubStageInput['status'],
-    photoUrl: s.photo_url,
+    photoUrl: photoViewUrl(s.photo_url), // Brief 107: served via the protected route
     updatedAt: s.updated_at,
     updatedByName: nameOf(s.updated_by),
     inspections: inspectionsBySubStage.get(s.id) ?? [],

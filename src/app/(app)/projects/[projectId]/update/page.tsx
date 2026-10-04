@@ -21,6 +21,7 @@ import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { computeSubStageQcFields } from './subStageQcFields'
 import { resolveLatestInspection } from '@/lib/subStageDisplayState'
 import { summariseFloorRow, systemsNotOnFloor } from '@/lib/progressPerSystem/floorRow'
+import { photoViewUrl } from '@/lib/media/photo-link'
 
 /**
  * Fable Brief 002 §2.1 — "the unassigned-project state, required not
@@ -340,7 +341,7 @@ export default async function UpdateProgressPage({
           status: s.status,
           qcDisplayState,
           lastInspectionStatus,
-          photoUrl: s.photo_url,
+          photoUrl: photoViewUrl(s.photo_url), // Brief 107: served via the protected route
         }
       })
 
@@ -537,7 +538,7 @@ export default async function UpdateProgressPage({
             ? {
                 dateLabel: formatDateICT(lastUpdate.recorded_at),
                 byLabel: lastAuthorLabel,
-                photoUrl: lastUpdate.photo_url,
+                photoUrl: photoViewUrl(lastUpdate.photo_url),
               }
             : null
         }
