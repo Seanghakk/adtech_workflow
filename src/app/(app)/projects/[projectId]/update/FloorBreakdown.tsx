@@ -32,6 +32,7 @@ import { DRAWING_TYPE_KEYS } from '@/lib/shopDrawing/drawingTypes'
 import { recordMaterialInspection, recordSubStageInspection } from './qc-actions'
 import { MaterialApprovalCheckBlock, type ApprovedPackage } from '@/components/MaterialApprovalCheckBlock'
 import type { SubStageDisplayState } from '@/lib/subStageDisplayState'
+import { photoViewUrl } from '@/lib/media/photo-link'
 
 const STATUS_KEYS: Record<string, DictionaryKey> = {
   not_started: 'statusNotStarted',
@@ -417,7 +418,7 @@ export function SubStageRowView({
 
           <div className="photo-picker">
             {photoPreview ? (
-              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoUrl ?? photoPreview)}>
+              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoViewUrl(photoUrl) ?? photoPreview)}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- local/compressed preview data URL, next/image doesn't take data: URLs */}
                 <img src={photoPreview} alt={t('floorBreakdownSubStagePhotoAlt')} />
                 {uploadStatus === 'uploading' ? (

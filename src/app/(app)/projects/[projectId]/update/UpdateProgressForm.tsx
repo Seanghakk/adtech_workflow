@@ -7,6 +7,7 @@ import { localizedLabel } from '@/lib/i18n/localized-label'
 import { AgeLadder } from '@/components/AgeLadder'
 import { compressImage, uploadProgressPhoto } from '@/lib/media/progressPhoto'
 import { submitProgressUpdate, type SubmitProgressUpdateState } from './actions'
+import { photoViewUrl } from '@/lib/media/photo-link'
 
 interface ReasonCode {
   code: string
@@ -450,7 +451,7 @@ export function UpdateProgressForm({
 
           <div className="photo-picker">
             {photoPreview ? (
-              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoUrl ?? photoPreview)}>
+              <button type="button" className="photo-thumb" onClick={() => setOverlayUrl(photoViewUrl(photoUrl) ?? photoPreview)}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- local/compressed preview data URL, next/image doesn't take data: URLs */}
                 <img src={photoPreview} alt={s.photoEvidenceAlt} />
                 {uploadStatus === 'uploading' ? (
