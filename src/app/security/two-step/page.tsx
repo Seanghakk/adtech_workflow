@@ -16,12 +16,13 @@ export const metadata: Metadata = { title: 'Two-step code — ADTECH Workflow Tr
  * check, not two.
  */
 export default async function TwoStepPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const next = safeNextPath(firstParam((await searchParams).next))
+  const params = await searchParams
+  const next = safeNextPath(firstParam(params.next))
   await requireGate('verify', next)
   const t = await getServerTranslator()
   return (
     <SecurityCard title={t('securityTwoStepTitle')} body={t('securityTwoStepBody')} signOutLabel={t('securitySignOut')}>
-      <TwoStepForm next={next} />
+      <TwoStepForm next={next} error={firstParam(params.error) === '1'} />
       <div className="login-form__fields">
         <p className="login-form__reset">{t('securityTwoStepRecovery')}</p>
       </div>
