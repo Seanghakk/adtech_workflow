@@ -15,3 +15,8 @@ export async function POST(request: NextRequest) {
   await supabase.auth.signOut()
   return applyCookies(NextResponse.redirect(new URL('/login', request.url), 303))
 }
+
+/** Opened as a page: nothing to do here but sign in. */
+export function GET(request: NextRequest) {
+  return NextResponse.redirect(new URL('/login', request.url), 303)
+}

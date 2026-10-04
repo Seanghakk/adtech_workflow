@@ -40,7 +40,7 @@ beforeEach(() => {
   })
 })
 
-const { POST } = await import('./route')
+const { POST, GET } = await import('./route')
 const { POST: SIGN_OUT } = await import('../../sign-out/route')
 
 function post(path: string, fields: Record<string, string>, extraHeaders: Record<string, string> = {}) {
@@ -92,5 +92,11 @@ describe('POST /security/sign-out (real @supabase/ssr)', () => {
     expect(res.headers.get('location')).toBe('https://wf.test/login')
     const cleared = res.headers.getSetCookie().find((c) => c.startsWith(`${COOKIE}=`))
     expect(cleared).toMatch(/Max-Age=0|Expires=Thu, 01 Jan 1970/i)
+  })
+})
+
+describe('opened as a page', () => {
+  it('GET on the submit address goes to the code page, not a dead end', () => {
+    expect(GET(new NextRequest('https://wf.test/security/two-step/verify')).headers.get('location')).toBe('https://wf.test/security/two-step')
   })
 })

@@ -44,3 +44,8 @@ export async function POST(request: NextRequest) {
   if (error) return applyCookies(NextResponse.redirect(back(), 303))
   return applyCookies(NextResponse.redirect(to(next ?? '/'), 303))
 }
+
+/** Opened as a page (e.g. carried as `next` after a session expired mid-entry): show the code page. */
+export function GET(request: NextRequest) {
+  return NextResponse.redirect(new URL(SECURITY_PATHS.verify, request.url), 303)
+}
