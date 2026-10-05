@@ -79,6 +79,20 @@ AS $$
   SELECT nullif(current_setting('request.jwt.claims', true), '')::jsonb
 $$;
 
+-- Platform Brief 005 (migration 051): workflow.mfa_satisfied() reads the
+-- person's verified authenticators. Supabase's real auth.mfa_factors has more
+-- columns (and enum types); this is the subset the checks insert. No grant to
+-- anon/authenticated, as on Supabase: only the SECURITY DEFINER function reads it.
+CREATE TABLE IF NOT EXISTS auth.mfa_factors (
+  id            uuid PRIMARY KEY,
+  user_id       uuid NOT NULL,
+  friendly_name text,
+  factor_type   text NOT NULL,
+  status        text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
 -- ---------------------------------------------------------------------------
 -- public.user_profiles — the CMMS's table, not ours.
 --
