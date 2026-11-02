@@ -46,3 +46,7 @@ next-env.d.ts
 
 # Supabase CLI scratch — not ours to commit
 supabase/.temp/
+
+# Brief 115 import outputs (never commit)
+/so-import-report*.md
+/so-import-manifest*.json
